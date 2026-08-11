@@ -1,0 +1,4 @@
+﻿This is a real test document for Anvikshiki.
+It talks about modular cognitive architectures, separating
+reasoning from generation, and keeping knowledge storage
+independent from reasoning.
