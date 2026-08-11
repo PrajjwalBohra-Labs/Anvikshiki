@@ -13,31 +13,6 @@ Anvikshiki is a local AI-powered conversation system built with FastAPI for the 
 - `.env.example` — sample environment variables for local development
 - `requirements.txt` — Python backend dependencies
 
-## What belongs in this repository
-
-Keep these in git:
-
-- source code under `app/` and `frontend/`
-- `requirements.txt`
-- `package.json`
-- `README.md`
-- `tests/`
-- `.env.example`
-- `.gitignore`
-- `real_sample.txt` (if it is intentionally part of the project)
-
-## What should not be committed
-
-Do not commit generated or machine-specific files:
-
-- `.venv/`
-- `data/`
-- `.env`
-- `__pycache__/`
-- `*.pyc`
-
-The existing `.gitignore` already excludes the key runtime artifacts.
-
 ## Local setup
 
 1. Create a Python virtual environment:
