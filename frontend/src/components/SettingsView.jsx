@@ -1,15 +1,18 @@
 ﻿import { useState } from "react"
+import { motion } from "framer-motion"
+import { Settings as SettingsIcon, Save, Download } from "lucide-react"
 import { api } from "../api"
+import { useToast } from "./Toast"
 
 export default function SettingsView() {
   const [key, setKey] = useState("")
   const [value, setValue] = useState("")
-  const [status, setStatus] = useState("")
+  const { showToast } = useToast()
 
   async function save() {
     if (!key.trim()) return
     await api.setSetting(key, value)
-    setStatus("Saved.")
+    showToast("Saved", "success")
   }
 
   async function load() {
@@ -17,22 +20,21 @@ export default function SettingsView() {
     try {
       const res = await api.getSetting(key)
       setValue(res.value)
-      setStatus("Loaded.")
+      showToast("Loaded", "info")
     } catch (err) {
-      setStatus(`Not found: ${err.message}`)
+      showToast(`Not found: ${err.message}`, "error")
     }
   }
 
   return (
     <div className="panel">
-      <h2>Settings</h2>
+      <h2><SettingsIcon size={20} /> Settings</h2>
       <div className="button-row">
         <input value={key} onChange={(e) => setKey(e.target.value)} placeholder="key" />
         <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="value" />
-        <button onClick={load}>Load</button>
-        <button onClick={save}>Save</button>
+        <motion.button whileTap={{ scale: 0.96 }} onClick={load}><Download size={14} /> Load</motion.button>
+        <motion.button whileTap={{ scale: 0.96 }} onClick={save}><Save size={14} /> Save</motion.button>
       </div>
-      {status && <p className="hint">{status}</p>}
     </div>
   )
 }
