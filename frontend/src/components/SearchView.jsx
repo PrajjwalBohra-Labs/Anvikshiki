@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Search as SearchIcon } from "lucide-react"
 import { api } from "../api"
@@ -29,7 +29,7 @@ export default function SearchView() {
       <h2><SearchIcon size={20} /> Search</h2>
       <div className="button-row">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search knowledge base..." />
-        <motion.button whileTap={{ scale: 0.96 }} onClick={runSearch} disabled={loading}>
+        <motion.button whileTap={{ scale: 0.98 }} className="btn-primary" onClick={runSearch} disabled={loading}>
           {loading ? <Spinner size={14} /> : <SearchIcon size={14} />} Search
         </motion.button>
       </div>

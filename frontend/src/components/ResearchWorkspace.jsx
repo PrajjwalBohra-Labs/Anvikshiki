@@ -1,8 +1,9 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { FlaskConical, Search as SearchIcon } from "lucide-react"
 import { api } from "../api"
 import CitationText from "./Citation"
+import Toggle from "./Toggle"
 import { Spinner } from "./shared"
 import { useToast } from "./Toast"
 
@@ -27,34 +28,34 @@ export default function ResearchWorkspace() {
 
   return (
     <div className="panel">
-      <h2><FlaskConical size={20} /> Research</h2>
+      <h2><FlaskConical size={16} strokeWidth={1.75} /> Research</h2>
+      <div className="status-indicator"><span className="status-dot" /> Synthesis Engine &middot; Ready</div>
       <textarea value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask a multi-part research question..." rows={3} />
-      <label className="hint" style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.6rem" }}>
-        <input type="checkbox" checked={useWebSearch} onChange={(e) => setUseWebSearch(e.target.checked)} style={{ width: "auto", margin: 0 }} />
-        Also search the internet (uses Tavily credits)
-      </label>
-      <motion.button whileTap={{ scale: 0.96 }} onClick={runResearch} disabled={loading}>
-        {loading ? <Spinner size={14} /> : <SearchIcon size={14} />} Research
-      </motion.button>
+      <Toggle checked={useWebSearch} onChange={setUseWebSearch} label="Web Research" />
+      <div className="button-row">
+        <button className="btn-primary" onClick={runResearch} disabled={loading}>
+          {loading ? <Spinner size={12} /> : <SearchIcon size={12} strokeWidth={2} />} Research
+        </button>
+      </div>
 
       {result && (
-        <motion.div className="research-result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div className="research-result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
           <h3>Sub-questions</h3>
-          <ul>{result.sub_questions.map((q, i) => <li key={i}>{q}</li>)}</ul>
+          <ul className="list">{result.sub_questions.map((q, i) => <li key={i}>{q}</li>)}</ul>
           <h3>Synthesized Answer</h3>
           <CitationText text={result.synthesized_answer} />
           {result.delivered === false && result.validation_violations?.length > 0 && (
-            <details className="hint" style={{ marginTop: "0.5rem" }}>
+            <details className="hint" style={{ marginTop: "0.6rem" }}>
               <summary>Why was this blocked?</summary>
               <ul>{result.validation_violations.map((v, i) => <li key={i}>{v}</li>)}</ul>
             </details>
           )}
           <h3>References ({result.references.length})</h3>
-          <ul>
+          <ul className="list">
             {result.references.map((r) => (
               <li key={r.document_id || r.url}>
                 <span className={`source-badge ${r.source_type}`}>{r.source_type === "web" ? "WEB" : "LOCAL"}</span>{" "}
-                {r.source_type === "web" ? <a href={r.url} target="_blank" rel="noreferrer">{r.title}</a> : r.title}
+                {r.source_type === "web" ? <a href={r.url} target="_blank" rel="noreferrer" style={{ color: "var(--text-secondary)" }}>{r.title}</a> : r.title}
               </li>
             ))}
           </ul>

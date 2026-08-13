@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { FolderKanban, Plus } from "lucide-react"
 import { api } from "../api"
@@ -35,7 +35,7 @@ export default function ProjectWorkspace() {
       <div className="button-row">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name" />
         <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
-        <motion.button whileTap={{ scale: 0.96 }} onClick={create} disabled={!name.trim()}>
+        <motion.button whileTap={{ scale: 0.98 }} className="btn-primary" onClick={create} disabled={!name.trim()}>
           <Plus size={14} /> Create
         </motion.button>
       </div>

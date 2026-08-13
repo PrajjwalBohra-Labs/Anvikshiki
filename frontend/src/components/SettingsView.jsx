@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Settings as SettingsIcon, Save, Download } from "lucide-react"
 import { api } from "../api"
@@ -32,8 +32,8 @@ export default function SettingsView() {
       <div className="button-row">
         <input value={key} onChange={(e) => setKey(e.target.value)} placeholder="key" />
         <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="value" />
-        <motion.button whileTap={{ scale: 0.96 }} onClick={load}><Download size={14} /> Load</motion.button>
-        <motion.button whileTap={{ scale: 0.96 }} onClick={save}><Save size={14} /> Save</motion.button>
+        <motion.button whileTap={{ scale: 0.98 }} className="btn-secondary" onClick={load}><Download size={14} /> Load</motion.button>
+        <motion.button whileTap={{ scale: 0.98 }} className="btn-primary" onClick={save}><Save size={14} /> Save</motion.button>
       </div>
     </div>
   )

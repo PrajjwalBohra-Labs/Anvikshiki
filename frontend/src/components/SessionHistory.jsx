@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { History, ChevronRight } from "lucide-react"
 import { api } from "../api"
@@ -30,7 +30,7 @@ export default function SessionHistory() {
       <p className="hint">Paste a session ID from the Chat tab to view its turn history.</p>
       <div className="button-row">
         <input value={sessionId} onChange={(e) => setSessionId(e.target.value)} placeholder="session id" />
-        <motion.button whileTap={{ scale: 0.96 }} onClick={load} disabled={loading}>
+        <motion.button whileTap={{ scale: 0.98 }} className="btn-primary" onClick={load} disabled={loading}>
           {loading ? <Spinner size={14} /> : <ChevronRight size={14} />} Load
         </motion.button>
       </div>

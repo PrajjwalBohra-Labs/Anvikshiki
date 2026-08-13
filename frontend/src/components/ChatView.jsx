@@ -1,8 +1,9 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Send, Radio, Bot, User } from "lucide-react"
 import { api } from "../api"
 import CitationText from "./Citation"
+import Toggle from "./Toggle"
 import { TypingDots, Spinner } from "./shared"
 import { useToast } from "./Toast"
 
@@ -53,12 +54,12 @@ export default function ChatView() {
 
   return (
     <div className="panel">
-      <h2><Bot size={20} /> Chat</h2>
-      <p className="hint">
-        "Send (validated)" runs the full reasoning + validation pipeline. "Send (stream preview)"
-        shows live generation without the validation gate.
+      <h2><Bot size={16} strokeWidth={1.75} /> Chat</h2>
+      <div className="status-indicator"><span className="status-dot" /> Cognitive Engine &middot; Ready</div>
+      <p className="hint" style={{ marginBottom: "1rem" }}>
+        Validated runs the full reasoning and verification pipeline. Stream shows live generation without the validation gate.
       </p>
-      {sessionId && <p className="hint">Session: {sessionId}</p>}
+      {sessionId && <p className="meta" style={{ marginBottom: "1rem" }}>SESSION {sessionId}</p>}
 
       <div className="chat-log">
         <AnimatePresence initial={false}>
@@ -66,17 +67,17 @@ export default function ChatView() {
             <motion.div
               key={i}
               className={`chat-message ${m.role}`}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.2 }}
             >
-              <div className="avatar">{m.role === "assistant" ? <Bot size={16} /> : <User size={16} />}</div>
+              <div className="avatar">{m.role === "assistant" ? <Bot size={13} strokeWidth={1.75} /> : <User size={13} strokeWidth={1.75} />}</div>
               <div className="chat-body">
                 {m.role === "assistant" ? (
                   <>
                     <CitationText text={m.text} />
-                    <div className="meta">
-                      {m.delivered ? `confidence ${m.confidence?.toFixed(2)}` : "not delivered (failed validation)"}
+                    <div className="meta" style={{ marginTop: "0.4rem" }}>
+                      {m.delivered ? `CONFIDENCE ${m.confidence?.toFixed(2)}` : "NOT DELIVERED -- VALIDATION FAILED"}
                     </div>
                   </>
                 ) : (
@@ -89,14 +90,14 @@ export default function ChatView() {
 
         {loading && (
           <motion.div className="chat-message assistant" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="avatar"><Bot size={16} /></div>
+            <div className="avatar"><Bot size={13} strokeWidth={1.75} /></div>
             <div className="chat-body"><TypingDots /></div>
           </motion.div>
         )}
 
         {streaming && (
           <motion.div className="chat-message assistant streaming" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="avatar"><Radio size={16} /></div>
+            <div className="avatar"><Radio size={13} strokeWidth={1.75} /></div>
             <div className="chat-body">
               <p>{streamText}<span className="streaming-cursor" /></p>
             </div>
@@ -104,20 +105,17 @@ export default function ChatView() {
         )}
       </div>
 
-      <textarea value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask something..." rows={3} />
+      <textarea value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask the cognitive engine..." rows={3} />
 
-      <label className="hint" style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.6rem" }}>
-        <input type="checkbox" checked={useWebSearch} onChange={(e) => setUseWebSearch(e.target.checked)} style={{ width: "auto", margin: 0 }} />
-        Also search the internet (uses Tavily credits)
-      </label>
+      <Toggle checked={useWebSearch} onChange={setUseWebSearch} label="Web Research" />
 
       <div className="button-row">
-        <motion.button whileTap={{ scale: 0.96 }} onClick={sendValidated} disabled={loading || streaming}>
-          {loading ? <Spinner size={14} /> : <Send size={14} />} Send (validated)
-        </motion.button>
-        <motion.button whileTap={{ scale: 0.96 }} onClick={sendStreaming} disabled={loading || streaming}>
-          <Radio size={14} /> Send (stream preview)
-        </motion.button>
+        <button className="btn-primary" onClick={sendValidated} disabled={loading || streaming}>
+          {loading ? <Spinner size={12} /> : <Send size={12} strokeWidth={2} />} Send &middot; Validated
+        </button>
+        <button className="btn-secondary" onClick={sendStreaming} disabled={loading || streaming}>
+          <Radio size={12} strokeWidth={2} /> Send &middot; Stream
+        </button>
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { FileText, Upload } from "lucide-react"
 import { api } from "../api"
@@ -37,7 +37,7 @@ export default function DocumentBrowser() {
       <h2><FileText size={20} /> Documents</h2>
       <div className="button-row">
         <input type="file" onChange={(e) => setFile(e.target.files[0])} style={{ width: "auto" }} />
-        <motion.button whileTap={{ scale: 0.96 }} onClick={upload} disabled={!file || uploading}>
+        <motion.button whileTap={{ scale: 0.98 }} className="btn-primary" onClick={upload} disabled={!file || uploading}>
           {uploading ? <Spinner size={14} /> : <Upload size={14} />} Upload &amp; Ingest
         </motion.button>
       </div>

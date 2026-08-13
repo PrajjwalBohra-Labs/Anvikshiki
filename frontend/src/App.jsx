@@ -1,4 +1,4 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   MessageSquare, FileText, Network, FlaskConical,
@@ -32,12 +32,12 @@ export default function App() {
   return (
     <ToastProvider>
       <div className="app">
-        <motion.header initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+        <header>
           <h1>Anvikshiki</h1>
           <p className="tagline">
-            A modular cognitive architecture -- this UI only renders results; all reasoning happens on the backend.
+            A modular cognitive architecture.
           </p>
-        </motion.header>
+        </header>
 
         <nav>
           {Object.entries(TABS).map(([key, tab]) => {
@@ -46,9 +46,9 @@ export default function App() {
             return (
               <button key={key} className={isActive ? "active" : ""} onClick={() => setActive(key)}>
                 {isActive && (
-                  <motion.div className="nav-pill" layoutId="nav-pill" transition={{ type: "spring", stiffness: 400, damping: 32 }} />
+                  <motion.div className="nav-pill" layoutId="nav-pill" transition={{ duration: 0.2, ease: "easeOut" }} />
                 )}
-                <Icon size={15} style={{ position: "relative", zIndex: 1 }} />
+                <Icon size={14} strokeWidth={1.75} style={{ position: "relative", zIndex: 1 }} />
                 <span style={{ position: "relative", zIndex: 1 }}>{tab.label}</span>
               </button>
             )
@@ -58,10 +58,10 @@ export default function App() {
         <AnimatePresence mode="wait">
           <motion.main
             key={active}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
           >
             <ActiveComponent />
           </motion.main>
