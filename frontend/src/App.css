@@ -353,3 +353,23 @@ textarea:focus, input:focus {
   .app { padding: 1.5rem 1rem; }
   nav { overflow-x: auto; }
 }
+.app-header { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 0.5rem; }
+.app-logo { width: 34px; height: 34px; opacity: 0.92; flex-shrink: 0; }
+.app-header h1 { margin-bottom: 0.2rem; }
+.app-header .tagline { margin-bottom: 0; }
+
+.mandala-watermark {
+  position: fixed;
+  top: -140px;
+  right: -180px;
+  width: 640px;
+  height: 640px;
+  background-image: url("/anvikshiki-logo-512.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app { position: relative; z-index: 1; }

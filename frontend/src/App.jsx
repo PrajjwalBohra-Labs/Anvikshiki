@@ -31,12 +31,16 @@ export default function App() {
 
   return (
     <ToastProvider>
+      <div className="mandala-watermark" aria-hidden="true" />
       <div className="app">
-        <header>
-          <h1>Anvikshiki</h1>
-          <p className="tagline">
-            A modular cognitive architecture.
-          </p>
+        <header className="app-header">
+          <img src="/anvikshiki-logo-40.png" alt="" className="app-logo" />
+          <div>
+            <h1>Anvikshiki</h1>
+            <p className="tagline">
+              A modular cognitive architecture.
+            </p>
+          </div>
         </header>
 
         <nav>
