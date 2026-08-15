@@ -56,6 +56,7 @@ class ConversationEngine(EngineContract):
             memory_engine=self._memory_engine,
         )
         verification = None
+        context_summary = None
         if result.reasoning is not None:
             contradictions = sum(1 for c in result.reasoning.comparisons if c["relation"] == "divergence")
             verification = {
@@ -67,6 +68,14 @@ class ConversationEngine(EngineContract):
                 ),
                 "confidence": result.reasoning.confidence.overall if result.reasoning.confidence else None,
             }
+            distinct_docs = {
+                e.get("source_document_id") for e in result.reasoning.evidence if e.get("source_document_id")
+            }
+            context_summary = {
+                "retrieved_chunk_count": len(result.reasoning.facts),
+                "document_count": len(distinct_docs),
+                "concept_relationship_count": len(result.reasoning.relationships),
+            }
 
         return {
             "session_id": result.session_id,
@@ -75,6 +84,7 @@ class ConversationEngine(EngineContract):
             "confidence": result.reasoning.confidence.overall if result.reasoning and result.reasoning.confidence else None,
             "state_trace": [s.value for s in result.state_trace],
             "verification": verification,
+            "context": context_summary,
         }
 
     def validate(self, response: dict) -> bool:
@@ -145,6 +155,7 @@ class ResearchEngineContract(EngineContract):
             "sub_questions": result.sub_questions,
             "synthesized_answer": result.synthesized_answer,
             "references": result.references,
+            "comparisons": result.comparisons,
             "delivered": result.delivered,
             "validation_violations": result.validation_violations,
         }
@@ -185,6 +196,7 @@ class DocumentEngine(EngineContract):
 
     def shutdown(self) -> None:
         self._initialized = False
+
 
 
 

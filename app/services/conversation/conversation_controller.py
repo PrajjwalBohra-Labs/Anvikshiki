@@ -179,7 +179,24 @@ def handle_message(
             answer_id = None
             if delivered_text is not None:
                 confidence = reasoning.confidence.overall if reasoning.confidence else None
-                answer_id = relational_db.create_answer(question_id, delivered_text, confidence=confidence)
+                sources = []
+                seen_keys = set()
+                for item in reasoning.evidence:
+                    key = item.get("source_document_id") or item.get("source_url")
+                    if key and key not in seen_keys:
+                        seen_keys.add(key)
+                        sources.append(
+                            {
+                                "document_id": item.get("source_document_id"),
+                                "title": item.get("source_document_title"),
+                                "source_type": item.get("source_type"),
+                                "url": item.get("source_url"),
+                                "concept_id": item.get("concept_id"),
+                            }
+                        )
+                answer_id = relational_db.create_answer(
+                    question_id, delivered_text, confidence=confidence, sources=sources
+                )
 
             trace.append(DialogueState.TERMINATE)
 
@@ -204,3 +221,4 @@ def handle_message(
         validation=validation_result, reflection=reflection_result,
         question_id=question_id, answer_id=answer_id,
     )
+

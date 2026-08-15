@@ -20,6 +20,12 @@ class VerificationSummary(BaseModel):
     confidence: float | None
 
 
+class ContextSummary(BaseModel):
+    retrieved_chunk_count: int
+    document_count: int
+    concept_relationship_count: int
+
+
 class ChatResponse(BaseModel):
     session_id: str
     response: str | None
@@ -27,6 +33,20 @@ class ChatResponse(BaseModel):
     confidence: float | None
     state_trace: list[str]
     verification: VerificationSummary | None = None
+    context: ContextSummary | None = None
+
+
+class SessionSummaryResponse(BaseModel):
+    session_id: str
+    message_count: int
+    verified_count: int
+    source_count: int
+    concept_count: int
+
+
+class ConceptGraphResponse(BaseModel):
+    nodes: list[dict]
+    edges: list[dict]
 
 
 class SearchResultItem(BaseModel):
@@ -52,6 +72,7 @@ class ResearchResponse(BaseModel):
     sub_questions: list[str]
     synthesized_answer: str
     references: list[dict]
+    comparisons: list[dict]
     delivered: bool
     validation_violations: list[str]
 
@@ -92,6 +113,7 @@ class SettingRequest(BaseModel):
 class SettingResponse(BaseModel):
     key: str
     value: str
+
 
 
 

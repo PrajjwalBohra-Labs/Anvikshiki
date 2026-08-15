@@ -35,6 +35,12 @@ def init_db() -> None:
     conn = get_connection()
     try:
         conn.executescript(schema_sql)
+        # Migration for pre-existing DBs created before the `sources`
+        # column existed (fresh installs already get it from schema.sql).
+        try:
+            conn.execute("ALTER TABLE answers ADD COLUMN sources TEXT")
+        except sqlite3.OperationalError:
+            pass  # column already exists
         conn.commit()
     finally:
         conn.close()
@@ -217,13 +223,16 @@ def get_question(question_id: str) -> dict | None:
     return dict(row) if row else None
 
 
-def create_answer(question_id: str, text: str, confidence: float | None = None) -> str:
+def create_answer(
+    question_id: str, text: str, confidence: float | None = None, sources: list[dict] | None = None
+) -> str:
     answer_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     with db_session() as conn:
         conn.execute(
-            "INSERT INTO answers (id, question_id, text, confidence, created_at) VALUES (?, ?, ?, ?, ?)",
-            (answer_id, question_id, text, confidence, now),
+            "INSERT INTO answers (id, question_id, text, confidence, sources, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (answer_id, question_id, text, confidence, json.dumps(sources or []), now),
         )
     return answer_id
 
@@ -294,3 +303,56 @@ def get_conversation_history(session_id: str) -> list[dict]:
             (session_id,),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+
+# --- Session summaries (real counts only -- §10 "Sessions as knowledge objects") ---
+
+def get_session_summary(session_id: str) -> dict:
+    with db_session() as conn:
+        rows = conn.execute(
+            """
+            SELECT q.id AS question_id, a.id AS answer_id, a.sources AS sources
+            FROM questions q
+            LEFT JOIN answers a ON a.question_id = q.id
+            WHERE q.session_id = ?
+            """,
+            (session_id,),
+        ).fetchall()
+
+    message_count = len(rows)
+    verified_count = 0
+    sources_seen: dict[str, dict] = {}
+    concepts_seen: set[str] = set()
+
+    for row in rows:
+        if row["answer_id"] is not None:
+            verified_count += 1
+        if row["sources"]:
+            for source in json.loads(row["sources"]):
+                key = source.get("document_id") or source.get("url") or source.get("title")
+                if key:
+                    sources_seen[key] = source
+                if source.get("concept_id"):
+                    concepts_seen.add(source["concept_id"])
+
+    return {
+        "message_count": message_count,
+        "verified_count": verified_count,
+        "source_count": len(sources_seen),
+        "concept_count": len(concepts_seen),
+    }
+
+
+# --- Concept graph (real nodes + real edges only -- §8) ---
+
+def get_concept_graph() -> dict:
+    with db_session() as conn:
+        concept_rows = conn.execute("SELECT * FROM concepts").fetchall()
+        edge_rows = conn.execute(
+            "SELECT * FROM relationships WHERE source_type = 'concept' OR target_type = 'concept'"
+        ).fetchall()
+    return {
+        "nodes": [dict(row) for row in concept_rows],
+        "edges": [dict(row) for row in edge_rows],
+    }

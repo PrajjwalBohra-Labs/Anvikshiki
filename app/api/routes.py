@@ -22,6 +22,7 @@ from app.api.dependencies import event_bus_dependency, llm_adapter_dependency, m
 from app.api.schemas import (
     ChatRequest,
     ChatResponse,
+    ConceptGraphResponse,
     ConceptResponse,
     DocumentIngestResponse,
     ProjectCreateRequest,
@@ -30,6 +31,7 @@ from app.api.schemas import (
     ResearchResponse,
     SearchResponse,
     SessionResponse,
+    SessionSummaryResponse,
     SettingRequest,
     SettingResponse,
 )
@@ -205,6 +207,11 @@ def list_concepts(limit: int = 50) -> list[dict]:
     return relational_db.list_concepts(limit=limit)
 
 
+@router.get("/concepts/graph", response_model=ConceptGraphResponse)
+def get_concept_graph() -> dict:
+    return relational_db.get_concept_graph()
+
+
 @router.get("/concepts/{concept_id}", response_model=ConceptResponse)
 def get_concept(concept_id: str) -> dict:
     concept = relational_db.get_concept(concept_id)
@@ -235,6 +242,15 @@ def get_session_history(session_id: str) -> list[dict]:
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
     return relational_db.get_conversation_history(session_id)
+
+
+@router.get("/sessions/{session_id}/summary", response_model=SessionSummaryResponse)
+def get_session_summary(session_id: str) -> dict:
+    session = relational_db.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    summary = relational_db.get_session_summary(session_id)
+    return {"session_id": session_id, **summary}
 
 
 # --- /settings (thin CRUD; §10 System Memory tier) ---
@@ -272,3 +288,4 @@ def get_trace(trace_id: str) -> list[dict]:
         }
         for e in events
     ]
+

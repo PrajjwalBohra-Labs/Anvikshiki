@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS answers (
     question_id TEXT REFERENCES questions(id),
     text TEXT NOT NULL,
     confidence REAL,
+    sources TEXT,
     created_at TEXT NOT NULL
 );
 
@@ -196,3 +197,4 @@ CREATE TABLE IF NOT EXISTS memory_records (
     metadata TEXT,
     created_at TEXT NOT NULL
 );
+

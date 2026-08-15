@@ -149,3 +149,39 @@ def test_chat_response_includes_real_verification_summary(client, seeded_documen
     assert verification["sources_checked"] >= 1
     assert "contradictions_detected" in verification
     assert "agreement_score" in verification
+
+
+def test_session_summary_endpoint_returns_real_counts(client, seeded_document):
+    chat_response = client.post("/chat", json={"query": "what is the grounded fact?"})
+    session_id = chat_response.json()["session_id"]
+
+    response = client.get(f"/sessions/{session_id}/summary")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["message_count"] == 1
+    assert body["verified_count"] == 1
+
+
+def test_session_summary_returns_404_for_unknown_session(client):
+    assert client.get("/sessions/does-not-exist/summary").status_code == 404
+
+
+def test_concept_graph_endpoint_returns_nodes_and_edges(client, seeded_document):
+    response = client.get("/concepts/graph")
+    assert response.status_code == 200
+    body = response.json()
+    assert "nodes" in body
+    assert "edges" in body
+
+
+def test_chat_response_includes_context_summary(client, seeded_document):
+    response = client.post("/chat", json={"query": "what is the grounded fact?"})
+    context = response.json()["context"]
+    assert context is not None
+    assert context["retrieved_chunk_count"] >= 1
+
+
+def test_research_response_includes_comparisons(client, seeded_document):
+    response = client.post("/research", json={"question": "what is the grounded fact?"})
+    body = response.json()
+    assert "comparisons" in body

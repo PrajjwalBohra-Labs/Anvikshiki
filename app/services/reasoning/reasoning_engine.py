@@ -128,6 +128,7 @@ def _build_evidence(chunks) -> list[dict]:
             "source_document_title": chunk.document_title,
             "source_type": chunk.source_type,
             "source_url": chunk.metadata.get("url"),
+            "concept_id": chunk.metadata.get("concept_id"),
             "score": chunk.score,
         }
         for chunk in chunks
@@ -195,3 +196,4 @@ def _compute_confidence(chunks, definitions, relationships, context: ContextObje
         retrieval_quality=retrieval_quality,
         overall=overall,
     )
+
