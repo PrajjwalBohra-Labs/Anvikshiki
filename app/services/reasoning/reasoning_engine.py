@@ -6,23 +6,18 @@ Reasoning Model end to end):
     Constraints -> Relationships -> Inference -> Alternatives ->
     Confidence -> Conclusion
 
-Hard rule for this step: no natural-language generation happens here
-(§13 "reasoning is independent of language generation" -- a
-reasoning object must be fully formed before any prose is generated
-from it). This module never calls LLMAdapter.generate() or
-.stream() -- there is no llm_adapter parameter at all, so it is
-structurally impossible for this engine to produce prose. Every
-field is either the user's own query text, text already extracted
-from stored documents/concepts (not synthesized), or a symbolic flag
-from a controlled vocabulary. "conclusion" is a structured pointer to
-what Step 9's Generation Engine should turn into prose -- not prose
-itself.
+Hard rule: no natural-language generation happens here (§13). This
+module never calls LLMAdapter.generate()/.stream() -- there is no
+llm_adapter parameter at all.
 
-Confidence (§15) is computed from five sub-scores -- source
-availability, agreement among sources, reasoning completeness,
-context quality, retrieval quality -- averaged into an overall score.
-This is a first-pass formula, not a claim of calibrated probability;
-"confidence is never equivalent to truth" (§15).
+comparisons (added post-Step-19) reuses the exact same pairwise
+agreement/divergence logic the Research Engine uses -- so a
+"contradictions detected" count shown anywhere in the UI is a real,
+computed signal shared across both engines, not two different
+half-truths.
+
+Confidence (§15) is computed from five sub-scores, averaged. First-
+pass formula, not a claim of calibrated probability.
 """
 
 from __future__ import annotations
@@ -32,6 +27,7 @@ from dataclasses import dataclass, field
 
 from app.persistence import relational_db
 from app.services.context.context_builder import ContextObject
+from app.services.knowledge.comparison import compare_chunks
 
 MIN_EXPECTED_SOURCES = 3  # heuristic denominator for source_availability, not a spec number
 
@@ -55,6 +51,7 @@ class ReasoningObject:
     assumptions: list[str] = field(default_factory=list)
     constraints: list[str] = field(default_factory=list)
     relationships: list[dict] = field(default_factory=list)
+    comparisons: list[dict] = field(default_factory=list)
     inference: list[str] = field(default_factory=list)
     alternatives: list[str] = field(default_factory=list)
     confidence: ConfidenceBreakdown | None = None
@@ -78,8 +75,9 @@ def reason(query: str, context: ContextObject) -> ReasoningObject:
     assumptions = _build_assumptions(chunks)
     constraints = _build_constraints(context)
     relationships = _build_relationships(concept_ids)
-    inference = [chunk.chunk_id for chunk in chunks]  # ranked order = the inference chain
-    alternatives = [chunk.chunk_id for chunk in chunks[1:]]  # everything but the top match
+    comparisons = compare_chunks(chunks)
+    inference = [chunk.chunk_id for chunk in chunks]
+    alternatives = [chunk.chunk_id for chunk in chunks[1:]]
 
     confidence = _compute_confidence(
         chunks=chunks, definitions=definitions, relationships=relationships, context=context
@@ -88,7 +86,7 @@ def reason(query: str, context: ContextObject) -> ReasoningObject:
     conclusion = {
         "primary_chunk_id": chunks[0].chunk_id if chunks else None,
         "supporting_relationship_count": len(relationships),
-        "requires_generation": True,  # Step 9 turns this into prose, not this engine
+        "requires_generation": True,
     }
 
     return ReasoningObject(
@@ -99,6 +97,7 @@ def reason(query: str, context: ContextObject) -> ReasoningObject:
         assumptions=assumptions,
         constraints=constraints,
         relationships=relationships,
+        comparisons=comparisons,
         inference=inference,
         alternatives=alternatives,
         confidence=confidence,
@@ -196,4 +195,3 @@ def _compute_confidence(chunks, definitions, relationships, context: ContextObje
         retrieval_quality=retrieval_quality,
         overall=overall,
     )
-

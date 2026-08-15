@@ -91,3 +91,9 @@ def test_reason_output_contains_zero_generated_prose_fields(seeded_knowledge):
     result = reason("reasoning", context)
     assert isinstance(result.conclusion, dict)
     assert "primary_chunk_id" in result.conclusion
+
+
+def test_reasoning_object_includes_real_comparisons_field(seeded_knowledge):
+    context = build_context("reasoning", llm_adapter=FixedEmbeddingAdapter())
+    result = reason("reasoning", context)
+    assert isinstance(result.comparisons, list)

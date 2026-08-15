@@ -55,12 +55,26 @@ class ConversationEngine(EngineContract):
             llm_adapter=self._llm_adapter,
             memory_engine=self._memory_engine,
         )
+        verification = None
+        if result.reasoning is not None:
+            contradictions = sum(1 for c in result.reasoning.comparisons if c["relation"] == "divergence")
+            verification = {
+                "sources_checked": len(result.reasoning.evidence),
+                "evidence_count": len(result.reasoning.facts),
+                "contradictions_detected": contradictions,
+                "agreement_score": (
+                    result.reasoning.confidence.agreement_among_sources if result.reasoning.confidence else None
+                ),
+                "confidence": result.reasoning.confidence.overall if result.reasoning.confidence else None,
+            }
+
         return {
             "session_id": result.session_id,
             "response": result.response,
             "delivered": result.delivered,
             "confidence": result.reasoning.confidence.overall if result.reasoning and result.reasoning.confidence else None,
             "state_trace": [s.value for s in result.state_trace],
+            "verification": verification,
         }
 
     def validate(self, response: dict) -> bool:
@@ -171,5 +185,6 @@ class DocumentEngine(EngineContract):
 
     def shutdown(self) -> None:
         self._initialized = False
+
 
 

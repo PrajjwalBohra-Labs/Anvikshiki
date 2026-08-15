@@ -139,3 +139,13 @@ def test_settings_set_and_get_roundtrip(client):
 def test_settings_get_returns_404_for_unknown_key(client):
     assert client.get("/settings/does-not-exist").status_code == 404
 
+
+
+def test_chat_response_includes_real_verification_summary(client, seeded_document):
+    response = client.post("/chat", json={"query": "what is the grounded fact?"})
+    assert response.status_code == 200
+    verification = response.json()["verification"]
+    assert verification is not None
+    assert verification["sources_checked"] >= 1
+    assert "contradictions_detected" in verification
+    assert "agreement_score" in verification

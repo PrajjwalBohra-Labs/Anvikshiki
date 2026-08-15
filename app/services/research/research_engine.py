@@ -24,6 +24,7 @@ import statistics
 from dataclasses import dataclass, field
 
 from app.config import get_settings
+from app.services.knowledge.comparison import compare_chunks, source_key
 from app.infrastructure.llm_adapter import LLMAdapter, get_llm_adapter
 from app.infrastructure.web_search_adapter import WebSearchAdapter, get_web_search_adapter
 from app.services.knowledge.retrieval import RetrievedChunk, retrieve
@@ -74,46 +75,13 @@ def _search_web(sub_questions: list[str], adapter: WebSearchAdapter, max_results
     return results
 
 
-def _tokenize(text: str) -> set[str]:
-    return set(_TOKEN_RE.findall(text.lower()))
 
-
-def _source_key(chunk: RetrievedChunk) -> str:
-    """A stable grouping key that works for both local documents
-    (document_id) and web results (which have no document_id)."""
-    return chunk.document_id or chunk.metadata.get("url") or chunk.chunk_id
-
-
-def _compare(chunks: list[RetrievedChunk]) -> list[dict]:
-    by_source: dict[str, list[RetrievedChunk]] = {}
-    for chunk in chunks:
-        by_source.setdefault(_source_key(chunk), []).append(chunk)
-
-    source_keys = list(by_source.keys())
-    comparisons = []
-    for i in range(len(source_keys)):
-        for j in range(i + 1, len(source_keys)):
-            key_a, key_b = source_keys[i], source_keys[j]
-            text_a = " ".join(c.chunk_text for c in by_source[key_a])
-            text_b = " ".join(c.chunk_text for c in by_source[key_b])
-            tokens_a, tokens_b = _tokenize(text_a), _tokenize(text_b)
-            union = tokens_a | tokens_b
-            overlap_ratio = len(tokens_a & tokens_b) / len(union) if union else 0.0
-            comparisons.append(
-                {
-                    "source_a": key_a,
-                    "source_b": key_b,
-                    "overlap_ratio": overlap_ratio,
-                    "relation": "agreement" if overlap_ratio >= DIVERGENCE_THRESHOLD else "divergence",
-                }
-            )
-    return comparisons
 
 
 def _references(chunks: list[RetrievedChunk]) -> list[dict]:
     seen: dict[str, dict] = {}
     for chunk in chunks:
-        key = _source_key(chunk)
+        key = source_key(chunk)
         if key not in seen:
             seen[key] = {
                 "document_id": chunk.document_id,
@@ -223,7 +191,7 @@ def research(
         adapter = web_search_adapter or get_web_search_adapter()
         chunks = chunks + _search_web(sub_questions, adapter, settings.web_search_max_results)
 
-    comparisons = _compare(chunks)
+    comparisons = compare_chunks(chunks)
     references = _references(chunks)
 
     if chunks:
@@ -267,5 +235,6 @@ def research(
         delivered=delivered,
         validation_violations=violations,
     )
+
 
 

@@ -12,12 +12,21 @@ class ChatRequest(BaseModel):
     use_web_search: bool = False
 
 
+class VerificationSummary(BaseModel):
+    sources_checked: int
+    evidence_count: int
+    contradictions_detected: int
+    agreement_score: float | None
+    confidence: float | None
+
+
 class ChatResponse(BaseModel):
     session_id: str
     response: str | None
     delivered: bool
     confidence: float | None
     state_trace: list[str]
+    verification: VerificationSummary | None = None
 
 
 class SearchResultItem(BaseModel):
@@ -83,5 +92,6 @@ class SettingRequest(BaseModel):
 class SettingResponse(BaseModel):
     key: str
     value: str
+
 
 
