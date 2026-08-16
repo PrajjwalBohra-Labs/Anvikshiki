@@ -1,27 +1,4 @@
-﻿"""
-Context Service (§12 Context Model): "Context is assembled, never
-assumed." Given a query, this pulls the sources §12 names that
-actually exist -- current message, retrieved knowledge (Step 5),
-concept graph (relationships table), project state -- and packages
-them into one bounded, token-budgeted object.
-
-Two §12 sources are deliberately not wired in yet:
-  - dialogue history: accepted as a plain optional parameter rather
-    than fetched, since the Conversation Service that will own real
-    session state doesn't exist until a later step (§17
-    replaceability -- this stays a clean injection point).
-  - working memory / session state: belongs to the Memory Service.
-
-Token counts are estimated with a simple len(text) // 4 heuristic,
-not a real tokenizer -- accurate counts are model-specific and Ollama
-models vary.
-
-Web-Augmented Knowledge (post-Step-16 amendment): opt-in per call via
-use_web_search. Default False -- with it off, behavior is unchanged
-from before this amendment, 100% local.
-"""
-
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass, field
 
@@ -36,9 +13,9 @@ DEFAULT_MAX_TOKENS = 4000
 DEFAULT_TOP_K = 5
 
 SYSTEM_POLICIES = [
-    "If evidence is insufficient, acknowledge the limitation and avoid fabrication (§16).",
-    "If sources conflict, preserve the disagreement rather than forcing synthesis (§16).",
-    "Confidence is never equivalent to truth (§15).",
+    "If evidence is insufficient, acknowledge the limitation and avoid fabrication.",
+    "If sources conflict, preserve the disagreement rather than forcing synthesis.",
+    "Confidence is never equivalent to truth.",
 ]
 
 
