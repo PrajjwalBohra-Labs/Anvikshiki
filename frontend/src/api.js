@@ -1,4 +1,4 @@
-﻿// All HTTP calls to the backend live here. The frontend never
+// All HTTP calls to the backend live here. The frontend never
 // computes an answer, ranks anything, or makes a decision -- it only
 // sends requests and renders whatever the backend already decided
 // (§7 hard rule). Every request now carries the API key (§27).
@@ -17,12 +17,19 @@ async function handleResponse(response) {
 }
 
 export const api = {
-  chat: (query, sessionId, useWebSearch = false) =>
+  chat: (query, sessionId, useWebSearch = false, traceId = null) =>
     fetch(`${BASE_URL}/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...AUTH_HEADERS },
+      headers: {
+        "Content-Type": "application/json",
+        ...AUTH_HEADERS,
+        ...(traceId ? { "X-Trace-Id": traceId } : {}),
+      },
       body: JSON.stringify({ query, session_id: sessionId, use_web_search: useWebSearch }),
     }).then(handleResponse),
+
+  getTrace: (traceId) =>
+    fetch(`${BASE_URL}/trace/${traceId}`, { headers: AUTH_HEADERS }).then(handleResponse),
 
   chatStream: async (query, onToken, onDone) => {
     const response = await fetch(`${BASE_URL}/chat/stream`, {

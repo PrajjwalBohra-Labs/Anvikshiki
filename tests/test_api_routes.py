@@ -147,7 +147,7 @@ def test_chat_response_includes_real_verification_summary(client, seeded_documen
     verification = response.json()["verification"]
     assert verification is not None
     assert verification["sources_checked"] >= 1
-    assert "contradictions_detected" in verification
+    assert "divergent_phrasing_count" in verification
     assert "agreement_score" in verification
 
 
@@ -185,3 +185,4 @@ def test_research_response_includes_comparisons(client, seeded_document):
     response = client.post("/research", json={"question": "what is the grounded fact?"})
     body = response.json()
     assert "comparisons" in body
+

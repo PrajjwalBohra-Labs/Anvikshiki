@@ -4,6 +4,8 @@ import { Send, Radio, Bot, User } from "lucide-react"
 import { api } from "../api"
 import CitationText from "./Citation"
 import Toggle from "./Toggle"
+import CognitiveExecutionEnvironment from "./CognitiveExecutionEnvironment"
+import VerificationPanel from "./VerificationPanel"
 import { TypingDots, Spinner } from "./shared"
 import { useToast } from "./Toast"
 
@@ -15,26 +17,37 @@ export default function ChatView() {
   const [streamText, setStreamText] = useState("")
   const [loading, setLoading] = useState(false)
   const [useWebSearch, setUseWebSearch] = useState(false)
+  const [activeTraceId, setActiveTraceId] = useState(null)
   const { showToast } = useToast()
 
   async function sendValidated() {
     if (!query.trim()) return
+    const traceId = crypto.randomUUID()
+    setActiveTraceId(traceId)
     setLoading(true)
     const userQuery = query
     setMessages((prev) => [...prev, { role: "user", text: userQuery }])
     setQuery("")
     try {
-      const result = await api.chat(userQuery, sessionId, useWebSearch)
+      const result = await api.chat(userQuery, sessionId, useWebSearch, traceId)
       setSessionId(result.session_id)
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: result.response, delivered: result.delivered, confidence: result.confidence },
+        {
+          role: "assistant",
+          text: result.response,
+          delivered: result.delivered,
+          confidence: result.confidence,
+          verification: result.verification,
+        },
       ])
       if (!result.delivered) showToast("Response was not delivered -- failed validation", "error")
     } catch (err) {
       showToast(err.message, "error")
     } finally {
       setLoading(false)
+      // keep the trace panel visible briefly so the final "done" states register,
+      // then let it collapse on the next send
     }
   }
 
@@ -53,13 +66,9 @@ export default function ChatView() {
   }
 
   return (
-    <div className="panel">
-      <h2><Bot size={16} strokeWidth={1.75} /> Chat</h2>
+    <div className="panel chat-command-panel">
       <div className="status-indicator"><span className="status-dot" /> Cognitive Engine &middot; Ready</div>
-      <p className="hint" style={{ marginBottom: "1rem" }}>
-        Validated runs the full reasoning and verification pipeline. Stream shows live generation without the validation gate.
-      </p>
-      {sessionId && <p className="meta" style={{ marginBottom: "1rem" }}>SESSION {sessionId}</p>}
+      <h2 className="ask-heading">Ask Anvikshiki</h2>
 
       <div className="chat-log">
         <AnimatePresence initial={false}>
@@ -76,9 +85,7 @@ export default function ChatView() {
                 {m.role === "assistant" ? (
                   <>
                     <CitationText text={m.text} />
-                    <div className="meta" style={{ marginTop: "0.4rem" }}>
-                      {m.delivered ? `CONFIDENCE ${m.confidence?.toFixed(2)}` : "NOT DELIVERED -- VALIDATION FAILED"}
-                    </div>
+                    <VerificationPanel verification={m.verification} delivered={m.delivered} />
                   </>
                 ) : (
                   <p>{m.text}</p>
@@ -86,6 +93,12 @@ export default function ChatView() {
               </div>
             </motion.div>
           ))}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {(loading || activeTraceId) && !streaming && (
+            <CognitiveExecutionEnvironment traceId={activeTraceId} active={loading} />
+          )}
         </AnimatePresence>
 
         {loading && (
@@ -105,17 +118,21 @@ export default function ChatView() {
         )}
       </div>
 
-      <textarea value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask the cognitive engine..." rows={3} />
+      {sessionId && <p className="meta" style={{ marginBottom: "0.6rem" }}>SESSION {sessionId}</p>}
 
-      <Toggle checked={useWebSearch} onChange={setUseWebSearch} label="Web Research" />
-
-      <div className="button-row">
-        <button className="btn-primary" onClick={sendValidated} disabled={loading || streaming}>
-          {loading ? <Spinner size={12} /> : <Send size={12} strokeWidth={2} />} Send &middot; Validated
-        </button>
-        <button className="btn-secondary" onClick={sendStreaming} disabled={loading || streaming}>
-          <Radio size={12} strokeWidth={2} /> Send &middot; Stream
-        </button>
+      <div className="command-surface">
+        <textarea value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ask the cognitive engine..." rows={3} />
+        <div className="command-controls">
+          <Toggle checked={useWebSearch} onChange={setUseWebSearch} label="Web Research" />
+          <div className="button-row">
+            <button className="btn-secondary" onClick={sendStreaming} disabled={loading || streaming}>
+              <Radio size={12} strokeWidth={2} /> Send &middot; Stream
+            </button>
+            <button className="btn-primary" onClick={sendValidated} disabled={loading || streaming}>
+              {loading ? <Spinner size={12} /> : <Send size={12} strokeWidth={2} />} Send &middot; Validated
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

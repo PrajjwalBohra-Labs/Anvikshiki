@@ -15,7 +15,7 @@ class ChatRequest(BaseModel):
 class VerificationSummary(BaseModel):
     sources_checked: int
     evidence_count: int
-    contradictions_detected: int
+    divergent_phrasing_count: int
     agreement_score: float | None
     confidence: float | None
 
@@ -113,6 +113,7 @@ class SettingRequest(BaseModel):
 class SettingResponse(BaseModel):
     key: str
     value: str
+
 
 
 

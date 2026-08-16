@@ -62,7 +62,7 @@ class ConversationEngine(EngineContract):
             verification = {
                 "sources_checked": len(result.reasoning.evidence),
                 "evidence_count": len(result.reasoning.facts),
-                "contradictions_detected": contradictions,
+                "divergent_phrasing_count": contradictions,
                 "agreement_score": (
                     result.reasoning.confidence.agreement_among_sources if result.reasoning.confidence else None
                 ),
@@ -196,6 +196,7 @@ class DocumentEngine(EngineContract):
 
     def shutdown(self) -> None:
         self._initialized = False
+
 
 
 
