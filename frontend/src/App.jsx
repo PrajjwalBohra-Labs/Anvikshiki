@@ -1,9 +1,9 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   MessageSquare, FlaskConical, Network, FileText,
   FolderKanban, History, Search, Settings as SettingsIcon,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Command,
 } from "lucide-react"
 import ChatView from "./components/ChatView"
 import DocumentBrowser from "./components/DocumentBrowser"
@@ -13,13 +13,9 @@ import SessionHistory from "./components/SessionHistory"
 import ProjectWorkspace from "./components/ProjectWorkspace"
 import SettingsView from "./components/SettingsView"
 import SearchView from "./components/SearchView"
+import CommandPalette from "./components/CommandPalette"
 import { ToastProvider } from "./components/Toast"
 
-// Grouping mirrors the app'"'"'s real structure: Workspace = where you
-// interact with the cognitive engine, Knowledge = what it knows,
-// Projects = organizational scope, System = introspection/config.
-// (No "Memory" entry -- the seven memory tiers exist server-side but
-// have no dedicated browsable page yet, so it'"'"'s not listed here.)
 const SECTIONS = [
   {
     label: "Workspace",
@@ -56,7 +52,25 @@ const ALL_ITEMS = SECTIONS.flatMap((s) => s.items)
 export default function App() {
   const [active, setActive] = useState("chat")
   const [collapsed, setCollapsed] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const ActiveComponent = ALL_ITEMS.find((item) => item.key === active).component
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      const isMod = e.metaKey || e.ctrlKey
+      if (isMod && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setPaletteOpen((v) => !v)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
+
+  function handlePaletteSelect(key) {
+    setActive(key)
+    setPaletteOpen(false)
+  }
 
   return (
     <ToastProvider>
@@ -67,6 +81,12 @@ export default function App() {
             <img src="/anvikshiki-logo-32.png" alt="" className="sidebar-logo" />
             {!collapsed && <span className="sidebar-wordmark">ANVIKSHIKI</span>}
           </div>
+
+          <button className="palette-trigger" onClick={() => setPaletteOpen(true)}>
+            <Command size={13} strokeWidth={1.75} />
+            {!collapsed && <span>Command</span>}
+            {!collapsed && <span className="palette-trigger-kbd">&#8984;K</span>}
+          </button>
 
           <nav className="sidebar-nav">
             {SECTIONS.map((section) => (
@@ -126,6 +146,13 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      <CommandPalette
+        isOpen={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        items={ALL_ITEMS}
+        onSelect={handlePaletteSelect}
+      />
     </ToastProvider>
   )
 }
