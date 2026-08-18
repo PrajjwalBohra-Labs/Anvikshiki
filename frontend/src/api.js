@@ -1,7 +1,7 @@
 // All HTTP calls to the backend live here. The frontend never
 // computes an answer, ranks anything, or makes a decision -- it only
 // sends requests and renders whatever the backend already decided
-// (§7 hard rule). Every request now carries the API key (§27).
+// (Â§7 hard rule). Every request now carries the API key (Â§27).
 
 const BASE_URL = "http://127.0.0.1:8000"
 // Must match API_KEY in the backend's .env file.
@@ -74,6 +74,7 @@ export const api = {
   },
 
   listConcepts: () => fetch(`${BASE_URL}/concepts`, { headers: AUTH_HEADERS }).then(handleResponse),
+  getConceptGraph: () => fetch(`${BASE_URL}/concepts/graph`, { headers: AUTH_HEADERS }).then(handleResponse),
 
   listProjects: () => fetch(`${BASE_URL}/projects`, { headers: AUTH_HEADERS }).then(handleResponse),
   createProject: (name, description) =>

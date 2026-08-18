@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     api_key: str = "change-me-local-dev-key"
     rate_limit_requests_per_minute: int = 60
 
+    # --- Document ingestion ---
+    max_document_bytes: int = 500 * 1024 * 1024  # 500 MB
+
     # --- Web search (post-Step-16 amendment: Web-Augmented Knowledge) ---
     web_search_enabled: bool = False
     tavily_api_key: str = ""

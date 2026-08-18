@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { FlaskConical, Search as SearchIcon } from "lucide-react"
+import GraphView from "./GraphView"
 import { api } from "../api"
 import CitationText from "./Citation"
 import Toggle from "./Toggle"
@@ -59,6 +60,30 @@ export default function ResearchWorkspace() {
               </li>
             ))}
           </ul>
+
+          {result.comparisons && result.comparisons.length > 0 && (
+            <>
+              <h3>Source Map</h3>
+              <p className="hint" style={{ marginBottom: "0.6rem" }}>
+                Lines show lexical overlap between sources -- muted for divergent phrasing, bright for agreement.
+                Not verified semantic contradiction detection.
+              </p>
+              <GraphView
+                nodes={Array.from(
+                  new Set(result.references.map((r) => r.document_id || r.url))
+                ).map((key) => {
+                  const ref = result.references.find((r) => (r.document_id || r.url) === key)
+                  return { id: key, name: ref.title, node_type: ref.source_type === "web" ? "document" : "concept" }
+                })}
+                edges={result.comparisons.map((c) => ({
+                  source_id: c.source_a,
+                  target_id: c.source_b,
+                  relationship_type: c.relation,
+                }))}
+                height={260}
+              />
+            </>
+          )}
         </motion.div>
       )}
     </div>

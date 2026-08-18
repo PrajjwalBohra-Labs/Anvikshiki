@@ -27,8 +27,7 @@ from app.infrastructure.cache import retrieval_cache
 from app.infrastructure.event_bus import EventBus, EventName, get_event_bus
 from app.infrastructure.llm_adapter import LLMAdapter, get_llm_adapter
 from app.persistence import file_store, relational_db, vector_store
-
-MAX_DOCUMENT_BYTES = 20 * 1024 * 1024  # 20 MB sanity limit, not a spec number
+from app.config import get_settings
 CHUNK_SIZE_CHARS = 1000
 CHUNK_OVERLAP_CHARS = 150
 
@@ -72,10 +71,11 @@ def _parser_for(filename: str):
 
 
 def _validate(filename: str, raw_bytes: bytes) -> None:
+    settings = get_settings()
     if not raw_bytes:
         raise IngestionError("Document is empty")
-    if len(raw_bytes) > MAX_DOCUMENT_BYTES:
-        raise IngestionError(f"Document exceeds max size of {MAX_DOCUMENT_BYTES} bytes")
+    if len(raw_bytes) > settings.max_document_bytes:
+        raise IngestionError(f"Document exceeds max size of {settings.max_document_bytes} bytes")
     _parser_for(filename)
 
 

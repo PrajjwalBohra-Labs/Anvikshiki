@@ -72,3 +72,15 @@ def test_concept_graph_returns_real_nodes_and_edges():
     graph = relational_db.get_concept_graph()
     assert any(n["id"] == concept_id for n in graph["nodes"])
     assert any(e["source_id"] == concept_id and e["relationship_type"] == "derived_from" for e in graph["edges"])
+
+
+def test_concept_graph_includes_document_node_referenced_by_edge():
+    document_id = relational_db.create_document("Doc A", "path/a.txt", "hash")
+    concept_id = relational_db.create_concept("Concept A", "desc")
+    relational_db.create_relationship(
+        source_type="concept", source_id=concept_id, target_type="document",
+        target_id=document_id, relationship_type="derived_from",
+    )
+    graph = relational_db.get_concept_graph()
+    document_nodes = [n for n in graph["nodes"] if n["node_type"] == "document"]
+    assert any(n["id"] == document_id for n in document_nodes)

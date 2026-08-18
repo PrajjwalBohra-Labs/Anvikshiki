@@ -43,6 +43,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Log the max upload size for reference
+logger.info(f"Max document upload size: {settings.max_document_bytes / (1024*1024):.0f} MB")
 app.include_router(
     api_router,
     dependencies=[Depends(require_api_key), Depends(rate_limit_dependency)],

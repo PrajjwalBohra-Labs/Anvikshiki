@@ -352,7 +352,33 @@ def get_concept_graph() -> dict:
         edge_rows = conn.execute(
             "SELECT * FROM relationships WHERE source_type = 'concept' OR target_type = 'concept'"
         ).fetchall()
+
+        # Real edges point at documents too (e.g. concept derived_from
+        # document, §19 ingestion) -- include those as document-typed
+        # nodes so every edge has both endpoints represented.
+        document_ids = set()
+        for row in edge_rows:
+            if row["source_type"] == "document":
+                document_ids.add(row["source_id"])
+            if row["target_type"] == "document":
+                document_ids.add(row["target_id"])
+
+        document_rows = []
+        if document_ids:
+            placeholders = ",".join("?" for _ in document_ids)
+            document_rows = conn.execute(
+                f"SELECT id, title FROM documents WHERE id IN ({placeholders})",
+                tuple(document_ids),
+            ).fetchall()
+
+    concept_nodes = [dict(row) for row in concept_rows]
+    for node in concept_nodes:
+        node["node_type"] = "concept"
+
+    document_nodes = [{"id": row["id"], "name": row["title"], "node_type": "document"} for row in document_rows]
+
     return {
-        "nodes": [dict(row) for row in concept_rows],
+        "nodes": concept_nodes + document_nodes,
         "edges": [dict(row) for row in edge_rows],
     }
+

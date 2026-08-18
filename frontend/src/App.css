@@ -436,3 +436,33 @@ textarea:focus, input:focus { outline: none; border-color: var(--accent-nav-hove
 .palette-result svg:first-child { color: var(--accent-light); flex-shrink: 0; }
 .palette-result.highlighted { background: var(--bg-elevated); color: var(--text-primary); }
 .palette-enter-icon { margin-left: auto; color: var(--text-muted); }
+
+.panel-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.3rem; }
+.view-switch { display: flex; gap: 0.2rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px; }
+.view-switch button {
+  display: flex; align-items: center; gap: 0.3rem;
+  background: transparent; border: none; color: var(--text-muted);
+  font-size: 0.68rem; font-family: var(--font-mono); letter-spacing: 0.03em;
+  padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.view-switch button.active { background: var(--accent-nav); color: var(--text-primary); }
+
+.graph-container { position: relative; width: 100%; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-primary); overflow: hidden; }
+.graph-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+.graph-node { fill: var(--bg-elevated); stroke-width: 1.5; }
+.graph-node-concept { stroke: var(--accent-light); }
+.graph-node-document { stroke: var(--accent-nav-hover); }
+.graph-node-label { fill: var(--text-secondary); font-size: 9px; font-family: var(--font-mono); }
+
+.graph-edge { stroke-width: 1; }
+.graph-edge-derived_from { stroke: var(--border-hover); }
+.graph-edge-agreement { stroke: var(--success); opacity: 0.55; }
+.graph-edge-divergence { stroke: var(--border-hover); opacity: 0.3; stroke-dasharray: 3 3; }
+
+.graph-legend { display: flex; align-items: center; gap: 1rem; margin-top: 0.7rem; flex-wrap: wrap; font-size: 0.72rem; color: var(--text-secondary); }
+.graph-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.legend-concept { background: var(--bg-elevated); border: 1.5px solid var(--accent-light); }
+.legend-document { background: var(--bg-elevated); border: 1.5px solid var(--accent-nav-hover); }

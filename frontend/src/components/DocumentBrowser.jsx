@@ -10,12 +10,27 @@ export default function DocumentBrowser() {
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const { showToast } = useToast()
+  const MAX_UPLOAD_MB = 500
 
   async function refresh() {
     setDocuments(await api.listDocuments())
   }
 
   useEffect(() => { refresh() }, [])
+
+  function handleFileSelect(e) {
+    const selectedFile = e.target.files[0]
+    if (!selectedFile) return
+    
+    const fileSizeMB = selectedFile.size / (1024 * 1024)
+    if (fileSizeMB > MAX_UPLOAD_MB) {
+      showToast(`File exceeds ${MAX_UPLOAD_MB} MB limit (${fileSizeMB.toFixed(2)} MB)`, "error")
+      e.target.value = ""
+      setFile(null)
+      return
+    }
+    setFile(selectedFile)
+  }
 
   async function upload() {
     if (!file) return
@@ -36,7 +51,7 @@ export default function DocumentBrowser() {
     <div className="panel">
       <h2><FileText size={20} /> Documents</h2>
       <div className="button-row">
-        <input type="file" onChange={(e) => setFile(e.target.files[0])} style={{ width: "auto" }} />
+        <input type="file" accept=".txt,.md" onChange={handleFileSelect} style={{ width: "auto" }} />
         <motion.button whileTap={{ scale: 0.98 }} className="btn-primary" onClick={upload} disabled={!file || uploading}>
           {uploading ? <Spinner size={14} /> : <Upload size={14} />} Upload &amp; Ingest
         </motion.button>
