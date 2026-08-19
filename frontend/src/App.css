@@ -466,3 +466,46 @@ textarea:focus, input:focus { outline: none; border-color: var(--accent-nav-hove
 .legend-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 .legend-concept { background: var(--bg-elevated); border: 1.5px solid var(--accent-light); }
 .legend-document { background: var(--bg-elevated); border: 1.5px solid var(--accent-nav-hover); }
+
+/* Context awareness line */
+.context-line {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+/* Cognitive timeline */
+.timeline-wrapper { margin-top: 0.5rem; }
+.timeline-toggle {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: transparent; border: none; padding: 0.2rem 0;
+  color: var(--text-muted); font-family: var(--font-mono);
+  font-size: 0.66rem; letter-spacing: 0.03em; cursor: pointer;
+}
+.timeline-toggle:hover { color: var(--text-secondary); }
+.timeline-detail { padding: 0.4rem 0 0.2rem; }
+.timeline-row {
+  display: flex; align-items: center; gap: 0.6rem;
+  font-family: var(--font-mono); font-size: 0.68rem;
+  padding: 0.25rem 0; border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.timeline-row:last-child { border-bottom: none; }
+.timeline-time { color: var(--text-muted); width: 78px; flex-shrink: 0; }
+.timeline-stage { color: var(--text-primary); width: 90px; flex-shrink: 0; }
+.timeline-event-type { color: var(--text-muted); flex: 1; }
+.timeline-stage_start.timeline-stage { color: var(--accent-light); }
+.timeline-failure.timeline-stage { color: var(--danger); }
+.timeline-duration { color: var(--text-secondary); }
+
+/* Session summary card */
+.session-summary-card {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 1rem; margin: 1rem 0;
+}
+.session-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+.session-stat { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+.session-stat-value { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 600; color: var(--text-primary); }
+.session-stat-label { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }

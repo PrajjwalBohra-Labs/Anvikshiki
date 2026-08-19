@@ -5,6 +5,7 @@ import { api } from "../api"
 import CitationText from "./Citation"
 import Toggle from "./Toggle"
 import CognitiveExecutionEnvironment from "./CognitiveExecutionEnvironment"
+import CognitiveTimeline from "./CognitiveTimeline"
 import VerificationPanel from "./VerificationPanel"
 import { TypingDots, Spinner } from "./shared"
 import { useToast } from "./Toast"
@@ -39,6 +40,8 @@ export default function ChatView() {
           delivered: result.delivered,
           confidence: result.confidence,
           verification: result.verification,
+          context: result.context,
+          traceId,
         },
       ])
       if (!result.delivered) showToast("Response was not delivered -- failed validation", "error")
@@ -84,8 +87,15 @@ export default function ChatView() {
               <div className="chat-body">
                 {m.role === "assistant" ? (
                   <>
+                    {m.context && (
+                      <div className="context-line">
+                        Context assembled &middot; {m.context.retrieved_chunk_count} chunks &middot;{" "}
+                        {m.context.document_count} documents &middot; {m.context.concept_relationship_count} relationships
+                      </div>
+                    )}
                     <CitationText text={m.text} />
                     <VerificationPanel verification={m.verification} delivered={m.delivered} />
+                    <CognitiveTimeline traceId={m.traceId} />
                   </>
                 ) : (
                   <p>{m.text}</p>

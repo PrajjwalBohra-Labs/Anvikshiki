@@ -1,7 +1,7 @@
 // All HTTP calls to the backend live here. The frontend never
 // computes an answer, ranks anything, or makes a decision -- it only
 // sends requests and renders whatever the backend already decided
-// (Â§7 hard rule). Every request now carries the API key (Â§27).
+// (Ã‚Â§7 hard rule). Every request now carries the API key (Ã‚Â§27).
 
 const BASE_URL = "http://127.0.0.1:8000"
 // Must match API_KEY in the backend's .env file.
@@ -85,6 +85,7 @@ export const api = {
     }).then(handleResponse),
 
   getSessionHistory: (id) => fetch(`${BASE_URL}/sessions/${id}/history`, { headers: AUTH_HEADERS }).then(handleResponse),
+  getSessionSummary: (id) => fetch(`${BASE_URL}/sessions/${id}/summary`, { headers: AUTH_HEADERS }).then(handleResponse),
 
   getSetting: (key) => fetch(`${BASE_URL}/settings/${key}`, { headers: AUTH_HEADERS }).then(handleResponse),
   setSetting: (key, value) =>
