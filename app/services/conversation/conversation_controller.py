@@ -35,7 +35,7 @@ from app.infrastructure.observability import (
 from app.persistence import relational_db
 from app.services.context.context_builder import build_context
 from app.services.conversation.session_engine import get_or_create_session
-from app.services.generation.generation_engine import generate_response_text
+from app.services.generation.generation_engine import generate_response, generate_response_text
 from app.services.memory.memory_engine import MemoryEngine, get_memory_engine
 from app.services.planning.planning_engine import ExecutionPlan, build_plan
 from app.services.reasoning.intent_analyzer import IntentDecision, analyze_intent
@@ -222,3 +222,161 @@ def handle_message(
         question_id=question_id, answer_id=answer_id,
     )
 
+
+
+
+def handle_message_stream(
+    query: str,
+    session_id: str | None = None,
+    conversation_history: list[dict] | None = None,
+    project_id: str | None = None,
+    use_web_search: bool = False,
+    llm_adapter: LLMAdapter | None = None,
+    memory_engine: MemoryEngine | None = None,
+    event_bus: EventBus | None = None,
+):
+    """
+    Streaming-compatible entry point through the Conversation
+    Controller. Closes the §34 exception recorded at Step 13/21:
+    tokens are yielded live as they arrive, but the full accumulated
+    text is still validated/reflected the instant streaming
+    completes, using the exact same rules as handle_message(). If
+    validation fails, the already-streamed text is NOT retracted
+    (the person already read it) but the final event honestly marks
+    it undelivered/unverified -- same as the validated path already
+    does for a failed turn.
+
+    This is a generator. Intermediate items have type "token" or
+    "clarify"; the final item always has type "done" and carries the
+    same verification/context summary shape ChatResponse uses.
+    """
+    llm_adapter = llm_adapter or get_llm_adapter()
+    memory_engine = memory_engine or get_memory_engine()
+    event_bus = event_bus or get_event_bus()
+
+    trace_id = get_current_trace_id()
+    if trace_id is None:
+        trace_id = new_trace_id()
+        set_current_trace_id(trace_id)
+
+    with trace_stage("conversation_turn_stream", query_length=len(query)):
+        session_id, was_created = get_or_create_session(session_id)
+        if was_created:
+            event_bus.publish(EventName.CONVERSATION_STARTED, {"session_id": session_id})
+
+        with trace_stage("interpret"):
+            initial_intent = analyze_intent(query)
+
+        if initial_intent.clarification_required:
+            with trace_stage("clarify"):
+                response_text = CLARIFICATION_RESPONSE
+                question_id = relational_db.create_question(session_id, query)
+                relational_db.create_answer(question_id, response_text)
+                memory_engine.remember(
+                    {"content": f"Q: {query}\nA: {response_text}", "tier": "dialogue", "scope_id": session_id}
+                )
+            yield {"type": "clarify", "text": response_text, "trace_id": trace_id, "session_id": session_id}
+            return
+
+        try:
+            with trace_stage("retrieve"):
+                context = build_context(
+                    query, conversation_history=conversation_history, project_id=project_id,
+                    llm_adapter=llm_adapter, use_web_search=use_web_search,
+                )
+                final_intent = analyze_intent(query, context=context)
+
+            with trace_stage("reason"):
+                reasoning = reason(query, context)
+                event_bus.publish(
+                    EventName.REASONING_COMPLETED,
+                    {"session_id": session_id, "confidence": reasoning.confidence.overall if reasoning.confidence else None},
+                )
+
+            full_text_parts: list[str] = []
+            with trace_stage("generate"):
+                for token in generate_response(reasoning, query, conversation_history, llm_adapter):
+                    full_text_parts.append(token)
+                    yield {"type": "token", "text": token, "session_id": session_id}
+            response_text = "".join(full_text_parts)
+
+            with trace_stage("verify"):
+                validation_result = validate(response_text, reasoning)
+                if not validation_result.passed:
+                    record_event("verify", "failure", violations=validation_result.all_violations)
+
+            with trace_stage("reflect"):
+                reflection_result = reflect(response_text, reasoning)
+                if not reflection_result.passed:
+                    record_event("reflect", "failure", flags=reflection_result.failure_flags)
+
+            delivered = validation_result.passed and reflection_result.passed
+            delivered_text = response_text if delivered else None
+
+            memory_summary = f"Q: {query}\nA: {delivered_text or '[not delivered -- failed validation/reflection]'}"
+            memory_engine.remember({"content": memory_summary, "tier": "dialogue", "scope_id": session_id})
+            if delivered and final_intent.should_memory_change:
+                memory_engine.remember({"content": query, "tier": "research", "scope_id": project_id})
+
+            question_id = relational_db.create_question(session_id, query)
+            answer_id = None
+            if delivered_text is not None:
+                confidence = reasoning.confidence.overall if reasoning.confidence else None
+                sources = []
+                seen_keys = set()
+                for item in reasoning.evidence:
+                    key = item.get("source_document_id") or item.get("source_url")
+                    if key and key not in seen_keys:
+                        seen_keys.add(key)
+                        sources.append({
+                            "document_id": item.get("source_document_id"),
+                            "title": item.get("source_document_title"),
+                            "source_type": item.get("source_type"),
+                            "url": item.get("source_url"),
+                            "concept_id": item.get("concept_id"),
+                        })
+                answer_id = relational_db.create_answer(
+                    question_id, delivered_text, confidence=confidence, sources=sources
+                )
+
+            divergent_count = sum(1 for c in reasoning.comparisons if c["relation"] == "divergence")
+            distinct_docs = {e.get("source_document_id") for e in reasoning.evidence if e.get("source_document_id")}
+
+            yield {
+                "type": "done",
+                "delivered": delivered,
+                "response": delivered_text,
+                "session_id": session_id,
+                "trace_id": trace_id,
+                "verification": {
+                    "sources_checked": len(reasoning.evidence),
+                    "evidence_count": len(reasoning.facts),
+                    "divergent_phrasing_count": divergent_count,
+                    "agreement_score": reasoning.confidence.agreement_among_sources if reasoning.confidence else None,
+                    "confidence": reasoning.confidence.overall if reasoning.confidence else None,
+                },
+                "context": {
+                    "retrieved_chunk_count": len(reasoning.facts),
+                    "document_count": len(distinct_docs),
+                    "concept_relationship_count": len(reasoning.relationships),
+                },
+                "question_id": question_id,
+                "answer_id": answer_id,
+            }
+
+        except Exception as exc:
+            failure = EngineFailureError(stage="conversation_turn_stream", original=exc)
+            logger.error(str(failure))
+            record_event("conversation_turn_stream", "failure", error=str(exc), error_type=type(exc).__name__)
+            question_id = relational_db.create_question(session_id, query)
+            yield {
+                "type": "done",
+                "delivered": False,
+                "response": INTERNAL_ERROR_RESPONSE,
+                "session_id": session_id,
+                "trace_id": trace_id,
+                "verification": None,
+                "context": None,
+                "question_id": question_id,
+                "answer_id": None,
+            }

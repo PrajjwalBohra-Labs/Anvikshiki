@@ -60,8 +60,35 @@ export default function ChatView() {
     setStreamText("")
     const userQuery = query
     setQuery("")
+    setMessages((prev) => [...prev, { role: "user", text: userQuery }])
     try {
-      await api.chatStream(userQuery, (token) => setStreamText((prev) => prev + token), () => setStreaming(false))
+      await api.chatStream(
+        userQuery,
+        sessionId,
+        useWebSearch,
+        (token) => setStreamText((prev) => prev + token),
+        (result) => {
+          setStreaming(false)
+          if (result.session_id) setSessionId(result.session_id)
+          if (result.type === "clarify") {
+            setMessages((prev) => [...prev, { role: "assistant", text: result.text, delivered: true }])
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                text: result.response || streamText,
+                delivered: result.delivered,
+                verification: result.verification,
+                context: result.context,
+                traceId: result.trace_id,
+              },
+            ])
+            if (!result.delivered) showToast("Streamed response failed verification after the fact", "error")
+          }
+          setStreamText("")
+        }
+      )
     } catch (err) {
       showToast(err.message, "error")
       setStreaming(false)
@@ -106,8 +133,8 @@ export default function ChatView() {
         </AnimatePresence>
 
         <AnimatePresence>
-          {(loading || activeTraceId) && !streaming && (
-            <CognitiveExecutionEnvironment traceId={activeTraceId} active={loading} />
+          {(loading || streaming) && (
+            <CognitiveExecutionEnvironment traceId={activeTraceId} active={loading || streaming} />
           )}
         </AnimatePresence>
 

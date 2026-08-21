@@ -14,6 +14,8 @@ research question, search query) are sanitized here at the boundary.
 
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
@@ -39,10 +41,8 @@ from app.infrastructure.event_bus import EventBus, EventName
 from app.infrastructure.llm_adapter import LLMAdapter
 from app.persistence import relational_db
 from app.security.sanitization import InputValidationError, sanitize_text
-from app.services.context.context_builder import build_context
-from app.services.generation.generation_engine import generate_response
+from app.services.conversation.conversation_controller import handle_message_stream
 from app.services.memory.memory_engine import MemoryEngine
-from app.services.reasoning.reasoning_engine import reason
 
 router = APIRouter()
 
@@ -78,23 +78,32 @@ def chat(
 def chat_stream(
     body: ChatRequest,
     llm_adapter: LLMAdapter = Depends(llm_adapter_dependency),
+    memory_engine: MemoryEngine = Depends(memory_engine_dependency),
+    event_bus: EventBus = Depends(event_bus_dependency),
 ) -> StreamingResponse:
-    """Streams live generation directly (§9). Documented exception to
-    the validation gate /chat enforces -- streaming and post-hoc
-    full-text validation are structurally in tension."""
+    """Streams live generation through the Conversation Controller."""
 
     body.query = _sanitized(body.query)
-    context = build_context(
-        body.query, project_id=body.project_id, llm_adapter=llm_adapter, use_web_search=body.use_web_search
-    )
-    reasoning = reason(body.query, context)
 
-    def token_stream():
-        for token in generate_response(reasoning, body.query, llm_adapter=llm_adapter):
-            yield f"data: {token}\n\n"
-        yield "event: done\ndata: {}\n\n"
+    def event_stream():
+        for event in handle_message_stream(
+            query=body.query,
+            session_id=body.session_id,
+            project_id=body.project_id,
+            use_web_search=body.use_web_search,
+            llm_adapter=llm_adapter,
+            memory_engine=memory_engine,
+            event_bus=event_bus,
+        ):
+            if event["type"] == "token":
+                yield f"data: {event['text']}\n\n"
+            elif event["type"] == "clarify":
+                yield f"event: clarify\ndata: {json.dumps(event)}\n\n"
+            elif event["type"] == "done":
+                yield f"event: verification\ndata: {json.dumps(event)}\n\n"
+                yield "event: done\ndata: {}\n\n"
 
-    return StreamingResponse(token_stream(), media_type="text/event-stream")
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 # --- /search (Engine Contract: SearchEngine) ---

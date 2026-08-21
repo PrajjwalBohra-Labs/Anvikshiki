@@ -1,7 +1,7 @@
 // All HTTP calls to the backend live here. The frontend never
 // computes an answer, ranks anything, or makes a decision -- it only
 // sends requests and renders whatever the backend already decided
-// (Ã‚Â§7 hard rule). Every request now carries the API key (Ã‚Â§27).
+// (Ãƒâ€šÃ‚Â§7 hard rule). Every request now carries the API key (Ãƒâ€šÃ‚Â§27).
 
 const BASE_URL = "http://127.0.0.1:8000"
 // Must match API_KEY in the backend's .env file.
@@ -31,11 +31,11 @@ export const api = {
   getTrace: (traceId) =>
     fetch(`${BASE_URL}/trace/${traceId}`, { headers: AUTH_HEADERS }).then(handleResponse),
 
-  chatStream: async (query, onToken, onDone) => {
+  chatStream: async (query, sessionId, useWebSearch, onToken, onResult) => {
     const response = await fetch(`${BASE_URL}/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...AUTH_HEADERS },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, session_id: sessionId, use_web_search: useWebSearch }),
     })
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
@@ -47,8 +47,11 @@ export const api = {
       const events = buffer.split("\n\n")
       buffer = events.pop()
       for (const chunk of events) {
-        if (chunk.startsWith("event: done")) {
-          onDone()
+        if (chunk.startsWith("event: verification") || chunk.startsWith("event: clarify")) {
+          const jsonLine = chunk.split("\n").find((l) => l.startsWith("data:"))
+          if (jsonLine) onResult(JSON.parse(jsonLine.slice(5)))
+        } else if (chunk.startsWith("event: done")) {
+          // terminal marker only -- the real payload already arrived via "event: verification"
         } else if (chunk.startsWith("data:")) {
           onToken(chunk.slice(5))
         }
