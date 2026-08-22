@@ -56,6 +56,8 @@ export default function ChatView() {
 
   async function sendStreaming() {
     if (!query.trim()) return
+    const traceId = crypto.randomUUID()
+    setActiveTraceId(traceId)
     setStreaming(true)
     setStreamText("")
     const userQuery = query
@@ -81,13 +83,14 @@ export default function ChatView() {
                 delivered: result.delivered,
                 verification: result.verification,
                 context: result.context,
-                traceId: result.trace_id,
+                traceId: result.trace_id || traceId,
               },
             ])
             if (!result.delivered) showToast("Streamed response failed verification after the fact", "error")
           }
           setStreamText("")
-        }
+        },
+        traceId
       )
     } catch (err) {
       showToast(err.message, "error")

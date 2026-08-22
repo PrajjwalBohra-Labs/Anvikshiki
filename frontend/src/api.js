@@ -1,7 +1,7 @@
 // All HTTP calls to the backend live here. The frontend never
 // computes an answer, ranks anything, or makes a decision -- it only
 // sends requests and renders whatever the backend already decided
-// (Ãƒâ€šÃ‚Â§7 hard rule). Every request now carries the API key (Ãƒâ€šÃ‚Â§27).
+// (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7 hard rule). Every request now carries the API key (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§27).
 
 const BASE_URL = "http://127.0.0.1:8000"
 // Must match API_KEY in the backend's .env file.
@@ -31,10 +31,14 @@ export const api = {
   getTrace: (traceId) =>
     fetch(`${BASE_URL}/trace/${traceId}`, { headers: AUTH_HEADERS }).then(handleResponse),
 
-  chatStream: async (query, sessionId, useWebSearch, onToken, onResult) => {
+  chatStream: async (query, sessionId, useWebSearch, onToken, onResult, traceId = null) => {
     const response = await fetch(`${BASE_URL}/chat/stream`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...AUTH_HEADERS },
+      headers: {
+        "Content-Type": "application/json",
+        ...AUTH_HEADERS,
+        ...(traceId ? { "X-Trace-Id": traceId } : {}),
+      },
       body: JSON.stringify({ query, session_id: sessionId, use_web_search: useWebSearch }),
     })
     const reader = response.body.getReader()
