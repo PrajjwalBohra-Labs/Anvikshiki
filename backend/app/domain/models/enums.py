@@ -12,6 +12,13 @@ class SourceType(str, Enum):
     DISCOVERY_ONLY = "DISCOVERY_ONLY"
     UNVERIFIED = "UNVERIFIED"
 
+class SourceRelationshipType(str, Enum):
+    TRANSLATION_OF = "TRANSLATION_OF"
+    COMMENTARY_ON = "COMMENTARY_ON"
+    EDITION_OF = "EDITION_OF"
+    INTERPRETATION_OF = "INTERPRETATION_OF"
+    SYNTHESIS_OF = "SYNTHESIS_OF"
+
 class ClaimType(str, Enum):
     DIRECT_SOURCE_CLAIM = "DIRECT_SOURCE_CLAIM"
     TRANSLATION = "TRANSLATION"
@@ -39,9 +46,9 @@ class RelationType(str, Enum):
     INDEPENDENT = "independent"
 
 class PramanaType(str, Enum):
-    PRATYAKSHA = "pratyaksha"  # Perception
-    ANUMANA = "anumana"        # Inference
-    UPAMANA = "upamana"        # Analogy/Comparison
-    SHABDA = "shabda"          # Verbal/Authoritative Testimony
-    ARTHAPATTI = "arthapatti"  # Postulation/Presumption
-    ANUPALABDHI = "anupalabdhi"# Non-perception
+    PRATYAKSHA = "pratyaksha"  
+    ANUMANA = "anumana"        
+    UPAMANA = "upamana"        
+    SHABDA = "shabda"          
+    ARTHAPATTI = "arthapatti"  
+    ANUPALABDHI = "anupalabdhi"

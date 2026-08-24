@@ -1,10 +1,10 @@
 ﻿import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
-from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SQLEnum
+from typing import List, Optional, Any
+from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.app.infrastructure.database.session import Base
-from backend.app.domain.models.enums import SourceType
+from backend.app.domain.models.enums import SourceType, SourceRelationshipType
 
 def generate_uuid() -> str:
     return str(uuid.uuid4())
@@ -12,7 +12,6 @@ def generate_uuid() -> str:
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
-# --- Identity ---
 class UserModel(Base):
     __tablename__ = "users"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
@@ -20,7 +19,6 @@ class UserModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     conversations: Mapped[List["ConversationModel"]] = relationship("ConversationModel", back_populates="user")
 
-# --- Source & Provenance ---
 class SourceModel(Base):
     __tablename__ = "sources"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
@@ -29,8 +27,26 @@ class SourceModel(Base):
     historical_era: Mapped[Optional[str]] = mapped_column(String(128))
     original_language: Mapped[Optional[str]] = mapped_column(String(64))
     source_type: Mapped[SourceType] = mapped_column(SQLEnum(SourceType), default=SourceType.UNVERIFIED)
+    reference_url: Mapped[Optional[str]] = mapped_column(String(1024))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    
     documents: Mapped[List["DocumentModel"]] = relationship("DocumentModel", back_populates="source", cascade="all, delete-orphan")
+    targets: Mapped[List["SourceRelationshipModel"]] = relationship(
+        "SourceRelationshipModel", foreign_keys="[SourceRelationshipModel.source_id]", back_populates="source", cascade="all, delete-orphan"
+    )
+
+class SourceRelationshipModel(Base):
+    __tablename__ = "source_relationships"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    source_id: Mapped[str] = mapped_column(String(36), ForeignKey("sources.id"), nullable=False, index=True)
+    target_id: Mapped[str] = mapped_column(String(36), ForeignKey("sources.id"), nullable=False, index=True)
+    relationship_type: Mapped[SourceRelationshipType] = mapped_column(SQLEnum(SourceRelationshipType), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    
+    __table_args__ = (UniqueConstraint('source_id', 'target_id', 'relationship_type', name='uix_source_target_rel'),)
+    
+    source: Mapped["SourceModel"] = relationship("SourceModel", foreign_keys=[source_id], back_populates="targets")
+    target: Mapped["SourceModel"] = relationship("SourceModel", foreign_keys=[target_id])
 
 class DocumentModel(Base):
     __tablename__ = "documents"
@@ -52,9 +68,15 @@ class PassageModel(Base):
     ocr_confidence: Mapped[Optional[float]] = mapped_column(Float, default=1.0)
     extraction_uncertainty: Mapped[bool] = mapped_column(Boolean, default=False)
     language: Mapped[str] = mapped_column(String(16), default="en")
+    
+    # --- New Embedding Columns ---
+    # Model tracking prevents mixing incompatible vectors if the model is upgraded
+    embedding_model: Mapped[Optional[str]] = mapped_column(String(128))
+    # Stored as JSON to permit cross-DB testing. Translated to pgvector in active deployment.
+    embedding: Mapped[Optional[List[float]]] = mapped_column(JSON)
+    
     document: Mapped["DocumentModel"] = relationship("DocumentModel", back_populates="passages")
 
-# --- Conversation ---
 class ConversationModel(Base):
     __tablename__ = "conversations"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
