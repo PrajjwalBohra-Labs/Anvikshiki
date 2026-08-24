@@ -80,10 +80,33 @@ class EpistemicStateModel(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     user_id: Mapped[str] = mapped_column(String(64), default="default_user", index=True)
-    claim_id: Mapped[str] = mapped_column(String(36), ForeignKey("claims.id"), nullable=False)
+    claim_statement: Mapped[str] = mapped_column(Text, nullable=False)
     user_position: Mapped[str] = mapped_column(String(256), nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     status: Mapped[str] = mapped_column(String(64), default="under_investigation")
     supporting_evidence: Mapped[dict] = mapped_column(JSON, default=dict)
     counterarguments: Mapped[dict] = mapped_column(JSON, default=dict)
     last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+class CognitiveObservationModel(Base):
+    __tablename__ = "cognitive_observations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(64), default="default_user", index=True)
+    pattern_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_dialogue_turn: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=0.7)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+class MisconceptionModel(Base):
+    __tablename__ = "misconceptions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(64), default="default_user", index=True)
+    concept: Mapped[str] = mapped_column(String(256), nullable=False)
+    misconception_statement: Mapped[str] = mapped_column(Text, nullable=False)
+    corrective_evidence: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+    first_detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -1,105 +1,33 @@
-// All HTTP calls to the backend live here. The frontend never
-// computes an answer, ranks anything, or makes a decision -- it only
-// sends requests and renders whatever the backend already decided
-// (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§7 hard rule). Every request now carries the API key (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§27).
+﻿const API_BASE = "http://localhost:8000/api/v1";
 
-const BASE_URL = "http://127.0.0.1:8000"
-// Must match API_KEY in the backend's .env file.
-const API_KEY = "change-me-local-dev-key"
-const AUTH_HEADERS = { "X-API-Key": API_KEY }
-
-async function handleResponse(response) {
-  if (!response.ok) {
-    const detail = await response.text()
-    throw new Error(`Request failed (${response.status}): ${detail}`)
+export async function checkSystemHealth() {
+  try {
+    const response = await fetch(`${API_BASE}/health`);
+    return await response.json();
+  } catch (error) {
+    console.error("Health check failed:", error);
+    return { status: "disconnected", ollama_connected: false };
   }
-  return response.json()
 }
 
-export const api = {
-  chat: (query, sessionId, useWebSearch = false, traceId = null) =>
-    fetch(`${BASE_URL}/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...AUTH_HEADERS,
-        ...(traceId ? { "X-Trace-Id": traceId } : {}),
-      },
-      body: JSON.stringify({ query, session_id: sessionId, use_web_search: useWebSearch }),
-    }).then(handleResponse),
+export async function submitInquiry({ message, userPosition, confidence = 0.5, userId = "default_researcher" }) {
+  const payload = {
+    user_id: userId,
+    message: message,
+    user_position: userPosition || null,
+    confidence: parseFloat(confidence)
+  };
 
-  getTrace: (traceId) =>
-    fetch(`${BASE_URL}/trace/${traceId}`, { headers: AUTH_HEADERS }).then(handleResponse),
+  const response = await fetch(`${API_BASE}/dialogue/inquire`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
 
-  chatStream: async (query, sessionId, useWebSearch, onToken, onResult, traceId = null) => {
-    const response = await fetch(`${BASE_URL}/chat/stream`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...AUTH_HEADERS,
-        ...(traceId ? { "X-Trace-Id": traceId } : {}),
-      },
-      body: JSON.stringify({ query, session_id: sessionId, use_web_search: useWebSearch }),
-    })
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ""
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffer += decoder.decode(value, { stream: true })
-      const events = buffer.split("\n\n")
-      buffer = events.pop()
-      for (const chunk of events) {
-        if (chunk.startsWith("event: verification") || chunk.startsWith("event: clarify")) {
-          const jsonLine = chunk.split("\n").find((l) => l.startsWith("data:"))
-          if (jsonLine) onResult(JSON.parse(jsonLine.slice(5)))
-        } else if (chunk.startsWith("event: done")) {
-          // terminal marker only -- the real payload already arrived via "event: verification"
-        } else if (chunk.startsWith("data:")) {
-          onToken(chunk.slice(5))
-        }
-      }
-    }
-  },
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || "Failed to process inquiry");
+  }
 
-  search: (q, topK = 5) =>
-    fetch(`${BASE_URL}/search?q=${encodeURIComponent(q)}&top_k=${topK}`, { headers: AUTH_HEADERS }).then(handleResponse),
-
-  research: (question, topK = 5, useWebSearch = false) =>
-    fetch(`${BASE_URL}/research`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...AUTH_HEADERS },
-      body: JSON.stringify({ question, top_k: topK, use_web_search: useWebSearch }),
-    }).then(handleResponse),
-
-  listDocuments: () => fetch(`${BASE_URL}/documents`, { headers: AUTH_HEADERS }).then(handleResponse),
-  uploadDocument: (file) => {
-    const formData = new FormData()
-    formData.append("file", file)
-    return fetch(`${BASE_URL}/documents`, { method: "POST", headers: AUTH_HEADERS, body: formData }).then(handleResponse)
-  },
-
-  listConcepts: () => fetch(`${BASE_URL}/concepts`, { headers: AUTH_HEADERS }).then(handleResponse),
-  getConceptGraph: () => fetch(`${BASE_URL}/concepts/graph`, { headers: AUTH_HEADERS }).then(handleResponse),
-
-  listProjects: () => fetch(`${BASE_URL}/projects`, { headers: AUTH_HEADERS }).then(handleResponse),
-  createProject: (name, description) =>
-    fetch(`${BASE_URL}/projects`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...AUTH_HEADERS },
-      body: JSON.stringify({ name, description }),
-    }).then(handleResponse),
-
-  getSessionHistory: (id) => fetch(`${BASE_URL}/sessions/${id}/history`, { headers: AUTH_HEADERS }).then(handleResponse),
-  getSessionSummary: (id) => fetch(`${BASE_URL}/sessions/${id}/summary`, { headers: AUTH_HEADERS }).then(handleResponse),
-
-  getSetting: (key) => fetch(`${BASE_URL}/settings/${key}`, { headers: AUTH_HEADERS }).then(handleResponse),
-  setSetting: (key, value) =>
-    fetch(`${BASE_URL}/settings`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...AUTH_HEADERS },
-      body: JSON.stringify({ key, value }),
-    }).then(handleResponse),
+  return await response.json();
 }
-

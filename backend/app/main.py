@@ -2,7 +2,7 @@
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.core.config import settings
 from backend.app.core.logging import setup_logging
-from backend.app.api.v1.endpoints import health
+from backend.app.api.v1.endpoints import health, dialogue
 
 setup_logging()
 
@@ -22,6 +22,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router, prefix=settings.API_V1_STR, tags=["System"])
+    app.include_router(dialogue.router, prefix=f"{settings.API_V1_STR}/dialogue", tags=["Dialogue & Inquiry"])
     return app
 
 app = create_app()
