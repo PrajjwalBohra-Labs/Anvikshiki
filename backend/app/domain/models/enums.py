@@ -32,6 +32,12 @@ class EvidenceStatus(str, Enum):
     UNRESOLVED = "unresolved"
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
 
+class RelationType(str, Enum):
+    SUPPORTS = "supports"
+    CONTRADICTS = "contradicts"
+    QUALIFIES = "qualifies"
+    INDEPENDENT = "independent"
+
 class PramanaType(str, Enum):
     PRATYAKSHA = "pratyaksha"  # Perception
     ANUMANA = "anumana"        # Inference
