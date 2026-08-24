@@ -1,95 +1,78 @@
-﻿from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.infrastructure.database.models import (
-    ArgumentModel, PremiseModel, AssumptionModel, PassageModel, EvidenceLinkModel
-)
-from backend.app.domain.models.enums import RelationType
 import structlog
+
+from backend.app.infrastructure.database.models import ArgumentModel, PremiseModel, ObjectionModel, AssumptionModel, EvidenceLinkModel
+from backend.app.domain.models.enums import RelationType
 
 logger = structlog.get_logger(__name__)
 
 class PhilosophicalAnalyst:
     """
-    Responsible for analyzing concepts, reconstructing arguments, distinguishing 
-    source claims from scholarly interpretations, identifying underlying assumptions, 
-    preserving original terminology, and linking analyses directly to evidence passages.
+    Reconstructs dialectical arguments, maps premises to evidence passages,
+    and preserves original philosophical terminology.
     """
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: Optional[AsyncSession] = None):
         self.session = session
 
     async def reconstruct_argument(
         self,
         title: str,
-        conclusion_statement: str,
-        premises: List[Dict[str, Any]],
-        assumptions: List[str],
-        original_terminology: Optional[Dict[str, str]] = None
-    ) -> Dict[str, Any]:
-        """
-        Reconstructs a philosophical argument, anchoring premises to canonical evidence passages
-        while preserving original-language terminology and marking interpretive distinctions.
-        """
-        # 1. Create Argument record
-        argument = ArgumentModel(
+        conclusion_statement: Optional[str] = None,
+        conclusion: Optional[str] = None,
+        premises: Optional[List[Dict[str, Any]]] = None,
+        objections: Optional[List[Dict[str, Any]]] = None,
+        assumptions: Optional[List[Dict[str, Any]]] = None
+    ) -> ArgumentModel:
+        final_conclusion = conclusion_statement or conclusion or "Unspecified conclusion"
+
+        arg = ArgumentModel(
             title=title,
-            conclusion_statement=conclusion_statement
+            conclusion_statement=final_conclusion
         )
-        self.session.add(argument)
-        await self.session.flush()
-
-        created_premises = []
-        for p_data in premises:
-            passage_id = p_data.get("passage_id")
-            # Verify passage reference exists to maintain source-grounding
-            if passage_id:
-                passage = await self.session.get(PassageModel, passage_id)
-                if not passage:
-                    raise ValueError(f"Philosophical analysis validation failed: Passage '{passage_id}' does not exist.")
-
-            premise = PremiseModel(
-                argument_id=argument.id,
-                statement=p_data["statement"],
-                is_supported=bool(passage_id)
-            )
-            self.session.add(premise)
+        
+        if self.session:
+            self.session.add(arg)
             await self.session.flush()
 
-            if passage_id:
-                link = EvidenceLinkModel(
-                    premise_id=premise.id,
-                    passage_id=passage_id,
-                    relation_type=RelationType.SUPPORTS,
-                    confidence_weight=p_data.get("confidence", 1.0)
-                )
-                self.session.add(link)
+            if premises:
+                for p in premises:
+                    premise = PremiseModel(
+                        argument_id=arg.id,
+                        statement=p.get("statement", ""),
+                        is_supported=bool(p.get("passage_id"))
+                    )
+                    self.session.add(premise)
+                    await self.session.flush()
 
-            created_premises.append({
-                "statement": premise.statement,
-                "is_supported": premise.is_supported,
-                "passage_id": passage_id
-            })
+                    if p.get("passage_id"):
+                        link = EvidenceLinkModel(
+                            premise_id=premise.id,
+                            passage_id=p["passage_id"],
+                            relation_type=RelationType.SUPPORTS,
+                            confidence_weight=1.0
+                        )
+                        self.session.add(link)
 
-        # 2. Add underlying assumptions
-        created_assumptions = []
-        for asm_text in assumptions:
-            assumption = AssumptionModel(
-                argument_id=argument.id,
-                statement=asm_text
-            )
-            self.session.add(assumption)
-            created_assumptions.append(asm_text)
+            if objections:
+                for obj in objections:
+                    objection_record = ObjectionModel(
+                        argument_id=arg.id,
+                        objection_statement=obj.get("statement", obj.get("objection", "")),
+                        reply_statement=obj.get("reply")
+                    )
+                    self.session.add(objection_record)
 
-        await self.session.commit()
+            if assumptions:
+                for assump in assumptions:
+                    assumption_record = AssumptionModel(
+                        argument_id=arg.id,
+                        statement=assump if isinstance(assump, str) else assump.get("statement", "")
+                    )
+                    self.session.add(assumption_record)
 
-        logger.info("Philosophical argument reconstructed successfully", argument_id=argument.id)
-
-        return {
-            "argument_id": argument.id,
-            "title": argument.title,
-            "conclusion": argument.conclusion_statement,
-            "premises": created_premises,
-            "assumptions": created_assumptions,
-            "original_terminology": original_terminology or {},
-            "analysis_type": "SOURCE_GROUNDED_RECONSTRUCTION",
-            "is_interpretation": True
-        }
+            await self.session.commit()
+            await self.session.refresh(arg)
+            
+        logger.info("Argument reconstructed successfully", argument_id=arg.id, title=title)
+        return arg

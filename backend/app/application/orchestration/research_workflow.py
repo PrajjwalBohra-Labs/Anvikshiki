@@ -3,6 +3,7 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 from langgraph.graph import StateGraph, END
 
+from backend.app.infrastructure.database.session import AsyncSessionLocal
 from backend.app.application.use_cases.hybrid_retrieval import HybridRetrievalService
 from backend.app.application.agents.philosophical_analyst import PhilosophicalAnalyst
 from backend.app.application.agents.scientific_analyst import ScientificAnalyst
@@ -30,41 +31,38 @@ class ResearchWorkflowState(TypedDict):
 
 class ResearchWorkflowEngine:
     """
-    Production LangGraph research orchestrator dynamically executing:
-    User Query -> Hybrid RAG -> Real Passages -> Specialist Agents -> Challenger -> LLM -> Validation.
+    LangGraph research orchestrator:
+    Query -> Hybrid RAG -> Real Passages -> Specialist Agents -> Challenger -> LLM -> Validation.
     """
-    def __init__(self, session: AsyncSession, llm_adapter: Optional[BaseModelAdapter] = None):
-        self.session = session
+    def __init__(self, session_or_factory: Optional[Any] = None, llm_adapter: Optional[BaseModelAdapter] = None):
+        if session_or_factory is not None and callable(session_or_factory):
+            self.session_factory = session_or_factory
+        else:
+            self.session_factory = AsyncSessionLocal
+
         self.llm = llm_adapter or OllamaLocalAdapter(model_name="qwen2.5:7b-instruct-q4_K_M")
-        self.retrieval_service = HybridRetrievalService(session)
-        self.phil_analyst = PhilosophicalAnalyst(session)
-        self.sci_analyst = ScientificAnalyst()
-        self.critic_agent = SourceCriticAgent(session)
-        self.challenger = ChallengerAgent(session)
-        self.validator = SynthesisValidationService(session)
-        self.checkpointer = DurableDatabaseCheckpointer(session)
+        self.checkpointer = DurableDatabaseCheckpointer(self.session_factory)
         self.graph = self._build_graph()
 
     def _build_graph(self):
         builder = StateGraph(ResearchWorkflowState)
 
-        # 1. Coordinator / Planning Node
         async def coordinator_node(state: ResearchWorkflowState) -> Dict[str, Any]:
-            query = state["query"]
-            logger.info("Coordinator executing query planning", query=query)
+            logger.info("Coordinator query planning", query=state["query"])
             return {"current_step": "coordinator_completed"}
 
-        # 2. Real Retrieval Node (Hybrid RAG against PostgreSQL)
         async def retrieval_node(state: ResearchWorkflowState) -> Dict[str, Any]:
             query = state["query"]
             domain = state.get("domain", "Epistemology")
             
-            # Execute actual database retrieval
-            evidence_candidates = await self.retrieval_service.retrieve_evidence(
-                query=query,
-                domain=domain,
-                top_k=5
-            )
+            async with self.session_factory() as session:
+                retrieval_service = HybridRetrievalService(session)
+                evidence_candidates = await retrieval_service.retrieve_evidence(
+                    query=query,
+                    domain=domain,
+                    top_k=5
+                )
+
             passages_data = [
                 {
                     "passage_id": cand["passage_id"],
@@ -74,33 +72,31 @@ class ResearchWorkflowEngine:
                 }
                 for cand in evidence_candidates
             ]
-            logger.info("Hybrid retrieval complete", found=len(passages_data))
             return {
                 "retrieved_passages": passages_data,
                 "current_step": "retrieval_completed"
             }
 
-        # 3. Specialist Agents Node (Philosophical + Scientific + Critic)
         async def specialist_analysis_node(state: ResearchWorkflowState) -> Dict[str, Any]:
             passages = state.get("retrieved_passages", [])
             claims = []
             arguments = []
 
-            for p in passages:
-                # Dynamic claim extraction directly tied to real passage IDs
-                claim_stmt = f"According to {p['source_title']}: {p['content'][:140]}..."
-                claims.append({
-                    "statement": claim_stmt,
-                    "passage_id": p["passage_id"],
-                    "confidence": 0.95
-                })
-                # Argument reconstruction
-                arg = await self.phil_analyst.reconstruct_argument(
-                    title=f"Argument from {p['source_title']}",
-                    conclusion=claim_stmt,
-                    premises=[{"statement": p["content"], "passage_id": p["passage_id"]}]
-                )
-                arguments.append({"argument_id": arg.id, "title": arg.title})
+            async with self.session_factory() as session:
+                phil_analyst = PhilosophicalAnalyst(session)
+                for p in passages:
+                    claim_stmt = f"According to {p['source_title']}: {p['content'][:140]}..."
+                    claims.append({
+                        "statement": claim_stmt,
+                        "passage_id": p["passage_id"],
+                        "confidence": 0.95
+                    })
+                    arg = await phil_analyst.reconstruct_argument(
+                        title=f"Argument from {p['source_title']}",
+                        conclusion_statement=claim_stmt,
+                        premises=[{"statement": p["content"], "passage_id": p["passage_id"]}]
+                    )
+                    arguments.append({"argument_id": arg.id, "title": arg.title})
 
             return {
                 "extracted_claims": claims,
@@ -108,31 +104,32 @@ class ResearchWorkflowEngine:
                 "current_step": "specialist_analysis_completed"
             }
 
-        # 4. Challenger Node (Dialectical Counter-Evidence & Assumptions)
         async def challenger_node(state: ResearchWorkflowState) -> Dict[str, Any]:
             claims = state.get("extracted_claims", [])
             objections = []
-            for c in claims:
-                # Dynamically challenge the claim
-                ch_res = await self.challenger.challenge_claim(c["statement"])
-                if ch_res.get("objections"):
-                    objections.extend(ch_res["objections"])
-                else:
-                    objections.append({"objection": f"Examine non-erroneous conditions for: {c['statement'][:60]}..."})
+
+            async with self.session_factory() as session:
+                challenger = ChallengerAgent(session)
+                for c in claims:
+                    ch_res = await challenger.challenge_claim(c["statement"])
+                    if ch_res.get("objections"):
+                        objections.extend(ch_res["objections"])
+                    else:
+                        objections.append({"objection": f"Examine non-erroneous conditions for: {c['statement'][:60]}..."})
 
             return {
                 "objections": objections,
                 "current_step": "challenger_completed"
             }
 
-        # 5. Local LLM Synthesis & Validation Node
         async def validation_node(state: ResearchWorkflowState) -> Dict[str, Any]:
             claims = state.get("extracted_claims", [])
-            val_res = await self.validator.validate_research_output(
-                claims, research_scope=state["domain"]
-            )
-            
-            # Formulate structured synthesis prompt and invoke configured LLM
+            async with self.session_factory() as session:
+                validator = SynthesisValidationService(session)
+                val_res = await validator.validate_research_output(
+                    claims, research_scope=state["domain"]
+                )
+
             prompt = (
                 f"Synthesize this research inquiry strictly from verified evidence.\n"
                 f"Query: {state['query']}\n"
@@ -148,7 +145,6 @@ class ResearchWorkflowEngine:
                 "current_step": "validation_completed"
             }
 
-        # Wire graph
         builder.add_node("coordinator", coordinator_node)
         builder.add_node("retrieval", retrieval_node)
         builder.add_node("specialist_analysis", specialist_analysis_node)
@@ -180,13 +176,9 @@ class ResearchWorkflowEngine:
             "current_step": "initialized"
         }
         config = {"configurable": {"thread_id": thread_id}}
-        final_state = await self.graph.ainvoke(initial_state, config=config)
-        return final_state
+        return await self.graph.ainvoke(initial_state, config=config)
 
     async def stream_research_events(self, query: str, user_id: str, domain: str = "Epistemology", thread_id: str = "default_thread") -> AsyncGenerator[Dict[str, Any], None]:
-        """
-        Genuine real-time SSE streaming emitting live node transition events as they occur.
-        """
         initial_state: ResearchWorkflowState = {
             "query": query,
             "domain": domain,
@@ -215,7 +207,6 @@ class ResearchWorkflowEngine:
                     "summary": f"Executed {node_name} with verified outputs"
                 }
 
-        # Fetch final state snapshot from checkpointer
         tuple_state = await self.checkpointer.aget_tuple(config)
         if tuple_state:
             state = tuple_state.checkpoint.get("channel_values", tuple_state.checkpoint)

@@ -1,97 +1,90 @@
-﻿import abc
-import structlog
 from typing import List, Dict, Any, Optional
+import structlog
+from backend.app.config.settings import config
 
 logger = structlog.get_logger(__name__)
 
-class BaseEmbeddingAdapter(abc.ABC):
-    """Generic interface for text embedding adapters, enabling model swappiness without rewriting retrieval."""
-    
-    @property
-    @abc.abstractmethod
-    def model_version(self) -> str:
-        pass
+class LocalSentenceTransformerEmbeddingAdapter:
+    """
+    Authoritative local embedding adapter ensuring dimension consistency (384-dim).
+    """
+    def __init__(self, model_name: Optional[str] = None):
+        self.model_name = model_name or config.embedding.model_name
+        self.dimensions = config.embedding.dimensions
+        self.model_version = config.embedding.model_version
+        self._model = None
 
-    @abc.abstractmethod
-    async def embed_texts(self, texts: List[str]) -> List[List[float]]:
-        pass
-
-
-class BaseRerankerAdapter(abc.ABC):
-    """Generic interface for text reranker adapters."""
-    
-    @property
-    @abc.abstractmethod
-    def model_version(self) -> str:
-        pass
-
-    @abc.abstractmethod
-    async def rerank(self, query: str, passages: List[str], top_k: Optional[int] = None) -> List[Dict[str, Any]]:
-        pass
-
-
-class LocalSentenceTransformerEmbeddingAdapter(BaseEmbeddingAdapter):
-    """Local embedding adapter with version tracking, error handling, and CPU/GPU device configuration."""
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2", device: str = "cpu"):
-        self._model_name = model_name
-        self.device = device
-        self._cache: Dict[str, List[float]] = {}
-        logger.info("Initialized Local Embedding Adapter", model=model_name, device=device)
-
-    @property
-    def model_version(self) -> str:
-        return f"{self._model_name}@v1.0"
+    def _get_model(self):
+        if self._model is None:
+            try:
+                from sentence_transformers import SentenceTransformer
+                self._model = SentenceTransformer(self.model_name)
+            except Exception as e:
+                logger.warning("Falling back to local deterministic 384-dim vectorizer", error=str(e))
+                self._model = None
+        return self._model
 
     async def embed_texts(self, texts: List[str]) -> List[List[float]]:
-        try:
-            embeddings = []
-            for text in texts:
-                if text in self._cache:
-                    embeddings.append(self._cache[text])
-                    continue
-                
-                # Deterministic local simulation of embedding vector (dimension 384)
-                # In production local deployment, this calls sentence-transformers library locally.
-                vector = [float(hash(text + str(i)) % 100) / 100.0 for i in range(384)]
-                self._cache[text] = vector
-                embeddings.append(vector)
-                
-            return embeddings
-        except Exception as e:
-            logger.exception("Failed to generate local embeddings", error=str(e))
-            raise RuntimeError(f"Embedding generation failure: {str(e)}") from e
+        if not texts:
+            return []
+        
+        model = self._get_model()
+        if model is not None:
+            embeddings = model.encode(texts, normalize_embeddings=True)
+            return [emb.tolist() for emb in embeddings]
+        
+        # Consistent 384-dimensional fallback if sentence-transformers is uninitialized
+        vectors = []
+        for text in texts:
+            vec = [0.0] * self.dimensions
+            for i, char in enumerate(text.encode('utf-8')):
+                vec[i % self.dimensions] += (char / 255.0)
+            norm = sum(x*x for x in vec) ** 0.5
+            norm_vec = [x / norm if norm > 0 else 0.0 for x in vec]
+            vectors.append(norm_vec)
+        return vectors
 
+class LocalCrossEncoderRerankerAdapter:
+    """
+    Genuine local Cross-Encoder evaluating (Query, Candidate Passage) pairs.
+    """
+    def __init__(self, model_name: Optional[str] = None):
+        self.model_name = model_name or config.reranker.model_name
+        self.model_version = config.reranker.model_version
+        self._model = None
 
-class LocalCrossEncoderRerankerAdapter(BaseRerankerAdapter):
-    """Local reranker adapter supporting device configuration, error handling, and version tracking."""
-    def __init__(self, model_name: str = "ms-marco-MiniLM-L-6-v2", device: str = "cpu"):
-        self._model_name = model_name
-        self.device = device
-        logger.info("Initialized Local Reranker Adapter", model=model_name, device=device)
+    def _get_model(self):
+        if self._model is None:
+            try:
+                from sentence_transformers import CrossEncoder
+                self._model = CrossEncoder(self.model_name)
+            except Exception as e:
+                logger.warning("CrossEncoder fallback scoring initialized", error=str(e))
+                self._model = None
+        return self._model
 
-    @property
-    def model_version(self) -> str:
-        return f"{self._model_name}@v1.0"
+    async def rerank(self, query: str, candidate_passages: List[str], top_k: int = 5) -> List[Dict[str, Any]]:
+        if not candidate_passages:
+            return []
 
-    async def rerank(self, query: str, passages: List[str], top_k: Optional[int] = None) -> List[Dict[str, Any]]:
-        try:
-            scored_results = []
-            for i, passage in enumerate(passages):
-                # Deterministic local relevance scoring simulation
-                score = 1.0 / (i + 1.0)
-                scored_results.append({
-                    "passage": passage,
-                    "relevance_score": score,
-                    "index": i
-                })
-            
-            # Sort descending by relevance score
-            scored_results.sort(key=lambda x: x["relevance_score"], reverse=True)
-            
-            if top_k:
-                scored_results = scored_results[:top_k]
-                
-            return scored_results
-        except Exception as e:
-            logger.exception("Failed to rerank passages locally", error=str(e))
-            raise RuntimeError(f"Reranking failure: {str(e)}") from e
+        model = self._get_model()
+        if model is not None:
+            pairs = [[query, passage] for passage in candidate_passages]
+            scores = model.predict(pairs)
+            results = [
+                {"passage": passage, "relevance_score": float(score), "rank": 0}
+                for passage, score in zip(candidate_passages, scores)
+            ]
+        else:
+            # Deterministic semantic alignment evaluation
+            results = []
+            q_words = set(query.lower().split())
+            for passage in candidate_passages:
+                p_words = set(passage.lower().split())
+                overlap = len(q_words.intersection(p_words)) / max(len(q_words), 1)
+                results.append({"passage": passage, "relevance_score": float(overlap), "rank": 0})
+
+        results.sort(key=lambda x: x["relevance_score"], reverse=True)
+        for idx, item in enumerate(results):
+            item["rank"] = idx + 1
+        return results[:top_k]

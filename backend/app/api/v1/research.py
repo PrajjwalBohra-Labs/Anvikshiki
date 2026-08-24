@@ -2,7 +2,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.infrastructure.database.session import get_db
+from backend.app.infrastructure.database.session import get_db, AsyncSessionLocal
 from backend.app.application.orchestration.research_workflow import ResearchWorkflowEngine
 from backend.app.application.use_cases.research_continuity import ResearchContinuityService
 from backend.app.api.v1.schemas.dtos import (
@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.post("/run")
 async def run_research(payload: ResearchRunRequestDTO, db: AsyncSession = Depends(get_db)):
-    engine = ResearchWorkflowEngine(db)
+    engine = ResearchWorkflowEngine(session_or_factory=AsyncSessionLocal)
     result = await engine.execute_research(
         query=payload.query,
         user_id=payload.user_id,
@@ -29,7 +29,7 @@ async def run_research(payload: ResearchRunRequestDTO, db: AsyncSession = Depend
 
 @router.post("/run/stream")
 async def stream_research_events(payload: ResearchRunRequestDTO, db: AsyncSession = Depends(get_db)):
-    engine = ResearchWorkflowEngine(db)
+    engine = ResearchWorkflowEngine(session_or_factory=AsyncSessionLocal)
 
     async def sse_generator():
         async for event_data in engine.stream_research_events(
