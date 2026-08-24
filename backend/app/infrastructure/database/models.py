@@ -1,10 +1,17 @@
-﻿import uuid
+import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Any
 from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import ARRAY
 from backend.app.infrastructure.database.session import Base
 from backend.app.domain.models.enums import SourceType, SourceRelationshipType, ClaimType, RelationType, EvidenceStatus
+
+try:
+    from pgvector.sqlalchemy import Vector
+    PGVECTOR_AVAILABLE = True
+except ImportError:
+    PGVECTOR_AVAILABLE = False
 
 def generate_uuid() -> str:
     return str(uuid.uuid4())
@@ -71,7 +78,7 @@ class PassageModel(Base):
     language: Mapped[str] = mapped_column(String(16), default="en")
     
     embedding_model: Mapped[Optional[str]] = mapped_column(String(128))
-    embedding: Mapped[Optional[List[float]]] = mapped_column(JSON)
+    embedding: Mapped[Optional[Any]] = mapped_column(Vector(384) if PGVECTOR_AVAILABLE else JSON)
     
     document: Mapped["DocumentModel"] = relationship("DocumentModel", back_populates="passages")
 
@@ -155,6 +162,61 @@ class SourceCriticismModel(Base):
     
     source: Mapped["SourceModel"] = relationship("SourceModel", back_populates="criticisms")
 
+class ConceptModel(Base):
+    __tablename__ = "concepts"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    name: Mapped[str] = mapped_column(String(256), nullable=False, unique=True, index=True)
+    original_language_term: Mapped[Optional[str]] = mapped_column(String(256))
+    transliteration: Mapped[Optional[str]] = mapped_column(String(256))
+    definition: Mapped[str] = mapped_column(Text, nullable=False)
+    aliases: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+class ConceptRelationshipModel(Base):
+    __tablename__ = "concept_relationships"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    source_concept_id: Mapped[str] = mapped_column(String(36), ForeignKey("concepts.id"), nullable=False)
+    target_concept_id: Mapped[str] = mapped_column(String(36), ForeignKey("concepts.id"), nullable=False)
+    relationship_type: Mapped[str] = mapped_column(String(64), nullable=False)
+
+class ResearchQuestionModel(Base):
+    __tablename__ = "research_questions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    main_question: Mapped[str] = mapped_column(Text, nullable=False)
+    subquestions: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    scope: Mapped[Optional[str]] = mapped_column(Text)
+    domain: Mapped[Optional[str]] = mapped_column(String(128))
+    constraints: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    user_position: Mapped[Optional[str]] = mapped_column(Text)
+    open_questions: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    research_status: Mapped[str] = mapped_column(String(32), default="ACTIVE")
+    research_history: Mapped[Optional[List[dict]]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+class ResearchRunModel(Base):
+    __tablename__ = "research_runs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    query: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="RUNNING")
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+    output_references: Mapped[Optional[dict]] = mapped_column(JSON)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    steps: Mapped[List["ResearchStepModel"]] = relationship("ResearchStepModel", back_populates="run", cascade="all, delete-orphan")
+
+class ResearchStepModel(Base):
+    __tablename__ = "research_steps"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id"), nullable=False)
+    step_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    step_type: Mapped[str] = mapped_column(String(64), default="GENERAL")
+    status: Mapped[str] = mapped_column(String(32), default="SUCCESS")
+    payload: Mapped[Optional[dict]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="steps")
+
 class ConversationModel(Base):
     __tablename__ = "conversations"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
@@ -171,28 +233,59 @@ class MessageModel(Base):
     conversation_id: Mapped[str] = mapped_column(String(36), ForeignKey("conversations.id"), nullable=False)
     role: Mapped[str] = mapped_column(String(32), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    research_run_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("research_runs.id"), nullable=True)
+    citations_payload: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     
     conversation: Mapped["ConversationModel"] = relationship("ConversationModel", back_populates="messages")
+    research_run: Mapped[Optional["ResearchRunModel"]] = relationship("ResearchRunModel")
 
-class ResearchRunModel(Base):
-    __tablename__ = "research_runs"
+class EpistemicPositionModel(Base):
+    __tablename__ = "epistemic_positions"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    query: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[str] = mapped_column(String(32), default="PENDING")
-    error_message: Mapped[Optional[str]] = mapped_column(Text)
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    
-    steps: Mapped[List["ResearchStepModel"]] = relationship("ResearchStepModel", back_populates="run", cascade="all, delete-orphan")
-
-class ResearchStepModel(Base):
-    __tablename__ = "research_steps"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id"), nullable=False)
-    step_name: Mapped[str] = mapped_column(String(128), nullable=False)
-    status: Mapped[str] = mapped_column(String(32), default="SUCCESS")
-    payload: Mapped[Optional[dict]] = mapped_column(JSON)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    claim_statement: Mapped[str] = mapped_column(Text, nullable=False)
+    position: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    supporting_evidence_payload: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    counterarguments_payload: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="tentative")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    
-    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="steps")
+
+    history: Mapped[List["EpistemicHistoryModel"]] = relationship("EpistemicHistoryModel", back_populates="position_ref", cascade="all, delete-orphan")
+
+class EpistemicHistoryModel(Base):
+    __tablename__ = "epistemic_history"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    position_id: Mapped[str] = mapped_column(String(36), ForeignKey("epistemic_positions.id"), nullable=False)
+    previous_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    new_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    change_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    position_ref: Mapped["EpistemicPositionModel"] = relationship("EpistemicPositionModel", back_populates="history")
+
+class CognitiveObservationModel(Base):
+    __tablename__ = "cognitive_observations"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    observation_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    observation_detail: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_reference: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    originating_interaction_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    @property
+    def is_evidence_linked(self) -> bool:
+        return bool(self.evidence_reference)
+
+class DurableGraphCheckpointModel(Base):
+    __tablename__ = "langgraph_checkpoints"
+    thread_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    checkpoint_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    parent_checkpoint_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    state_payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    metadata_payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
