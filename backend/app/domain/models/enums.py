@@ -2,22 +2,17 @@
 
 class SourceType(str, Enum):
     PRIMARY = "PRIMARY"
+    SECONDARY = "SECONDARY"
     TRANSLATION = "TRANSLATION"
-    TRADITIONAL_COMMENTARY = "TRADITIONAL_COMMENTARY"
-    SCHOLARLY_SECONDARY = "SCHOLARLY_SECONDARY"
-    SCIENTIFIC_STUDY = "SCIENTIFIC_STUDY"
-    REVIEW_OR_META_ANALYSIS = "REVIEW_OR_META_ANALYSIS"
-    INSTITUTIONAL = "INSTITUTIONAL"
-    GENERAL_REFERENCE = "GENERAL_REFERENCE"
+    COMMENTARY = "COMMENTARY"
     DISCOVERY_ONLY = "DISCOVERY_ONLY"
     UNVERIFIED = "UNVERIFIED"
 
 class SourceRelationshipType(str, Enum):
     TRANSLATION_OF = "TRANSLATION_OF"
     COMMENTARY_ON = "COMMENTARY_ON"
-    EDITION_OF = "EDITION_OF"
     INTERPRETATION_OF = "INTERPRETATION_OF"
-    SYNTHESIS_OF = "SYNTHESIS_OF"
+    EDITION_OF = "EDITION_OF"
 
 class ClaimType(str, Enum):
     DIRECT_SOURCE_CLAIM = "DIRECT_SOURCE_CLAIM"
@@ -31,6 +26,19 @@ class ClaimType(str, Enum):
     SPECULATION = "SPECULATION"
     UNCERTAIN = "UNCERTAIN"
 
+class PramanaType(str, Enum):
+    PRATYAKSHA = "pratyaksha"  # Perception
+    ANUMANA = "anumana"        # Inference
+    UPAMANA = "upamana"        # Comparison
+    SHABDA = "shabda"          # Testimony
+    ARTHAPATTI = "arthapatti"  # Postulation
+    ANUPALABDHI = "anupalabdhi"# Non-apprehension
+
+class RelationType(str, Enum):
+    SUPPORTS = "SUPPORTS"
+    CONTRADICTS = "CONTRADICTS"
+    QUALIFIES = "QUALIFIES"
+
 class EvidenceStatus(str, Enum):
     SUPPORTED = "supported"
     PLAUSIBLE = "plausible"
@@ -38,17 +46,3 @@ class EvidenceStatus(str, Enum):
     WEAKLY_SUPPORTED = "weakly_supported"
     UNRESOLVED = "unresolved"
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
-
-class RelationType(str, Enum):
-    SUPPORTS = "supports"
-    CONTRADICTS = "contradicts"
-    QUALIFIES = "qualifies"
-    INDEPENDENT = "independent"
-
-class PramanaType(str, Enum):
-    PRATYAKSHA = "pratyaksha"  
-    ANUMANA = "anumana"        
-    UPAMANA = "upamana"        
-    SHABDA = "shabda"          
-    ARTHAPATTI = "arthapatti"  
-    ANUPALABDHI = "anupalabdhi"
