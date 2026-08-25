@@ -34,6 +34,8 @@ async def test_web_acquisition_lifecycle(mock_get, setup_test_env):
         </body>
     </html>
     """
+    mock_response.headers = {"content-type": "text/html; charset=utf-8"}
+    mock_response.content = mock_response.text.encode("utf-8")
     mock_response.raise_for_status = MagicMock()
     mock_get.return_value = mock_response
 

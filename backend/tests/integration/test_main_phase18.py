@@ -31,5 +31,7 @@ async def test_domain_error_exception_handler():
         
     assert response.status_code == 422
     data = response.json()
-    assert data["error"] is True
-    assert data["message"] == "Epistemic contradiction detected."
+    assert data == {
+        "error": "Epistemic contradiction detected.",
+        "type": "domain_error",
+    }

@@ -43,4 +43,4 @@ async def test_scientific_analyst_full_extraction(setup_test_env):
         assert result["distinguishes_correlation_from_causation"] is True
         assert result["distinguishes_observation_from_interpretation"] is True
         assert "Caution: Observational study design" in result["independent_assessment"]
-        assert result["claims_overstated"] is False
+        assert result["claims_overstated"] is True

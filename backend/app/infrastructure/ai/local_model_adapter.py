@@ -35,7 +35,10 @@ class BaseModelAdapter(ABC):
 
 class OllamaLocalAdapter(BaseModelAdapter):
     """
-    Production adapter for local Ollama runtimes with automatic fallback.
+    Production adapter for a local Ollama runtime.
+
+    Ollama failures are surfaced to the caller; production synthesis never
+    substitutes fabricated or deterministic output.
     """
     def __init__(
         self,

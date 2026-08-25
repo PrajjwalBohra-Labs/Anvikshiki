@@ -27,7 +27,7 @@ class DynamicMockLLMAdapter(BaseModelAdapter):
             "tokens_used": 42
         }
 
-    async def generate_stream(self, prompt: str, system_prompt: str = None, max_tokens: int = 512, temperature: float = 0.7):
+    async def stream_generate(self, prompt: str, system_prompt: str = None, max_tokens: int = 512, temperature: float = 0.7):
         yield "Chunk"
 
 @pytest.fixture

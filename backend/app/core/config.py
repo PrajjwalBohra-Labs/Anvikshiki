@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/anvikshiki_db"
-    TEST_DATABASE_URL: str = "sqlite+aiosqlite:///:memory:"
+    TEST_DATABASE_URL: str = "sqlite+aiosqlite:///./data/test.sqlite3"
     
     # Storage / Filesystem
     STORAGE_LOCAL_ROOT: str = "data/originals"
@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     ENABLE_OCR: bool = True
     ENABLE_WEB_RETRIEVAL: bool = True
     WEB_RETRIEVAL_MAX_RESULTS: int = Field(default=5, ge=1, le=20)
+    WEB_MAX_RESPONSE_BYTES: int = Field(default=5_000_000, ge=1_024, le=50_000_000)
+    WEB_REQUEST_TIMEOUT_SECONDS: float = Field(default=20.0, gt=0, le=120)
     ENABLE_MCP_SERVER: bool = False
     
     # Frontend/CORS

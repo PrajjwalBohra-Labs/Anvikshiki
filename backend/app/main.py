@@ -4,6 +4,7 @@ from sqlalchemy import text
 from backend.app.api.v1 import api_router
 from backend.app.infrastructure.database.session import engine, AsyncSessionLocal
 from backend.app.core.errors import AnvikshikiDomainError, domain_error_handler, global_exception_handler
+from backend.app.core.config import settings
 
 app = FastAPI(
     title="Anvīkṣikī Epistemic Research Engine",
@@ -13,7 +14,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[settings.FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

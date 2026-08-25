@@ -10,6 +10,7 @@ from sqlalchemy.future import select
 import structlog
 
 from backend.app.core.errors import AnvikshikiDomainError
+from backend.app.core.config import settings
 from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.database.models import DocumentModel, PassageModel, SourceModel
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
@@ -75,7 +76,10 @@ class WebAcquisitionService:
         """Fetch, clean, archive, and index a public web document."""
         original_url = url
         try:
-            async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
+            async with httpx.AsyncClient(
+                timeout=settings.WEB_REQUEST_TIMEOUT_SECONDS,
+                follow_redirects=False,
+            ) as client:
                 for _ in range(5):
                     self._validate_public_url(url)
                     response = await client.get(
@@ -91,6 +95,17 @@ class WebAcquisitionService:
                         url = urljoin(url, location)
                         continue
                     response.raise_for_status()
+                    content_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+                    if content_type not in {"text/html", "application/xhtml+xml", "text/plain"}:
+                        raise AnvikshikiDomainError(
+                            f"Unsupported web content type: {content_type or 'missing'}.",
+                            status_code=415,
+                        )
+                    if len(response.content) > settings.WEB_MAX_RESPONSE_BYTES:
+                        raise AnvikshikiDomainError(
+                            "Web response exceeds the configured size limit.",
+                            status_code=413,
+                        )
                     html_content = response.text
                     break
                 else:

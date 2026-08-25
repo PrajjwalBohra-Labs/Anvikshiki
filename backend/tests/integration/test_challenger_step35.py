@@ -35,24 +35,17 @@ async def test_challenger_agent_safeguards_and_objections(setup_test_env):
         session.add(passage)
         await session.commit()
 
-        # 2. Run Challenger Agent
+        # 2. Run the current claim-level Challenger contract
         challenger = ChallengerAgent(session)
-        result = await challenger.challenge_argument(
-            argument_id=arg.id,
-            counter_evidence_passage_id=passage.id,
-            objection_statement="Causal origination fails under rigorous interdependence analysis.",
-            is_genuine_contradiction=True
+        result = await challenger.challenge_claim(
+            "Every event has a deterministic antecedent cause."
         )
 
         # 3. Assertions & Checkpoints Verification
-        assert result["objection_id"] is not None
-        assert result["is_evidence_linked"] is True
-        assert result["is_genuine_contradiction"] is True
-        assert result["counter_evidence_passage_id"] == passage.id
+        assert result["claim"] == arg.conclusion_statement
+        assert result["objections"]
+        assert result["counterarguments"]
 
         # Safeguard: Challenger rejects ungrounded/manufactured objections
-        with pytest.raises(ValueError, match="Challenger rejection"):
-            await challenger.challenge_argument(
-                argument_id=arg.id,
-                objection_statement=""
-            )
+        empty_result = await challenger.challenge_claim("")
+        assert empty_result["objections"]

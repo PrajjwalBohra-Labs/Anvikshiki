@@ -6,7 +6,7 @@ from backend.app.infrastructure.ai.embedding_reranker_adapters import (
 
 @pytest.mark.asyncio
 async def test_embedding_adapter_version_and_caching():
-    adapter = LocalSentenceTransformerEmbeddingAdapter(model_name="test-embed", device="cpu")
+    adapter = LocalSentenceTransformerEmbeddingAdapter(model_name="test-embed")
     assert adapter.model_version == "test-embed@v1.0"
 
     texts = ["Pramana is valid means of knowledge.", "Pratyaksha is perception."]
@@ -21,7 +21,7 @@ async def test_embedding_adapter_version_and_caching():
 
 @pytest.mark.asyncio
 async def test_reranker_adapter_scoring():
-    adapter = LocalCrossEncoderRerankerAdapter(model_name="test-rerank", device="cpu")
+    adapter = LocalCrossEncoderRerankerAdapter(model_name="test-rerank")
     assert adapter.model_version == "test-rerank@v1.0"
 
     query = "What is perception?"

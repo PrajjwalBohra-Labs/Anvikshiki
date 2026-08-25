@@ -22,6 +22,10 @@ class ResearchRunService:
         await self.session.refresh(run)
         return run
 
+    async def start_run(self, query: str) -> ResearchRunModel:
+        """Compatibility entry point for the existing run lifecycle API."""
+        return await self.create_run(query)
+
     async def add_step(
         self,
         run_id: str,
@@ -41,6 +45,22 @@ class ResearchRunService:
         await self.session.commit()
         await self.session.refresh(step)
         return step
+
+    async def log_step(
+        self,
+        run_id: str,
+        step_name: str,
+        step_type: Optional[str] = None,
+        status: str = "SUCCESS",
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> ResearchStepModel:
+        return await self.add_step(
+            run_id,
+            step_name=step_name,
+            step_type=step_type or step_name,
+            status=status,
+            payload=payload,
+        )
 
     async def fail_run(self, run_id: str, error_message: str) -> Optional[ResearchRunModel]:
         run = await self.session.get(ResearchRunModel, run_id)

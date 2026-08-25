@@ -12,6 +12,7 @@ from backend.app.application.agents.source_critic_agent import SourceCriticAgent
 from backend.app.application.agents.challenger_agent import ChallengerAgent
 from backend.app.application.use_cases.synthesis_validation_service import SynthesisValidationService
 from backend.app.application.use_cases.claim_extraction_service import ClaimExtractionService
+from backend.app.application.memory.epistemic_memory import EpistemicMemoryService
 from backend.app.application.agents.comparative_analyst import ComparativeAnalyst
 from backend.app.infrastructure.ai.local_model_adapter import BaseModelAdapter, OllamaLocalAdapter
 from backend.app.application.orchestration.durable_checkpointer import DurableDatabaseCheckpointer
@@ -30,6 +31,7 @@ class ResearchWorkflowState(TypedDict):
     objections: List[Dict[str, Any]]
     scientific_analyses: List[Dict[str, Any]]
     comparisons: List[Dict[str, Any]]
+    user_epistemic_positions: List[Dict[str, Any]]
     validation_status: str
     validated_claims: List[Dict[str, Any]]
     final_response: str
@@ -58,7 +60,15 @@ class ResearchWorkflowEngine:
 
         async def coordinator_node(state: ResearchWorkflowState) -> Dict[str, Any]:
             logger.info("Coordinator query planning", query=state["query"])
-            return {"current_step": "coordinator_completed"}
+            async with self.session_factory() as session:
+                positions = await EpistemicMemoryService(session).get_user_positions(
+                    state["user_id"]
+                )
+            positions = json.loads(json.dumps(positions, default=str))
+            return {
+                "user_epistemic_positions": positions,
+                "current_step": "coordinator_completed",
+            }
 
         async def retrieval_node(state: ResearchWorkflowState) -> Dict[str, Any]:
             query = state["query"]
@@ -191,6 +201,9 @@ class ResearchWorkflowEngine:
                 "objections": state.get("objections", []),
                 "source_criticisms": state.get("criticisms", []),
                 "comparisons": state.get("comparisons", []),
+                # User positions are context, not evidence. They are kept in a
+                # separate field so synthesis cannot cite them as source claims.
+                "user_epistemic_positions": state.get("user_epistemic_positions", []),
             }
             prompt = (
                 "Synthesize this research inquiry strictly from the verified evidence below.\n"
@@ -234,6 +247,7 @@ class ResearchWorkflowEngine:
             "objections": [],
             "scientific_analyses": [],
             "comparisons": [],
+            "user_epistemic_positions": [],
             "validation_status": "PENDING",
             "validated_claims": [],
             "final_response": "",
@@ -254,6 +268,7 @@ class ResearchWorkflowEngine:
             "objections": [],
             "scientific_analyses": [],
             "comparisons": [],
+            "user_epistemic_positions": [],
             "validation_status": "PENDING",
             "validated_claims": [],
             "final_response": "",

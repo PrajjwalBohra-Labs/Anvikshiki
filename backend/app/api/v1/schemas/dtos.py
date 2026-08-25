@@ -74,14 +74,14 @@ class EpistemicPositionResponseDTO(BaseModel):
 
 # --- Research & Continuity Schemas ---
 class ResearchRunRequestDTO(BaseModel):
-    user_id: str
-    query: str = Field(..., min_length=3)
-    domain: Optional[str] = "Philosophy & Empirical Epistemology"
+    user_id: str = Field(..., min_length=1, max_length=128)
+    query: str = Field(..., min_length=3, max_length=10_000)
+    domain: Optional[str] = Field("Philosophy & Empirical Epistemology", max_length=128)
     depth: Optional[str] = "standard"
 
 class ResearchResumeRequestDTO(BaseModel):
-    research_question_id: str
-    user_id: str
+    research_question_id: str = Field(..., min_length=1, max_length=128)
+    user_id: str = Field(..., min_length=1, max_length=128)
 
 class ResearchContinuityResponseDTO(BaseModel):
     research_question_id: str

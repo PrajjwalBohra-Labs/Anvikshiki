@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
-from backend.app.infrastructure.database.models import ArgumentModel, PremiseModel, ObjectionModel, AssumptionModel, EvidenceLinkModel
+from backend.app.infrastructure.database.models import ArgumentModel, PremiseModel, ObjectionModel, AssumptionModel, EvidenceLinkModel, PassageModel
 from backend.app.domain.models.enums import RelationType
 
 logger = structlog.get_logger(__name__)
@@ -46,6 +46,11 @@ class PhilosophicalAnalyst:
                     await self.session.flush()
 
                     if p.get("passage_id"):
+                        if not await self.session.get(PassageModel, p["passage_id"]):
+                            await self.session.rollback()
+                            raise ValueError(
+                                "Philosophical analysis validation failed: premise passage was not found."
+                            )
                         link = EvidenceLinkModel(
                             premise_id=premise.id,
                             passage_id=p["passage_id"],

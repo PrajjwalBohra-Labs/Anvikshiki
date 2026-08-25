@@ -12,7 +12,11 @@ class LocalSentenceTransformerEmbeddingAdapter:
     def __init__(self, model_name: Optional[str] = None):
         self.model_name = model_name or config.embedding.model_name
         self.dimensions = config.embedding.dimensions
-        self.model_version = config.embedding.model_version
+        self.model_version = (
+            f"{self.model_name}@v1.0"
+            if model_name
+            else config.embedding.model_version
+        )
         self._model = None
 
     def _get_model(self):
@@ -64,7 +68,11 @@ class LocalCrossEncoderRerankerAdapter:
     """
     def __init__(self, model_name: Optional[str] = None):
         self.model_name = model_name or config.reranker.model_name
-        self.model_version = config.reranker.model_version
+        self.model_version = (
+            f"{self.model_name}@v1.0"
+            if model_name
+            else config.reranker.model_version
+        )
         self._model = None
 
     def _get_model(self):

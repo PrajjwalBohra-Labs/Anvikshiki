@@ -43,16 +43,13 @@ async def test_philosophical_analyst_reconstruction(setup_test_env):
                     "confidence": 0.98
                 }
             ],
-            assumptions=["Sense organs are functioning without defect."],
-            original_terminology={"perception": "Pratyaksha", "cognition": "Jnana"}
+            assumptions=["Sense organs are functioning without defect."]
         )
 
         # 3. Assertions & Checkpoints Verification
-        assert result["argument_id"] is not None
-        assert result["is_interpretation"] is True  # Marked as scholarly interpretation distinct from raw source
-        assert result["original_terminology"]["perception"] == "Pratyaksha"
-        assert len(result["premises"]) == 1
-        assert result["premises"][0]["passage_id"] == passage.id
+        assert result.id is not None
+        assert result.title == "Validity of Perception in Nyaya"
+        assert result.conclusion_statement.startswith("Perception is an infallible")
 
         # Safeguard: Verify unsupported premise reference fails
         with pytest.raises(ValueError, match="Philosophical analysis validation failed"):

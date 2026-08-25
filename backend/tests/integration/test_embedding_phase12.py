@@ -54,7 +54,7 @@ async def test_embedding_generation_and_persistence(setup_test_env):
         await session.refresh(passage)
         
         # 4. Verify Database Retrieval
-        assert passage.embedding_model == "nomic-embed-text"
+        assert passage.embedding_model == client.model
         assert len(passage.embedding) == len(vector)
         # Verify L2 normalization boundary on the synthetic vector
         import math
