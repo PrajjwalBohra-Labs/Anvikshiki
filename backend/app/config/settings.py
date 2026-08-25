@@ -20,8 +20,8 @@ class LLMSettings(BaseModel):
     timeout_seconds: float = 45.0
 
 class DatabaseSettings(BaseModel):
-    url: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/anvikshiki")
-    test_url: str = os.getenv("TEST_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+    url: str = os.getenv("DATABASE_URL") or "postgresql+asyncpg://postgres:postgres@localhost:5432/anvikshiki_db"
+    test_url: str = os.getenv("TEST_DATABASE_URL") or "sqlite+aiosqlite:///:memory:"
 
 class AppConfig(BaseModel):
     embedding: EmbeddingSettings = Field(default_factory=EmbeddingSettings)

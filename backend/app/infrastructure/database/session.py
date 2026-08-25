@@ -3,9 +3,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import DeclarativeBase
 from backend.app.core.config import settings, RuntimeProfile
 
-# If testing, use an in-memory SQLite database to avoid requiring a live Postgres instance for unit tests
+# SQLite is reserved for isolated tests. Development and integration use the
+# explicit PostgreSQL DATABASE_URL.
 if settings.RUNTIME_PROFILE == RuntimeProfile.TEST:
-    engine_url = "sqlite+aiosqlite:///:memory:"
+    engine_url = settings.TEST_DATABASE_URL
 else:
     engine_url = settings.DATABASE_URL
 

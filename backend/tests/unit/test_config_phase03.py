@@ -23,3 +23,7 @@ def test_hardware_degradation_validation():
 def test_invalid_profile_raises_error():
     with pytest.raises(ValidationError):
         Settings(RUNTIME_PROFILE="quantum_computer")
+
+def test_release_debug_label_is_non_debug_mode():
+    release_settings = Settings(DEBUG="release")
+    assert release_settings.DEBUG is False

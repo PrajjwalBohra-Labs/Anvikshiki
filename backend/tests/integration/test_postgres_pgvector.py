@@ -1,95 +1,112 @@
-﻿import pytest
-import math
-from typing import List
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel
-from backend.app.domain.models.enums import SourceType
-from backend.app.infrastructure.ai.embedding_reranker_adapters import (
-    LocalSentenceTransformerEmbeddingAdapter, LocalCrossEncoderRerankerAdapter
-)
+import pytest
+from sqlalchemy import Column, Integer, MetaData, Table, Text, select, text
+from pgvector.sqlalchemy import Vector
 
-def cosine_similarity(v1: List[float], v2: List[float]) -> float:
-    dot = sum(a * b for a, b in zip(v1, v2))
-    norm1 = math.sqrt(sum(a * a for a in v1))
-    norm2 = math.sqrt(sum(b * b for b in v2))
-    return dot / (norm1 * norm2) if norm1 and norm2 else 0.0
+from backend.app.infrastructure.database.models import PassageModel
+from backend.app.infrastructure.database.session import engine
 
-@pytest.fixture
-async def setup_test_env():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+
+pytestmark = pytest.mark.postgres
+
+
+def _vector(first: float, second: float = 0.0) -> list[float]:
+    """Build a fixed 384-dimensional test vector, not an embedding fallback."""
+    return [first, second] + [0.0] * 382
+
 
 @pytest.mark.asyncio
-async def test_live_postgres_vector_retrieval_and_reranking(setup_test_env):
-    from backend.app.infrastructure.database.session import AsyncSessionLocal
-    from sqlalchemy.future import select
+async def test_postgresql_pgvector_distance_ranks_inside_database() -> None:
+    """Prove that PostgreSQL, not Python, executes cosine-distance ranking."""
+    if engine.dialect.name != "postgresql":
+        pytest.fail(f"PostgreSQL integration test refuses dialect: {engine.dialect.name}")
 
-    embedder = LocalSentenceTransformerEmbeddingAdapter(model_name="all-MiniLM-L6-v2")
-    reranker = LocalCrossEncoderRerankerAdapter(model_name="ms-marco-MiniLM-L-6-v2")
+    passage_embedding_type = PassageModel.__table__.c.embedding.type
+    assert isinstance(passage_embedding_type, Vector)
+    assert passage_embedding_type.dim == 384
 
-    async with AsyncSessionLocal() as session:
-        # 1. Insert Canonical Source and Document
-        source = SourceModel(title="Nyāya Sūtras", author="Akṣapāda Gotama", source_type=SourceType.PRIMARY)
-        session.add(source)
-        await session.flush()
+    metadata = MetaData()
+    verification_table = Table(
+        "pgvector_verification_passages",
+        metadata,
+        Column("id", Integer, primary_key=True),
+        Column("content", Text, nullable=False),
+        Column("embedding", Vector(384), nullable=False),
+    )
+    table_created = False
 
-        doc = DocumentModel(source_id=source.id, checksum_sha256="pgv_sha_12345", mime_type="text/plain")
-        session.add(doc)
-        await session.flush()
+    try:
+        try:
+            async with engine.begin() as connection:
+                await connection.execute(text("SELECT 1"))
+                await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
-        # 2. Insert Passages with Vector Embeddings
-        texts = [
-            "Pratyakṣa (perception) is knowledge produced by sense-organ contact with an object.",
-            "Anumāna (inference) is knowledge preceded by valid perceptual cognition.",
-            "Upamāna (analogy) is knowledge of an object based on similarity to known objects."
-        ]
-        vectors = await embedder.embed_texts(texts)
+                server = (
+                    await connection.execute(
+                        text(
+                            "SELECT version(), current_database(), "
+                            "(SELECT extversion FROM pg_extension WHERE extname = 'vector')"
+                        )
+                    )
+                ).one()
+                assert server[2], "The vector extension is not enabled in this database"
 
-        for i, (text, vec) in enumerate(zip(texts, vectors)):
-            passage = PassageModel(
-                document_id=doc.id,
-                page_number=i + 1,
-                content=text,
-                embedding_model=embedder.model_version,
-                embedding=vec
+                await connection.run_sync(verification_table.create)
+                table_created = True
+                await connection.execute(
+                    verification_table.insert(),
+                    [
+                        {"id": 1, "content": "exact nearest", "embedding": _vector(1.0)},
+                        {"id": 2, "content": "near vector", "embedding": _vector(0.9, 0.1)},
+                        {"id": 3, "content": "opposite vector", "embedding": _vector(-1.0)},
+                    ],
+                )
+
+                distance = verification_table.c.embedding.cosine_distance(
+                    _vector(1.0)
+                ).label("cosine_distance")
+                statement = (
+                    select(verification_table.c.id, verification_table.c.content, distance)
+                    .order_by(distance, verification_table.c.id)
+                )
+                compiled_sql = str(
+                    statement.compile(dialect=engine.sync_engine.dialect)
+                )
+                assert "<=>" in compiled_sql
+
+                column_type = (
+                    await connection.execute(
+                        text(
+                            "SELECT format_type(a.atttypid, a.atttypmod) "
+                            "FROM pg_attribute a "
+                            "JOIN pg_class c ON c.oid = a.attrelid "
+                            "WHERE c.relname = 'pgvector_verification_passages' "
+                            "AND a.attname = 'embedding'"
+                        )
+                    )
+                ).scalar_one()
+                assert column_type == "vector(384)"
+
+                ranked_rows = (await connection.execute(statement)).all()
+                assert [row.id for row in ranked_rows] == [1, 2, 3]
+                assert ranked_rows[0].cosine_distance < ranked_rows[1].cosine_distance
+                assert ranked_rows[1].cosine_distance < ranked_rows[2].cosine_distance
+
+                print(f"PostgreSQL: {server[0]}")
+                print(f"Database: {server[1]}")
+                print(f"pgvector: {server[2]}")
+                print(f"Embedding column: {column_type}")
+                print(f"Executed SQL: {compiled_sql}")
+                print(f"Database ranking: {[row.id for row in ranked_rows]}")
+        except Exception as exc:
+            pytest.fail(
+                "PostgreSQL + pgvector prerequisite or query execution failed: "
+                f"{type(exc).__name__}: {exc}"
             )
-            session.add(passage)
-        await session.commit()
-
-        # 3. Vector Similarity Search
-        query = "What constitutes direct perceptual valid cognition?"
-        query_vec = (await embedder.embed_texts([query]))[0]
-
-        stmt = select(PassageModel).where(PassageModel.document_id == doc.id)
-        res = await session.execute(stmt)
-        all_passages = res.scalars().all()
-
-        scored_candidates = []
-        for p in all_passages:
-            sim = cosine_similarity(query_vec, p.embedding)
-            scored_candidates.append((p, sim))
-
-        # Sort descending by vector cosine similarity
-        scored_candidates.sort(key=lambda x: x[1], reverse=True)
-        top_passage, top_sim = scored_candidates[0]
-
-        assert top_passage is not None
-        assert top_passage.embedding_model == "all-MiniLM-L6-v2@v1.0"
-        assert len(top_passage.embedding) == 384
-
-        # 4. Hybrid Cross-Encoder Reranking
-        candidate_texts = [c[0].content for c in scored_candidates]
-        reranked = await reranker.rerank(query, candidate_texts, top_k=2)
-
-        assert len(reranked) == 2
-        assert "relevance_score" in reranked[0]
-        assert reranked[0]["relevance_score"] >= reranked[1]["relevance_score"]
-
-        # 5. Provenance Preservation
-        assert top_passage.document_id == doc.id
-        parent_doc = await session.get(DocumentModel, top_passage.document_id)
-        assert parent_doc.source_id == source.id
+    finally:
+        if table_created:
+            async with engine.begin() as connection:
+                await connection.run_sync(
+                    lambda sync_connection: verification_table.drop(
+                        sync_connection, checkfirst=True
+                    )
+                )

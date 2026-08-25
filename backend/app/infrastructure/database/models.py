@@ -5,6 +5,7 @@ from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignK
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 from backend.app.infrastructure.database.session import Base
+from backend.app.core.config import RuntimeProfile, settings
 from backend.app.domain.models.enums import SourceType, SourceRelationshipType, ClaimType, RelationType, EvidenceStatus
 
 try:
@@ -78,7 +79,9 @@ class PassageModel(Base):
     language: Mapped[str] = mapped_column(String(16), default="en")
     
     embedding_model: Mapped[Optional[str]] = mapped_column(String(128))
-    embedding: Mapped[Optional[Any]] = mapped_column(Vector(384) if PGVECTOR_AVAILABLE else JSON)
+    embedding: Mapped[Optional[Any]] = mapped_column(
+        Vector(384) if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST else JSON
+    )
     
     document: Mapped["DocumentModel"] = relationship("DocumentModel", back_populates="passages")
 

@@ -1,5 +1,5 @@
 ﻿from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,7 +14,8 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="ignore"
+        extra="ignore",
+        env_ignore_empty=True,
     )
 
     # Core System
@@ -26,6 +27,7 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/anvikshiki_db"
+    TEST_DATABASE_URL: str = "sqlite+aiosqlite:///:memory:"
     
     # Storage / Filesystem
     STORAGE_LOCAL_ROOT: str = "data/originals"
@@ -59,5 +61,18 @@ class Settings(BaseSettings):
         if profile == RuntimeProfile.CPU and "70b" in v.lower():
             raise ValueError("CPU profile active: 70B parameter models are not supported without GPU.")
         return v
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug_value(cls, value: Any) -> Any:
+        """Accept the deployment label ``release`` as the non-debug mode.
+
+        Some process managers expose their deployment channel through DEBUG.
+        ``release`` is therefore treated explicitly as ``False``; all other
+        values remain subject to Pydantic's normal boolean validation.
+        """
+        if isinstance(value, str) and value.strip().lower() in {"release", "production", "prod"}:
+            return False
+        return value
 
 settings = Settings()
