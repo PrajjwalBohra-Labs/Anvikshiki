@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     VLLM_BASE_URL: Optional[str] = None  # Optional advanced runtime
     
     # Embeddings & Reranking
-    EMBEDDING_MODEL: str = "nomic-embed-text"
-    RERANKER_MODEL: str = "bge-reranker-base"
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    RERANKER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     
     # Subsystems Toggles
     ENABLE_OCR: bool = True

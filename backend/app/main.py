@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from backend.app.api.v1 import api_router
 from backend.app.infrastructure.database.session import engine, AsyncSessionLocal
+from backend.app.core.errors import AnvikshikiDomainError, domain_error_handler, global_exception_handler
 
 app = FastAPI(
     title="Anvīkṣikī Epistemic Research Engine",
@@ -19,6 +20,8 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+app.add_exception_handler(AnvikshikiDomainError, domain_error_handler)
+app.add_exception_handler(Exception, global_exception_handler)
 
 @app.get("/health", tags=["System"])
 async def health_check():
@@ -32,11 +35,14 @@ async def health_check():
         async with AsyncSessionLocal() as session:
             await session.execute(text("SELECT 1"))
             db_status = "connected"
-            try:
+            if engine.dialect.name != "postgresql":
+                pgvector_status = "unavailable_in_test_profile"
+            else:
                 await session.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'vector'"))
-                pgvector_status = "available"
-            except Exception:
-                pgvector_status = "simulated_or_sqlite"
+                extension = await session.execute(
+                    text("SELECT extversion FROM pg_extension WHERE extname = 'vector'")
+                )
+                pgvector_status = "available" if extension.scalar_one_or_none() else "unavailable"
     except Exception as e:
         db_status = f"error: {str(e)}"
 

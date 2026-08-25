@@ -3,7 +3,13 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from backend.app.infrastructure.database.models import PassageModel, DocumentModel, SourceModel
+from backend.app.infrastructure.database.models import (
+    PGVECTOR_AVAILABLE,
+    PassageModel,
+    DocumentModel,
+    SourceModel,
+    Vector,
+)
 from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.rag.lexical_retriever import ScoredPassage
 from backend.app.core.config import settings, RuntimeProfile
@@ -36,6 +42,18 @@ class SemanticRetriever:
         if not query_vector:
             return []
 
+        bind = self.session.get_bind()
+        is_postgres = bind.dialect.name == "postgresql" if bind else False
+
+        if is_postgres and (
+            not PGVECTOR_AVAILABLE
+            or Vector is None
+            or not isinstance(PassageModel.__table__.c.embedding.type, Vector)
+        ):
+            raise RuntimeError(
+                "PostgreSQL semantic retrieval requires a pgvector Vector column."
+            )
+
         stmt = select(PassageModel).join(PassageModel.document).join(DocumentModel.source)
         
         # Apply Metadata Filters
@@ -45,10 +63,26 @@ class SemanticRetriever:
         # Eager load provenance to prevent N+1 serialization delays
         stmt = stmt.options(selectinload(PassageModel.document).selectinload(DocumentModel.source))
         
-        # Note: In SQLite TEST profile, we retrieve candidates and score in Python.
-        # In a Postgres/pgvector deployment, we would offload this:
-        # stmt = stmt.order_by(PassageModel.embedding.cosine_distance(query_vector)).limit(limit)
-        
+        if is_postgres:
+            distance = PassageModel.embedding.cosine_distance(query_vector).label("cosine_distance")
+            stmt = (
+                select(PassageModel, distance)
+                .join(PassageModel.document)
+                .join(DocumentModel.source)
+                .where(PassageModel.embedding.is_not(None))
+                .options(selectinload(PassageModel.document).selectinload(DocumentModel.source))
+                .order_by(distance)
+                .limit(limit)
+            )
+            if source_type:
+                stmt = stmt.where(SourceModel.source_type == source_type)
+            result = await self.session.execute(stmt)
+            return [
+                ScoredPassage(passage=passage, score=1.0 - float(distance_value))
+                for passage, distance_value in result.all()
+            ]
+
+        # Isolated SQLite tests retain their explicit Python scoring path.
         result = await self.session.execute(stmt)
         passages = result.scalars().all()
         

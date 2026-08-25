@@ -24,7 +24,12 @@ async def run_research(payload: ResearchRunRequestDTO, db: AsyncSession = Depend
         "query": result["query"],
         "final_response": result["final_response"],
         "validated_claims": result["validated_claims"],
-        "retrieved_passages_count": len(result.get("retrieved_passages", []))
+        "retrieved_passages_count": len(result.get("retrieved_passages", [])),
+        "safe_events": [{
+            "event": "research_completed",
+            "status": result["current_step"],
+            "validated_claims_count": len(result.get("validated_claims", [])),
+        }],
     }
 
 @router.post("/run/stream")

@@ -4,6 +4,7 @@ import httpx
 import json
 import structlog
 from backend.app.config.settings import config
+from backend.app.core.config import settings as runtime_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -42,9 +43,9 @@ class OllamaLocalAdapter(BaseModelAdapter):
         base_url: Optional[str] = None,
         timeout: float = 45.0
     ):
-        selected_model = model_name or config.llm.model_name
+        selected_model = model_name or runtime_settings.OLLAMA_MODEL or config.llm.model_name
         super().__init__(model_name=selected_model)
-        self.base_url = base_url or config.llm.base_url
+        self.base_url = base_url or runtime_settings.OLLAMA_BASE_URL or config.llm.base_url
         self.timeout = timeout
 
     async def generate(
@@ -65,16 +66,17 @@ class OllamaLocalAdapter(BaseModelAdapter):
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 resp = await client.post(url, json=payload)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    return {"content": data.get("response", ""), "model": self.model_name}
+                resp.raise_for_status()
+                data = resp.json()
+                content = data.get("response")
+                if not content:
+                    raise RuntimeError("Ollama returned an empty response.")
+                return {"content": content, "model": self.model_name}
         except Exception as e:
-            logger.warning("Local Ollama connection offline, utilizing verified textual synthesis", error=str(e))
-
-        return {
-            "content": f"Synthesized research grounded in verified evidence for prompt: '{prompt[:60]}...'",
-            "model": self.model_name
-        }
+            logger.error("Local Ollama generation failed", error=str(e), model=self.model_name)
+            raise RuntimeError(
+                f"Ollama model '{self.model_name}' is unavailable or returned an invalid response."
+            ) from e
 
     async def stream_generate(
         self,
@@ -99,5 +101,7 @@ class OllamaLocalAdapter(BaseModelAdapter):
                             data = json.loads(line)
                             yield data.get("response", "")
         except Exception as e:
-            logger.warning("Local Ollama stream offline", error=str(e))
-            yield f"[Synthesis grounded in primary textual evidence]"
+            logger.error("Local Ollama streaming failed", error=str(e), model=self.model_name)
+            raise RuntimeError(
+                f"Ollama model '{self.model_name}' is unavailable for streaming."
+            ) from e

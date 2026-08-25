@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 import structlog
 from backend.app.config.settings import config
+from backend.app.core.config import RuntimeProfile, settings as runtime_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -20,8 +21,12 @@ class LocalSentenceTransformerEmbeddingAdapter:
                 from sentence_transformers import SentenceTransformer
                 self._model = SentenceTransformer(self.model_name)
             except Exception as e:
-                logger.warning("Falling back to local deterministic 384-dim vectorizer", error=str(e))
-                self._model = None
+                if runtime_settings.RUNTIME_PROFILE == RuntimeProfile.TEST:
+                    logger.warning("Embedding model unavailable in isolated test profile", error=str(e))
+                    return None
+                raise RuntimeError(
+                    f"Unable to load sentence-transformers model '{self.model_name}'."
+                ) from e
         return self._model
 
     async def embed_texts(self, texts: List[str]) -> List[List[float]]:
@@ -31,7 +36,16 @@ class LocalSentenceTransformerEmbeddingAdapter:
         model = self._get_model()
         if model is not None:
             embeddings = model.encode(texts, normalize_embeddings=True)
-            return [emb.tolist() for emb in embeddings]
+            vectors = [emb.tolist() for emb in embeddings]
+            if any(len(vector) != self.dimensions for vector in vectors):
+                raise RuntimeError(
+                    f"Embedding model '{self.model_name}' returned a dimension other than "
+                    f"{self.dimensions}."
+                )
+            return vectors
+
+        if runtime_settings.RUNTIME_PROFILE != RuntimeProfile.TEST:
+            raise RuntimeError("Embedding generation requires the configured real model.")
         
         # Consistent 384-dimensional fallback if sentence-transformers is uninitialized
         vectors = []
@@ -59,8 +73,12 @@ class LocalCrossEncoderRerankerAdapter:
                 from sentence_transformers import CrossEncoder
                 self._model = CrossEncoder(self.model_name)
             except Exception as e:
-                logger.warning("CrossEncoder fallback scoring initialized", error=str(e))
-                self._model = None
+                if runtime_settings.RUNTIME_PROFILE == RuntimeProfile.TEST:
+                    logger.warning("Cross-encoder unavailable in isolated test profile", error=str(e))
+                    return None
+                raise RuntimeError(
+                    f"Unable to load cross-encoder model '{self.model_name}'."
+                ) from e
         return self._model
 
     async def rerank(self, query: str, candidate_passages: List[str], top_k: int = 5) -> List[Dict[str, Any]]:
@@ -76,6 +94,8 @@ class LocalCrossEncoderRerankerAdapter:
                 for passage, score in zip(candidate_passages, scores)
             ]
         else:
+            if runtime_settings.RUNTIME_PROFILE != RuntimeProfile.TEST:
+                raise RuntimeError("Reranking requires the configured real cross-encoder model.")
             # Deterministic semantic alignment evaluation
             results = []
             q_words = set(query.lower().split())

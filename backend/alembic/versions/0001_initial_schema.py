@@ -276,7 +276,9 @@ def downgrade() -> None:
         "cognitive_observations", "assumptions", "users", "sources", "research_runs",
         "research_questions", "langgraph_checkpoints", "concepts", "claims", "arguments",
     ):
-        op.drop_table(table_name)
+        # Keep local recovery idempotent when an isolated test database has
+        # removed objects while retaining the Alembic version row.
+        op.execute(sa.text(f'DROP TABLE IF EXISTS "{table_name}" CASCADE'))
 
     for enum_name in ("evidencestatus", "relationtype", "claimtype", "sourcerelationshiptype", "sourcetype"):
         op.execute(sa.text(f"DROP TYPE IF EXISTS {enum_name}"))

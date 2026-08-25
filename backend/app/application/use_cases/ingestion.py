@@ -7,6 +7,9 @@ from backend.app.domain.models.enums import SourceType
 from backend.app.core.errors import AnvikshikiDomainError
 from backend.app.infrastructure.document_parsers.pdf_parser import PdfDocumentParser
 from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
+from backend.app.infrastructure.ai.embedding_reranker_adapters import (
+    LocalSentenceTransformerEmbeddingAdapter,
+)
 
 class TextDocumentParser:
     @staticmethod
@@ -78,7 +81,10 @@ class DocumentIngestionService:
         await self.session.flush()
 
         passage_models = []
+        embedder = LocalSentenceTransformerEmbeddingAdapter()
+        vectors = await embedder.embed_texts([item["content"] for item in parsed_data])
         for p_data in parsed_data:
+            vector = vectors[len(passage_models)]
             uncertainty = p_data.get("extraction_uncertainty", False)
             passage = PassageModel(
                 document_id=new_doc.id,
@@ -86,7 +92,9 @@ class DocumentIngestionService:
                 page_number=p_data["page_number"],
                 ocr_confidence=p_data.get("ocr_confidence", 0.0 if uncertainty else 1.0),
                 extraction_uncertainty=uncertainty,
-                language=p_data.get("language", "en")
+                language=p_data.get("language", "en"),
+                embedding_model=embedder.model_version,
+                embedding=vector,
             )
             passage_models.append(passage)
             self.session.add(passage)

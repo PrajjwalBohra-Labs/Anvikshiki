@@ -13,6 +13,7 @@ try:
     PGVECTOR_AVAILABLE = True
 except ImportError:
     PGVECTOR_AVAILABLE = False
+    Vector = None
 
 def generate_uuid() -> str:
     return str(uuid.uuid4())

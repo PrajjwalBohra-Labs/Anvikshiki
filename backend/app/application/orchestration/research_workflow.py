@@ -1,3 +1,4 @@
+import json
 from typing import TypedDict, List, Dict, Any, Optional, AsyncGenerator
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,8 +11,11 @@ from backend.app.application.agents.scientific_analyst import ScientificAnalyst
 from backend.app.application.agents.source_critic_agent import SourceCriticAgent
 from backend.app.application.agents.challenger_agent import ChallengerAgent
 from backend.app.application.use_cases.synthesis_validation_service import SynthesisValidationService
+from backend.app.application.use_cases.claim_extraction_service import ClaimExtractionService
+from backend.app.application.agents.comparative_analyst import ComparativeAnalyst
 from backend.app.infrastructure.ai.local_model_adapter import BaseModelAdapter, OllamaLocalAdapter
 from backend.app.application.orchestration.durable_checkpointer import DurableDatabaseCheckpointer
+from backend.app.core.config import settings
 
 logger = structlog.get_logger(__name__)
 
@@ -24,6 +28,8 @@ class ResearchWorkflowState(TypedDict):
     criticisms: List[Dict[str, Any]]
     reconstructed_arguments: List[Dict[str, Any]]
     objections: List[Dict[str, Any]]
+    scientific_analyses: List[Dict[str, Any]]
+    comparisons: List[Dict[str, Any]]
     validation_status: str
     validated_claims: List[Dict[str, Any]]
     final_response: str
@@ -40,7 +46,10 @@ class ResearchWorkflowEngine:
         else:
             self.session_factory = AsyncSessionLocal
 
-        self.llm = llm_adapter or OllamaLocalAdapter(model_name="qwen2.5:7b-instruct-q4_K_M")
+        self.llm = llm_adapter or OllamaLocalAdapter(
+            model_name=settings.OLLAMA_MODEL,
+            base_url=settings.OLLAMA_BASE_URL,
+        )
         self.checkpointer = DurableDatabaseCheckpointer(self.session_factory)
         self.graph = self._build_graph()
 
@@ -68,7 +77,10 @@ class ResearchWorkflowEngine:
                     "passage_id": cand["passage_id"],
                     "content": cand["content"],
                     "source_title": cand.get("source_title", "Canonical Text"),
-                    "page_number": cand.get("page_number", 1)
+                    "page_number": cand.get("page_number", 1),
+                    "source_id": cand.get("source_id"),
+                    "source_type": cand.get("source_type", "UNVERIFIED"),
+                    "retrieval_channels": cand.get("retrieval_channels", []),
                 }
                 for cand in evidence_candidates
             ]
@@ -81,16 +93,31 @@ class ResearchWorkflowEngine:
             passages = state.get("retrieved_passages", [])
             claims = []
             arguments = []
+            criticisms = []
+            scientific_analyses = []
+            comparisons = []
 
             async with self.session_factory() as session:
                 phil_analyst = PhilosophicalAnalyst(session)
+                claim_extractor = ClaimExtractionService(session)
+                source_critic = SourceCriticAgent(session)
+                seen_sources = set()
                 for p in passages:
-                    claim_stmt = f"According to {p['source_title']}: {p['content'][:140]}..."
-                    claims.append({
-                        "statement": claim_stmt,
-                        "passage_id": p["passage_id"],
-                        "confidence": 0.95
-                    })
+                    extracted = await claim_extractor.extract_claims_from_passage(
+                        passage_id=p["passage_id"],
+                        passage_content=p["content"],
+                        source_title=p["source_title"],
+                        source_type=p.get("source_type", "UNVERIFIED"),
+                    )
+                    for claim in extracted:
+                        claims.append({
+                            "statement": claim.statement,
+                            "claim_type": claim.claim_type.value,
+                            "passage_id": claim.provenance_id,
+                            "confidence": claim.confidence,
+                            "source_title": p["source_title"],
+                        })
+                    claim_stmt = extracted[0].statement if extracted else p["content"]
                     arg = await phil_analyst.reconstruct_argument(
                         title=f"Argument from {p['source_title']}",
                         conclusion_statement=claim_stmt,
@@ -98,9 +125,37 @@ class ResearchWorkflowEngine:
                     )
                     arguments.append({"argument_id": arg.id, "title": arg.title})
 
+                    source_id = p.get("source_id")
+                    if source_id and source_id not in seen_sources:
+                        criticisms.append(await source_critic.evaluate_source(source_id))
+                        seen_sources.add(source_id)
+
+                    if state.get("domain", "").lower() in {"science", "scientific", "empirical"}:
+                        scientific_analyses.append(
+                            await ScientificAnalyst(session).analyze_study(
+                                {"study_type": "PASSAGE", "methodology": p["content"]}
+                            )
+                        )
+
+                source_ids = list(seen_sources)
+                if len(source_ids) >= 2:
+                    comparisons.append(
+                        await ComparativeAnalyst(session).compare_perspectives(
+                            primary_source_id=source_ids[0],
+                            secondary_source_id=source_ids[1],
+                            claims_to_compare=claims,
+                            interpretations=[],
+                            terminology_map={},
+                            methodological_notes=[],
+                        )
+                    )
+
             return {
                 "extracted_claims": claims,
                 "reconstructed_arguments": arguments,
+                "criticisms": criticisms,
+                "scientific_analyses": scientific_analyses,
+                "comparisons": comparisons,
                 "current_step": "specialist_analysis_completed"
             }
 
@@ -130,11 +185,18 @@ class ResearchWorkflowEngine:
                     claims, research_scope=state["domain"]
                 )
 
+            evidence_payload = {
+                "passages": state.get("retrieved_passages", []),
+                "claims": val_res["validated_claims"],
+                "objections": state.get("objections", []),
+                "source_criticisms": state.get("criticisms", []),
+                "comparisons": state.get("comparisons", []),
+            }
             prompt = (
-                f"Synthesize this research inquiry strictly from verified evidence.\n"
+                "Synthesize this research inquiry strictly from the verified evidence below.\n"
                 f"Query: {state['query']}\n"
-                f"Validated Claims: {len(val_res['validated_claims'])}\n"
-                f"Objections Recorded: {len(state.get('objections', []))}"
+                f"Evidence JSON:\n{json.dumps(evidence_payload, ensure_ascii=False, default=str)}\n"
+                "Preserve passage IDs and source provenance in the answer."
             )
             llm_summary = await self.llm.generate(prompt=prompt, max_tokens=150)
 
@@ -170,6 +232,8 @@ class ResearchWorkflowEngine:
             "criticisms": [],
             "reconstructed_arguments": [],
             "objections": [],
+            "scientific_analyses": [],
+            "comparisons": [],
             "validation_status": "PENDING",
             "validated_claims": [],
             "final_response": "",
@@ -188,6 +252,8 @@ class ResearchWorkflowEngine:
             "criticisms": [],
             "reconstructed_arguments": [],
             "objections": [],
+            "scientific_analyses": [],
+            "comparisons": [],
             "validation_status": "PENDING",
             "validated_claims": [],
             "final_response": "",
