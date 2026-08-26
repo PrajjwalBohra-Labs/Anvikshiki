@@ -37,6 +37,7 @@ export function ResearchWorkspace({ userId }: Props) {
   };
 
   const isRunning = state.status === 'streaming';
+  const isCancelled = state.status === 'cancelled';
   const canSubmit = query.trim().length >= 3 && Boolean(userId) && !isRunning;
 
   const searchEvidence = async (event: FormEvent<HTMLFormElement>) => {
@@ -135,12 +136,13 @@ export function ResearchWorkspace({ userId }: Props) {
           </div>
 
           <div className="result-panel panel">
-            <div className="panel-heading"><span className="eyebrow">Research output</span>{state.validationStatus && <span className="status-label">{state.validationStatus}</span>}</div>
+            <div className="panel-heading"><span className="eyebrow">Research output</span>{state.validationStatus && <span className="status-label">{state.validationStatus}</span>}{isCancelled && <span className="status-label">CANCELLED</span>}</div>
             {state.finalResponse ? (
               <article className="synthesis"><div className="eyebrow">Validated workflow output</div><p>{state.finalResponse}</p>{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'}</div>}</article>
             ) : (
               <div className="result-waiting"><LoaderCircle className="spin" size={18} /><p>The final synthesis will appear when the backend emits <code>research_completed</code>.</p></div>
             )}
+            {isCancelled && <div className="cancelled-callout" role="status"><Square size={15} /><span>Research was cancelled before the backend emitted a final result. Start a new investigation when ready.</span></div>}
             {state.error && <div className="error-callout" role="alert"><AlertTriangle size={16} /><span>{state.error}</span></div>}
           </div>
         </section>

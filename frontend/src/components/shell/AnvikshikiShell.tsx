@@ -28,7 +28,7 @@ export function AnvikshikiShell({ activeView, onViewChange, userId, children }: 
   return (
     <div className="app-shell">
       <header className="global-header">
-        <button className="icon-button mobile-menu" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><Menu size={18} /></button>
+        <button className="icon-button mobile-menu" aria-label="Open navigation" aria-expanded={mobileNavOpen} aria-controls="primary-navigation" onClick={() => setMobileNavOpen(true)}><Menu size={18} /></button>
         <div className="header-title"><span className="eyebrow">Environment for inquiry</span><strong>Anvīkṣikī</strong></div>
         <div className="header-search" aria-label="Global search is not yet available"><Sparkles size={15} /><span>Research workspace</span><kbd>⌘K</kbd></div>
         <div className="header-status"><span className="status-dot" aria-hidden="true" /><span>Local system</span></div>
@@ -42,7 +42,7 @@ export function AnvikshikiShell({ activeView, onViewChange, userId, children }: 
             {leftOpen && <div><strong>ANVĪKṢIKĪ</strong><span>Research instrument</span></div>}
             <button className="icon-button sidebar-close" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><X size={17} /></button>
           </div>
-          <nav aria-label="Primary navigation" className="primary-nav">
+          <nav id="primary-navigation" aria-label="Primary navigation" className="primary-nav">
             {navItems.map(({ id, label, icon: Icon }) => (
               <button key={id} className={"nav-item " + (activeView === id ? 'active' : '')} onClick={() => onViewChange(id)} aria-current={activeView === id ? 'page' : undefined}>
                 <Icon size={17} />{leftOpen && <span>{label}</span>}

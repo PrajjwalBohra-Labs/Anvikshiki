@@ -23,7 +23,7 @@
 .uncertainty-note { display: block; color: var(--dusty-oat); font: 10px var(--font-mono); margin-top: 9px; }
 .source-card, .position-card, .health-card, .settings-field { border: 1px solid var(--border-subtle); background: var(--surface); }
 .source-card { display: flex; justify-content: space-between; align-items: start; gap: 20px; padding: 18px; border-left: 2px solid var(--aged-bronze); }
-.source-card h2 { color: var(--text-secondary); font-size: 16px; font-weight: 500; margin: 8px 0 6px; }
+.source-card h2 { color: var(--text-secondary); font-size: 16px; font-weight: 500; margin: 8px 0 6px; overflow-wrap: anywhere; }
 .source-card p { color: var(--text-muted); font-size: 12px; margin: 0; }
 .source-card a { color: var(--text-muted); }
 .source-card a:hover { color: var(--text-secondary); }

@@ -42,6 +42,7 @@
 .result-waiting p { margin: 0; }
 .result-waiting code { color: var(--text-secondary); font: 11px var(--font-mono); }
 .error-callout { display: flex; gap: 10px; margin: 0 24px 22px; padding: 12px; border: 1px solid var(--burnt-umber); color: #c0927e; font-size: 12px; line-height: 1.5; }
+.cancelled-callout { display: flex; gap: 10px; margin: 0 24px 22px; padding: 12px; border-left: 2px solid var(--olive-smoke); color: var(--text-muted); background: rgba(94, 98, 83, .1); font-size: 12px; line-height: 1.5; }
 .evidence-explorer { margin-top: 24px; }
 .evidence-search { display: flex; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border-subtle); }
 .evidence-search input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border); background: var(--background); color: var(--text-primary); }

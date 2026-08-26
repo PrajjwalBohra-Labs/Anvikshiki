@@ -20,6 +20,16 @@ function ErrorMessage({ message }: { message: string }) {
   return <div className="inline-error" role="alert"><AlertTriangle size={15} />{message}</div>;
 }
 
+function safeExternalUrl(value?: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 function LibraryView() {
   const [sources, setSources] = useState<SourceDTO[]>([]);
   const [error, setError] = useState('');
@@ -130,7 +140,7 @@ function LibraryView() {
         {sources.map((source) => (
           <article className="source-card" key={source.id}>
             <div><span className="eyebrow">{source.source_type}</span><h2>{source.title}</h2><p>{source.author || 'Author not provided'}{source.original_language ? ' · ' + source.original_language : ''}</p></div>
-            {source.reference_url && <a href={source.reference_url} target="_blank" rel="noreferrer" aria-label={'Open ' + source.title}><ExternalLink size={15} /></a>}
+            {safeExternalUrl(source.reference_url) && <a href={safeExternalUrl(source.reference_url) ?? undefined} target="_blank" rel="noreferrer" aria-label={'Open ' + source.title}><ExternalLink size={15} /></a>}
           </article>
         ))}
       </div>
