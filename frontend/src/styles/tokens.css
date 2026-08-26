@@ -1,53 +1,59 @@
 :root {
-  /* Official Palette */
-  --ink-black: #0D0D0D;
-  --aged-bronze: #5B4636;
-  --walnut-leather: #4B2E19;
-  --dusty-oat: #B49A83;
-  --burnt-umber: #7E3E28;
-  --twilight-blue: #2C3E50;
-  --olive-smoke: #5E6253;
-  --dusty-plum: #5A3D55;
-  --ash-grey: #A49C92;
+  --ink-black: #0d0d0d;
+  --aged-bronze: #5b4636;
+  --walnut-leather: #4b2e19;
+  --dusty-oat: #b49a83;
+  --burnt-umber: #7e3e28;
+  --twilight-blue: #2c3e50;
+  --olive-smoke: #5e6253;
+  --dusty-plum: #5a3d55;
+  --ash-grey: #a49c92;
 
-  /* Surfaces */
-  --bg-primary: var(--ink-black);
-  --surface-0: #0D0D0D;
-  --surface-1: #121212;
-  --surface-2: #181c20;
-  --surface-3: #22262a;
-
-  /* Text Hierarchy */
+  --background: var(--ink-black);
+  --surface: #121212;
+  --surface-raised: #181c20;
+  --surface-overlay: #22262a;
   --text-primary: var(--ash-grey);
   --text-secondary: var(--dusty-oat);
   --text-muted: var(--olive-smoke);
-
-  /* Borders */
-  --border-subtle: rgba(164, 156, 146, 0.15);
-  --border-warm: var(--aged-bronze);
-  --border-cool: var(--twilight-blue);
-  --border-critical: var(--burnt-umber);
-  --border-hypothesis: var(--dusty-plum);
-
-  /* Micro Glows */
-  --glow-cool: 0 0 12px rgba(44, 62, 80, 0.4);
-  --glow-warm: 0 0 12px rgba(91, 70, 54, 0.35);
-
-  /* Fonts */
+  --border: var(--aged-bronze);
+  --border-subtle: rgba(164, 156, 146, 0.16);
+  --accent-warm: var(--aged-bronze);
+  --accent-cool: var(--twilight-blue);
+  --accent-philosophical: var(--dusty-plum);
+  --evidence: var(--aged-bronze);
+  --interpretation: var(--dusty-oat);
+  --hypothesis: var(--dusty-plum);
+  --uncertainty: var(--olive-smoke);
+  --contradiction: var(--burnt-umber);
+  --scientific: var(--twilight-blue);
+  --glow-warm: 0 0 18px rgba(91, 70, 54, 0.28);
+  --glow-cool: 0 0 18px rgba(44, 62, 80, 0.34);
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
   --font-indic: 'Noto Sans Devanagari', sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-}
-
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
 body {
-  background-color: var(--bg-primary);
+  margin: 0;
+  background: var(--background);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  margin: 0;
-  padding: 0;
   -webkit-font-smoothing: antialiased;
+}
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--dusty-oat);
+  outline-offset: 2px;
+}
+::selection { background: var(--aged-bronze); color: var(--ash-grey); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
