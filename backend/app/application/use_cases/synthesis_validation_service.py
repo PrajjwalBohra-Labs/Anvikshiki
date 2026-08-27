@@ -47,10 +47,10 @@ class SynthesisValidationService:
                 confidence = 0.5
 
             validated.append({
-                "statement": c.get("statement", ""),
+                **c,
                 "passage_id": passage_id,
                 "confidence": confidence,
-                "is_verified": True
+                "is_verified": True,
             })
 
         status = "APPROVED" if len(validated) == len(claims) else "BLOCKED_OR_DOWNGRADED"

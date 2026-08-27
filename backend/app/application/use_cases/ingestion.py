@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from backend.app.infrastructure.database.models import DocumentModel, PassageModel, SourceModel
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
-from backend.app.domain.models.enums import SourceType
 from backend.app.core.errors import AnvikshikiDomainError
 from backend.app.infrastructure.document_parsers.pdf_parser import PdfDocumentParser
 from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
@@ -75,7 +74,9 @@ class DocumentIngestionService:
             source_id=source_id,
             checksum_sha256=metadata.checksum_sha256,
             mime_type=metadata.mime_type,
-            total_pages=total_pages
+            total_pages=total_pages,
+            original_filename=metadata.original_filename,
+            storage_path=metadata.storage_path,
         )
         self.session.add(new_doc)
         await self.session.flush()

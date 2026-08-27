@@ -157,6 +157,8 @@ class WebAcquisitionService:
             checksum_sha256=metadata.checksum_sha256,
             mime_type="text/html",
             total_pages=1,
+            original_filename=metadata.original_filename,
+            storage_path=metadata.storage_path,
         )
         self.session.add(new_doc)
         await self.session.flush()

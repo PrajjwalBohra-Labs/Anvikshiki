@@ -96,3 +96,179 @@ class ResearchContinuityResponseDTO(BaseModel):
     evidence_trail: List[Dict[str, Any]]
     research_timeline: List[Dict[str, Any]]
     suggested_next_step: str
+
+# --- Public research result contracts ---
+class ResearchStepResponseDTO(BaseModel):
+    step_name: str
+    step_type: str
+    status: str
+    payload: Optional[Dict[str, Any]] = None
+    event_id: Optional[str] = None
+    event_sequence: Optional[int] = None
+    created_at: datetime
+
+class ResearchPassageResponseDTO(BaseModel):
+    passage_id: str
+    source_id: Optional[str] = None
+    source_title: str
+    content: str
+    page_number: Optional[int] = None
+    source_type: Optional[str] = None
+    retrieval_channels: List[str] = []
+
+class ValidatedClaimResponseDTO(BaseModel):
+    claim_id: Optional[str] = None
+    statement: str
+    claim_type: Optional[str] = None
+    passage_id: Optional[str] = None
+    source_title: Optional[str] = None
+    confidence: float = 0.0
+    is_verified: bool = False
+    reason: Optional[str] = None
+
+class SpecialistAnalysisResponseDTO(BaseModel):
+    philosophical_arguments: List[Dict[str, Any]] = []
+    source_criticisms: List[Dict[str, Any]] = []
+    scientific_analyses: List[Dict[str, Any]] = []
+    comparisons: List[Dict[str, Any]] = []
+    challenges: List[Dict[str, Any]] = []
+
+class ResearchResultResponseDTO(BaseModel):
+    run_id: str
+    query: str
+    domain: Optional[str] = None
+    validation_status: str
+    final_response: str
+    validated_claims_count: int
+    retrieved_passages: List[ResearchPassageResponseDTO] = []
+    claims: List[ValidatedClaimResponseDTO] = []
+    specialist_analysis: SpecialistAnalysisResponseDTO = SpecialistAnalysisResponseDTO()
+    validation: Dict[str, Any] = {}
+
+class ResearchRunSummaryResponseDTO(BaseModel):
+    run_id: str
+    research_question_id: Optional[str] = None
+    thread_id: Optional[str] = None
+    user_id: Optional[str] = None
+    query: str
+    domain: Optional[str] = None
+    depth: Optional[str] = None
+    status: str
+    error_message: Optional[str] = None
+    started_at: datetime
+    finished_at: Optional[datetime] = None
+
+class ResearchRunDetailResponseDTO(ResearchRunSummaryResponseDTO):
+    output_references: Optional[Dict[str, Any]] = None
+    steps: List[ResearchStepResponseDTO] = []
+    result: Optional[ResearchResultResponseDTO] = None
+
+class ResearchRunExecutionResponseDTO(BaseModel):
+    run_id: str
+    research_question_id: Optional[str] = None
+    status: str
+    query: str
+    final_response: str
+    validated_claims: List[Dict[str, Any]] = []
+    retrieved_passages_count: int
+    safe_events: List[Dict[str, Any]] = []
+    result: ResearchResultResponseDTO
+
+class ResearchEventResponseDTO(BaseModel):
+    event_id: str
+    sequence: int
+    run_id: str
+    event: str
+    payload: Dict[str, Any]
+
+# --- Public claim/evidence/provenance contracts ---
+class EvidenceLinkResponseDTO(BaseModel):
+    evidence_link_id: str
+    claim_id: Optional[str] = None
+    premise_id: Optional[str] = None
+    passage_id: str
+    relation_type: str
+    confidence_weight: float
+
+class ClaimEvidenceResponseDTO(BaseModel):
+    claim_id: str
+    statement: str
+    claim_type: str
+    provenance_id: Optional[str] = None
+    confidence: float
+    lifecycle_status: str
+    evidence_links: List[EvidenceLinkResponseDTO] = []
+
+class SourceProvenanceResponseDTO(BaseModel):
+    source_id: str
+    title: str
+    author: Optional[str] = None
+    historical_era: Optional[str] = None
+    original_language: Optional[str] = None
+    source_type: str
+    reference_url: Optional[str] = None
+
+class DocumentProvenanceResponseDTO(BaseModel):
+    document_id: str
+    source_id: str
+    checksum_sha256: str
+    mime_type: str
+    original_filename: Optional[str] = None
+    total_pages: Optional[int] = None
+
+class PassageProvenanceResponseDTO(BaseModel):
+    passage_id: str
+    document_id: str
+    page_number: Optional[int] = None
+    content: str
+    ocr_confidence: Optional[float] = None
+    extraction_uncertainty: bool
+    language: str
+
+class EvidenceTraceResponseDTO(BaseModel):
+    evidence_link_id: str
+    claim_id: Optional[str] = None
+    premise_id: Optional[str] = None
+    relation_type: str
+    confidence_weight: float
+    passage: PassageProvenanceResponseDTO
+    document: DocumentProvenanceResponseDTO
+    source: SourceProvenanceResponseDTO
+    source_lineage: List[Dict[str, Any]] = []
+
+# --- Public document and acquisition contracts ---
+class SourceResponseDTO(BaseModel):
+    id: str
+    title: str
+    author: Optional[str] = None
+    historical_era: Optional[str] = None
+    original_language: Optional[str] = None
+    source_type: str
+    reference_url: Optional[str] = None
+
+class DocumentResponseDTO(BaseModel):
+    document_id: str
+    source_id: str
+    checksum_sha256: str
+    mime_type: str
+    original_filename: Optional[str] = None
+    total_pages: Optional[int] = None
+    created_at: datetime
+    passages_count: int
+
+class WebAcquisitionRequestDTO(BaseModel):
+    url: str = Field(..., min_length=1, max_length=2048)
+    source_title: Optional[str] = Field(default=None, max_length=512)
+
+class WebAcquisitionResponseDTO(BaseModel):
+    source: SourceResponseDTO
+    document: DocumentResponseDTO
+
+# --- Local identity lifecycle contract ---
+class UserCreateDTO(BaseModel):
+    username: str = Field(..., min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.-]+$")
+
+class UserResponseDTO(BaseModel):
+    user_id: str
+    username: str
+    created_at: datetime

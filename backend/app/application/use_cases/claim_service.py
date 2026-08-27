@@ -1,6 +1,7 @@
 ﻿from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from backend.app.infrastructure.database.models import ClaimModel, EvidenceLinkModel
 from backend.app.domain.models.enums import ClaimType, RelationType
 
@@ -63,3 +64,35 @@ class ClaimService:
             "claim": claim,
             "evidence_links": evidence_links
         }
+
+    async def list_claims_for_run(self, run_id: str) -> List[Dict[str, Any]]:
+        stmt = (
+            select(ClaimModel)
+            .where(ClaimModel.research_run_id == run_id)
+            .options(selectinload(ClaimModel.evidence_links))
+            .order_by(ClaimModel.created_at.asc())
+        )
+        result = await self.session.execute(stmt)
+        claims = result.scalars().all()
+        return [
+            {
+                "claim_id": claim.id,
+                "statement": claim.statement,
+                "claim_type": claim.claim_type.value,
+                "provenance_id": claim.provenance_id,
+                "confidence": claim.confidence,
+                "lifecycle_status": claim.lifecycle_status,
+                "evidence_links": [
+                    {
+                        "evidence_link_id": link.id,
+                        "claim_id": link.claim_id,
+                        "premise_id": link.premise_id,
+                        "passage_id": link.passage_id,
+                        "relation_type": link.relation_type.value,
+                        "confidence_weight": link.confidence_weight,
+                    }
+                    for link in claim.evidence_links
+                ],
+            }
+            for claim in claims
+        ]

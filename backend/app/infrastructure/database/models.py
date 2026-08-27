@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from typing import List, Optional, Any
 from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import ARRAY
 from backend.app.infrastructure.database.session import Base
 from backend.app.core.config import RuntimeProfile, settings
 from backend.app.domain.models.enums import SourceType, SourceRelationshipType, ClaimType, RelationType, EvidenceStatus
@@ -65,6 +64,8 @@ class DocumentModel(Base):
     checksum_sha256: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     mime_type: Mapped[str] = mapped_column(String(128))
     total_pages: Mapped[Optional[int]] = mapped_column(Integer)
+    original_filename: Mapped[Optional[str]] = mapped_column(String(512))
+    storage_path: Mapped[Optional[str]] = mapped_column(String(1024))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     source: Mapped["SourceModel"] = relationship("SourceModel", back_populates="documents")
     passages: Mapped[List["PassageModel"]] = relationship("PassageModel", back_populates="document", cascade="all, delete-orphan")
@@ -92,6 +93,7 @@ class ClaimModel(Base):
     statement: Mapped[str] = mapped_column(Text, nullable=False)
     claim_type: Mapped[ClaimType] = mapped_column(SQLEnum(ClaimType), nullable=False)
     provenance_id: Mapped[Optional[str]] = mapped_column(String(36))
+    research_run_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("research_runs.id"), index=True)
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
     lifecycle_status: Mapped[str] = mapped_column(String(32), default="ACTIVE")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -186,6 +188,8 @@ class ConceptRelationshipModel(Base):
 class ResearchQuestionModel(Base):
     __tablename__ = "research_questions"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    # This may be an external identity supplied by an upstream auth system.
+    user_id: Mapped[Optional[str]] = mapped_column(String(36), index=True)
     main_question: Mapped[str] = mapped_column(Text, nullable=False)
     subquestions: Mapped[Optional[List[str]]] = mapped_column(JSON)
     scope: Mapped[Optional[str]] = mapped_column(Text)
@@ -200,7 +204,12 @@ class ResearchQuestionModel(Base):
 class ResearchRunModel(Base):
     __tablename__ = "research_runs"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[Optional[str]] = mapped_column(String(36), index=True)
+    research_question_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("research_questions.id"), index=True)
+    thread_id: Mapped[Optional[str]] = mapped_column(String(128), index=True)
     query: Mapped[str] = mapped_column(Text, nullable=False)
+    domain: Mapped[Optional[str]] = mapped_column(String(128))
+    depth: Mapped[Optional[str]] = mapped_column(String(32))
     status: Mapped[str] = mapped_column(String(32), default="RUNNING")
     error_message: Mapped[Optional[str]] = mapped_column(Text)
     output_references: Mapped[Optional[dict]] = mapped_column(JSON)
@@ -213,11 +222,17 @@ class ResearchStepModel(Base):
     __tablename__ = "research_steps"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id"), nullable=False)
+    event_id: Mapped[Optional[str]] = mapped_column(String(192), index=True)
+    event_sequence: Mapped[Optional[int]] = mapped_column(Integer, index=True)
     step_name: Mapped[str] = mapped_column(String(128), nullable=False)
     step_type: Mapped[str] = mapped_column(String(64), default="GENERAL")
     status: Mapped[str] = mapped_column(String(32), default="SUCCESS")
     payload: Mapped[Optional[dict]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint("run_id", "event_sequence", name="uix_research_step_run_sequence"),
+    )
     
     run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="steps")
 

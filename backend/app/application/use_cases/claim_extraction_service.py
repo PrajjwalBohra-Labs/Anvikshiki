@@ -1,5 +1,5 @@
 import re
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
@@ -13,8 +13,9 @@ class ClaimExtractionService:
     Extracts structured, evidence-linked claims distinguishing:
     DIRECT_SOURCE_CLAIM, TRANSLATION, SCHOLARLY_INTERPRETATION, SCIENTIFIC_FINDING, INFERENCE, HYPOTHESIS, MODEL_SYNTHESIS.
     """
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, run_id: Optional[str] = None):
         self.session = session
+        self.run_id = run_id
 
     async def extract_claims_from_passage(
         self,
@@ -44,6 +45,7 @@ class ClaimExtractionService:
                 statement=statement,
                 claim_type=claim_type,
                 provenance_id=passage_id,
+                research_run_id=self.run_id,
                 confidence=0.95,
             )
             self.session.add(claim)

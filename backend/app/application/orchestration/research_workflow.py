@@ -1,7 +1,6 @@
 import json
 from typing import TypedDict, List, Dict, Any, Optional, AsyncGenerator
 import structlog
-from sqlalchemy.ext.asyncio import AsyncSession
 from langgraph.graph import StateGraph, END
 
 from backend.app.infrastructure.database.session import AsyncSessionLocal
@@ -21,6 +20,7 @@ from backend.app.core.config import settings
 logger = structlog.get_logger(__name__)
 
 class ResearchWorkflowState(TypedDict):
+    run_id: Optional[str]
     query: str
     domain: str
     user_id: str
@@ -35,6 +35,7 @@ class ResearchWorkflowState(TypedDict):
     validation_status: str
     validated_claims: List[Dict[str, Any]]
     final_response: str
+    validation_details: Dict[str, Any]
     current_step: str
 
 class ResearchWorkflowEngine:
@@ -109,7 +110,7 @@ class ResearchWorkflowEngine:
 
             async with self.session_factory() as session:
                 phil_analyst = PhilosophicalAnalyst(session)
-                claim_extractor = ClaimExtractionService(session)
+                claim_extractor = ClaimExtractionService(session, run_id=state.get("run_id"))
                 source_critic = SourceCriticAgent(session)
                 seen_sources = set()
                 for p in passages:
@@ -121,6 +122,7 @@ class ResearchWorkflowEngine:
                     )
                     for claim in extracted:
                         claims.append({
+                            "claim_id": claim.id,
                             "statement": claim.statement,
                             "claim_type": claim.claim_type.value,
                             "passage_id": claim.provenance_id,
@@ -216,6 +218,7 @@ class ResearchWorkflowEngine:
             return {
                 "validation_status": val_res["status"],
                 "validated_claims": val_res["validated_claims"],
+                "validation_details": val_res,
                 "final_response": llm_summary["content"],
                 "current_step": "validation_completed"
             }
@@ -235,8 +238,36 @@ class ResearchWorkflowEngine:
 
         return builder.compile(checkpointer=self.checkpointer)
 
-    async def execute_research(self, query: str, user_id: str, domain: str = "Epistemology", thread_id: str = "default_thread") -> Dict[str, Any]:
+    def _result_payload(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "run_id": state.get("run_id") or "",
+            "query": state.get("query", ""),
+            "domain": state.get("domain"),
+            "validation_status": state.get("validation_status", "PENDING"),
+            "final_response": state.get("final_response", ""),
+            "validated_claims_count": len(state.get("validated_claims", [])),
+            "retrieved_passages": state.get("retrieved_passages", []),
+            "claims": state.get("extracted_claims", []),
+            "specialist_analysis": {
+                "philosophical_arguments": state.get("reconstructed_arguments", []),
+                "source_criticisms": state.get("criticisms", []),
+                "scientific_analyses": state.get("scientific_analyses", []),
+                "comparisons": state.get("comparisons", []),
+                "challenges": state.get("objections", []),
+            },
+            "validation": state.get("validation_details", {}),
+        }
+
+    async def execute_research(
+        self,
+        query: str,
+        user_id: str,
+        domain: str = "Epistemology",
+        thread_id: str = "default_thread",
+        run_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
         initial_state: ResearchWorkflowState = {
+            "run_id": run_id,
             "query": query,
             "domain": domain,
             "user_id": user_id,
@@ -251,13 +282,22 @@ class ResearchWorkflowEngine:
             "validation_status": "PENDING",
             "validated_claims": [],
             "final_response": "",
+            "validation_details": {},
             "current_step": "initialized"
         }
         config = {"configurable": {"thread_id": thread_id}}
         return await self.graph.ainvoke(initial_state, config=config)
 
-    async def stream_research_events(self, query: str, user_id: str, domain: str = "Epistemology", thread_id: str = "default_thread") -> AsyncGenerator[Dict[str, Any], None]:
+    async def stream_research_events(
+        self,
+        query: str,
+        user_id: str,
+        domain: str = "Epistemology",
+        thread_id: str = "default_thread",
+        run_id: Optional[str] = None,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
         initial_state: ResearchWorkflowState = {
+            "run_id": run_id,
             "query": query,
             "domain": domain,
             "user_id": user_id,
@@ -272,6 +312,7 @@ class ResearchWorkflowEngine:
             "validation_status": "PENDING",
             "validated_claims": [],
             "final_response": "",
+            "validation_details": {},
             "current_step": "initialized"
         }
         config = {"configurable": {"thread_id": thread_id}}
@@ -291,9 +332,11 @@ class ResearchWorkflowEngine:
         tuple_state = await self.checkpointer.aget_tuple(config)
         if tuple_state:
             state = tuple_state.checkpoint.get("channel_values", tuple_state.checkpoint)
+            final_state = dict(state)
             yield {
                 "event": "research_completed",
                 "validation_status": state.get("validation_status", "APPROVED"),
                 "final_response": state.get("final_response", ""),
-                "validated_claims_count": len(state.get("validated_claims", []))
+                "validated_claims_count": len(state.get("validated_claims", [])),
+                "result": self._result_payload(final_state),
             }
