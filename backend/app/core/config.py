@@ -1,5 +1,5 @@
 ﻿from enum import Enum
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     
     # Frontend/CORS
     FRONTEND_URL: str = "http://localhost:5173"
+
+    # Authentication is mandatory outside the explicit test profile. The
+    # test harness may opt into AUTH_MODE=test for isolated legacy tests.
+    AUTH_MODE: Literal["required", "test"] = "required"
+    AUTH_TOKEN_TTL_MINUTES: int = Field(default=1_440, ge=5, le=43_200)
 
     @field_validator("OLLAMA_MODEL", mode="after")
     @classmethod

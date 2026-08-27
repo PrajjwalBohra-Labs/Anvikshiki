@@ -12,9 +12,12 @@ from backend.app.infrastructure.database.models import (
     DocumentModel,
     EvidenceLinkModel,
     PassageModel,
+    AuthSessionModel,
     SourceCriticismModel,
     SourceModel,
+    UserModel,
 )
+from backend.app.application.use_cases.user_service import UserService
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
 from backend.app.main import app
 
@@ -36,12 +39,16 @@ async def test_research_api_and_sse_execute_real_pgvector_workflow() -> None:
     vector = (await embedder.embed_texts([content]))[0]
     checksum = f"api-pgvector-{uuid4()}"
     statements: list[str] = []
+    user_id = ""
+    access_token = ""
 
     def capture_vector_sql(_conn, _cursor, statement, _parameters, _context, _executemany):
         if "<=>" in statement:
             statements.append(statement)
 
     async with AsyncSessionLocal() as session:
+        user, access_token = await UserService(session).create_user(f"api-pgvector-{uuid4().hex}")
+        user_id = user.id
         source = SourceModel(title="Research API pgvector source")
         session.add(source)
         await session.flush()
@@ -71,10 +78,11 @@ async def test_research_api_and_sse_execute_real_pgvector_workflow() -> None:
             response = await client.post(
                 "/api/v1/research/run",
                 json={
-                    "user_id": "api-pgvector-user",
+                    "user_id": user_id,
                     "query": f"{marker} How does direct perception arise from sense contact?",
                     "domain": "Epistemology",
                 },
+                headers={"Authorization": f"Bearer {access_token}"},
             )
             assert response.status_code == 200
             payload = response.json()
@@ -85,10 +93,11 @@ async def test_research_api_and_sse_execute_real_pgvector_workflow() -> None:
             stream_response = await client.post(
                 "/api/v1/research/run/stream",
                 json={
-                    "user_id": "api-pgvector-user",
+                    "user_id": user_id,
                     "query": f"{marker} stream direct perception",
                     "domain": "Epistemology",
                 },
+                headers={"Authorization": f"Bearer {access_token}"},
             )
             assert stream_response.status_code == 200
             assert "text/event-stream" in stream_response.headers["content-type"]
@@ -106,5 +115,7 @@ async def test_research_api_and_sse_execute_real_pgvector_workflow() -> None:
             await session.execute(delete(PassageModel).where(PassageModel.document_id == document_id))
             await session.execute(delete(DocumentModel).where(DocumentModel.id == document_id))
             await session.execute(delete(SourceModel).where(SourceModel.id == source_id))
+            await session.execute(delete(AuthSessionModel).where(AuthSessionModel.user_id == user_id))
+            await session.execute(delete(UserModel).where(UserModel.id == user_id))
             await session.commit()
         await engine.dispose()

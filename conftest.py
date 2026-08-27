@@ -23,3 +23,8 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if item.get_closest_marker("postgres"):
             item.add_marker(skip_postgres)
+
+
+def pytest_configure(config):
+    if os.environ.get("RUNTIME_PROFILE", "").strip().lower() == "test":
+        os.environ.setdefault("AUTH_MODE", "test")

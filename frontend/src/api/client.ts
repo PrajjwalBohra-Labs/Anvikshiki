@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+import { getAccessToken } from '../auth/session';
+
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 export class ApiError extends Error {
   constructor(
@@ -23,9 +25,20 @@ function errorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
+function authenticatedHeaders(options: RequestInit): Headers {
+  const headers = new Headers(options.headers);
+  const token = getAccessToken();
+  if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+  return headers;
+}
+
+function notifyUnauthorized(status: number): void {
+  if (status === 401 && typeof window !== 'undefined') window.dispatchEvent(new Event('anvikshiki:auth-expired'));
+}
+
 export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  const headers = new Headers(options.headers);
+  const headers = authenticatedHeaders(options);
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
@@ -39,6 +52,7 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
 
   const body = await response.json().catch(() => undefined);
   if (!response.ok) {
+    notifyUnauthorized(response.status);
     throw new ApiError(response.status, errorMessage(body, `Request failed with status ${response.status}.`), body);
   }
   return body as T;
@@ -47,7 +61,7 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
 export async function requestRoot<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const origin = new URL(API_BASE_URL, window.location.origin).origin;
   const url = origin + (endpoint.startsWith('/') ? endpoint : '/' + endpoint);
-  const headers = new Headers(options.headers);
+  const headers = authenticatedHeaders(options);
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
@@ -58,12 +72,16 @@ export async function requestRoot<T>(endpoint: string, options: RequestInit = {}
     throw new ApiError(0, error instanceof Error ? error.message : 'Network connection failure');
   }
   const body = await response.json().catch(() => undefined);
-  if (!response.ok) throw new ApiError(response.status, errorMessage(body, 'Request failed with status ' + response.status + '.'), body);
+  if (!response.ok) {
+    notifyUnauthorized(response.status);
+    throw new ApiError(response.status, errorMessage(body, 'Request failed with status ' + response.status + '.'), body);
+  }
   return body as T;
 }
 
 export interface SSEEvent<T> {
   data: T;
+  id?: string;
 }
 
 export async function streamSSE<T>(
@@ -73,7 +91,7 @@ export async function streamSSE<T>(
   signal?: AbortSignal,
 ): Promise<void> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  const headers = new Headers(options.headers);
+  const headers = authenticatedHeaders(options);
   headers.set('Accept', 'text/event-stream');
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
@@ -86,6 +104,7 @@ export async function streamSSE<T>(
   }
 
   if (!response.ok) {
+    notifyUnauthorized(response.status);
     const body = await response.json().catch(() => undefined);
     throw new ApiError(response.status, errorMessage(body, `Research stream failed with status ${response.status}.`), body);
   }
@@ -102,14 +121,12 @@ export async function streamSSE<T>(
       const frames = buffer.split(/\r?\n\r?\n/);
       buffer = frames.pop() ?? '';
       for (const frame of frames) {
-        const data = frame
-          .split(/\r?\n/)
-          .filter((line) => line.startsWith('data:'))
-          .map((line) => line.slice(5).trim())
-          .join('\n');
+        const lines = frame.split(/\r?\n/);
+        const data = lines.filter((line) => line.startsWith('data:')).map((line) => line.slice(5).trim()).join('\n');
+        const id = lines.find((line) => line.startsWith('id:'))?.slice(3).trim();
         if (!data) continue;
         try {
-          onEvent({ data: JSON.parse(data) as T });
+          onEvent({ data: JSON.parse(data) as T, id });
         } catch {
           // Ignore malformed individual frames; the stream remains usable.
         }
@@ -119,4 +136,21 @@ export async function streamSSE<T>(
   } finally {
     reader.releaseLock();
   }
+}
+
+export async function requestBlob(endpoint: string, options: RequestInit = {}): Promise<Blob> {
+  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const headers = authenticatedHeaders(options);
+  let response: Response;
+  try {
+    response = await fetch(url, { ...options, headers });
+  } catch (error) {
+    throw new ApiError(0, error instanceof Error ? error.message : 'Network connection failure');
+  }
+  if (!response.ok) {
+    notifyUnauthorized(response.status);
+    const body = await response.json().catch(() => undefined);
+    throw new ApiError(response.status, errorMessage(body, `Request failed with status ${response.status}.`), body);
+  }
+  return response.blob();
 }

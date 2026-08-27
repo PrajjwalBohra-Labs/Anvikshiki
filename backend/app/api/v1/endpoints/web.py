@@ -7,6 +7,7 @@ from backend.app.api.v1.schemas.dtos import (
     WebAcquisitionRequestDTO,
     WebAcquisitionResponseDTO,
 )
+from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user
 from backend.app.application.use_cases.document_service import DocumentService
 from backend.app.application.use_cases.web_acquisition import WebAcquisitionService
 from backend.app.core.config import settings
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/web", tags=["Web Acquisition"])
 async def acquire_web_source(
     payload: WebAcquisitionRequestDTO,
     db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
     if not settings.ENABLE_WEB_RETRIEVAL:
         raise HTTPException(status_code=503, detail="Web retrieval is disabled.")

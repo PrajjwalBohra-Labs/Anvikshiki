@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, ConfigDict
 from backend.app.infrastructure.database.session import get_db
 from backend.app.application.use_cases.chat_orchestrator import ChatOrchestratorService
+from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user, resolve_user_id
 
 router = APIRouter(prefix="/chat", tags=["Chat & Agent"])
 
@@ -22,7 +23,8 @@ class ChatApiResponse(BaseModel):
 @router.post("/", response_model=ChatApiResponse, status_code=status.HTTP_200_OK)
 async def chat_endpoint(
     payload: ChatQueryRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
     """
     Orchestrates an interactive chat turn with hybrid retrieval, 
@@ -30,7 +32,7 @@ async def chat_endpoint(
     """
     orchestrator = ChatOrchestratorService(db)
     response = await orchestrator.process_chat(
-        user_id=payload.user_id,
+        user_id=resolve_user_id(current_user, payload.user_id),
         conversation_id=payload.conversation_id,
         message=payload.message
     )

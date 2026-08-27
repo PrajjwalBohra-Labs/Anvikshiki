@@ -97,6 +97,22 @@ class ResearchContinuityResponseDTO(BaseModel):
     research_timeline: List[Dict[str, Any]]
     suggested_next_step: str
 
+class ResearchQuestionSummaryResponseDTO(BaseModel):
+    question_id: str
+    user_id: Optional[str] = None
+    main_question: str
+    domain: Optional[str] = None
+    research_status: str
+    created_at: datetime
+    run_ids: List[str] = []
+
+class ResearchQuestionDetailResponseDTO(ResearchQuestionSummaryResponseDTO):
+    subquestions: List[str] = []
+    scope: Optional[str] = None
+    constraints: List[str] = []
+    user_position: Optional[str] = None
+    open_questions: List[str] = []
+
 # --- Public research result contracts ---
 class ResearchStepResponseDTO(BaseModel):
     step_name: str
@@ -272,3 +288,4 @@ class UserResponseDTO(BaseModel):
     user_id: str
     username: str
     created_at: datetime
+    access_token: Optional[str] = None

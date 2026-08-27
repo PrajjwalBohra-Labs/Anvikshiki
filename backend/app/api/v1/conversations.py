@@ -8,18 +8,33 @@ from backend.app.application.use_cases.conversation_service import ConversationS
 from backend.app.api.v1.schemas.dtos import (
     ConversationCreateDTO, ConversationResponseDTO, MessageCreateDTO, MessageResponseDTO
 )
+from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user, resolve_user_id
 
 router = APIRouter()
 
 @router.post("", response_model=ConversationResponseDTO)
-async def create_conversation(payload: ConversationCreateDTO, db: AsyncSession = Depends(get_db)):
+async def create_conversation(
+    payload: ConversationCreateDTO,
+    db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
+):
+    owner_id = resolve_user_id(current_user, payload.user_id)
     service = ConversationService(db)
-    conv = await service.create_conversation(user_id=payload.user_id, title=payload.title)
+    conv = await service.create_conversation(user_id=owner_id, title=payload.title)
     return ConversationResponseDTO(conversation_id=conv.id, title=conv.title, created_at=conv.created_at, messages=[])
 
 @router.get("/{conversation_id}", response_model=ConversationResponseDTO)
-async def get_conversation(conversation_id: str, db: AsyncSession = Depends(get_db)):
+async def get_conversation(
+    conversation_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
+):
     service = ConversationService(db)
+    owner_id = await service.get_conversation_owner(conversation_id)
+    if owner_id is None:
+        raise HTTPException(status_code=404, detail=f"Conversation '{conversation_id}' not found.")
+    if current_user is not None and owner_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="The authenticated user does not own this resource.")
     history = await service.get_conversation_history(conversation_id)
     if not history:
         raise HTTPException(status_code=404, detail=f"Conversation '{conversation_id}' not found.")
@@ -41,8 +56,18 @@ async def get_conversation(conversation_id: str, db: AsyncSession = Depends(get_
     )
 
 @router.post("/{conversation_id}/messages", response_model=MessageResponseDTO)
-async def add_message(conversation_id: str, payload: MessageCreateDTO, db: AsyncSession = Depends(get_db)):
+async def add_message(
+    conversation_id: str,
+    payload: MessageCreateDTO,
+    db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
+):
     service = ConversationService(db)
+    owner_id = await service.get_conversation_owner(conversation_id)
+    if owner_id is None:
+        raise HTTPException(status_code=404, detail=f"Conversation '{conversation_id}' not found.")
+    if current_user is not None and owner_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="The authenticated user does not own this resource.")
     msg = await service.add_message(
         conversation_id=conversation_id,
         role=payload.role,
@@ -60,8 +85,18 @@ async def add_message(conversation_id: str, payload: MessageCreateDTO, db: Async
     )
 
 @router.post("/{conversation_id}/messages/stream")
-async def stream_message(conversation_id: str, payload: MessageCreateDTO, db: AsyncSession = Depends(get_db)):
+async def stream_message(
+    conversation_id: str,
+    payload: MessageCreateDTO,
+    db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
+):
     service = ConversationService(db)
+    owner_id = await service.get_conversation_owner(conversation_id)
+    if owner_id is None:
+        raise HTTPException(status_code=404, detail=f"Conversation '{conversation_id}' not found.")
+    if current_user is not None and owner_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="The authenticated user does not own this resource.")
     msg = await service.add_message(
         conversation_id=conversation_id,
         role=payload.role,

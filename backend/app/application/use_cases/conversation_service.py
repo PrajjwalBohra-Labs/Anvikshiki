@@ -69,6 +69,10 @@ class ConversationService:
             ]
         }
 
+    async def get_conversation_owner(self, conversation_id: str) -> Optional[str]:
+        conversation = await self.session.get(ConversationModel, conversation_id)
+        return conversation.user_id if conversation else None
+
     async def stream_message_response(self, text_content: str, chunk_size: int = 10) -> AsyncGenerator[str, None]:
         """Supports streaming message output for responsive frontend rendering."""
         for i in range(0, len(text_content), chunk_size):

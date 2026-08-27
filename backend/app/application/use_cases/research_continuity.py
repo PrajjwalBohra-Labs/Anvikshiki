@@ -1,4 +1,4 @@
-﻿from typing import List, Dict, Any, Optional
+﻿from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from backend.app.infrastructure.database.models import (
@@ -31,9 +31,14 @@ class ResearchContinuityService:
         if not question:
             logger.warning("Research question not found for continuity resumption", question_id=research_question_id)
             return None
+        if question.user_id is not None and question.user_id != user_id:
+            return None
 
         # 2. Retrieve associated Research Runs & Steps (Evidence Trail & Timeline)
-        run_stmt = select(ResearchRunModel).where(ResearchRunModel.query == question.main_question).order_by(ResearchRunModel.started_at.desc())
+        run_stmt = select(ResearchRunModel).where(ResearchRunModel.query == question.main_question)
+        if question.user_id is not None:
+            run_stmt = run_stmt.where(ResearchRunModel.user_id == user_id)
+        run_stmt = run_stmt.order_by(ResearchRunModel.started_at.desc())
         run_result = await self.session.execute(run_stmt)
         runs = run_result.scalars().all()
 

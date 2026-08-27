@@ -1,12 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileText, Library, Menu, Network, Settings, Sparkles, X } from 'lucide-react';
+import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileSearch, FileText, Library, LogOut, Menu, Network, Settings, Sparkles, X } from 'lucide-react';
 import './AnvikshikiShell.css';
 
-export type AppView = 'inquiry' | 'library' | 'memory' | 'settings';
+export type AppView = 'inquiry' | 'history' | 'questions' | 'library' | 'memory' | 'settings';
 
 interface NavItem { id: AppView; label: string; icon: typeof CircleHelp; }
 const navItems: NavItem[] = [
   { id: 'inquiry', label: 'Inquiry', icon: CircleHelp },
+  { id: 'history', label: 'Research history', icon: FileSearch },
+  { id: 'questions', label: 'Questions', icon: CircleHelp },
   { id: 'library', label: 'Library', icon: Library },
   { id: 'memory', label: 'Understanding', icon: Network },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -15,11 +17,12 @@ const navItems: NavItem[] = [
 interface Props {
   activeView: AppView;
   onViewChange: (view: AppView) => void;
-  userId: string;
+  userName: string;
+  onLogout: () => void;
   children: ReactNode;
 }
 
-export function AnvikshikiShell({ activeView, onViewChange, userId, children }: Props) {
+export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, children }: Props) {
   const [leftOpen, setLeftOpen] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -51,7 +54,8 @@ export function AnvikshikiShell({ activeView, onViewChange, userId, children }: 
           </nav>
           {leftOpen && <div className="sidebar-context"><span className="eyebrow">Current investigation</span><p>No investigation selected.</p><span className="muted-copy">Start with a question to establish a research context.</span></div>}
           <div className="sidebar-footer">
-            {leftOpen && <span className="user-id" title={userId || 'No backend user ID configured'}>{userId ? 'User ' + userId.slice(0, 8) : 'User not configured'}</span>}
+            {leftOpen && <span className="user-id" title={userName}>{userName}</span>}
+            {leftOpen && <button className="icon-button" aria-label="Log out" onClick={onLogout}><LogOut size={15} /></button>}
             <button className="icon-button" aria-label={leftOpen ? 'Collapse navigation' : 'Expand navigation'} onClick={() => setLeftOpen((value) => !value)}>
               {leftOpen ? <ChevronLeft size={17} /> : <ChevronRight size={17} />}
             </button>

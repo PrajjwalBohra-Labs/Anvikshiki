@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { AlertTriangle, Check, CircleDot, LoaderCircle, MessageCircle, Search, Square, Terminal } from 'lucide-react';
 import { useResearchStream } from '../../hooks/useResearchStream';
 import { executeDialogue, searchPassages } from '../../api/services';
+import { navigate } from '../../routing';
 import type { DialogueTurnDTO, SearchResultDTO } from '../../types';
 import './ResearchWorkspace.css';
 
@@ -142,6 +143,7 @@ export function ResearchWorkspace({ userId }: Props) {
             ) : (
               <div className="result-waiting"><LoaderCircle className="spin" size={18} /><p>The final synthesis will appear when the backend emits <code>research_completed</code>.</p></div>
             )}
+            {state.result && state.runId && <button className="button button-primary result-detail-link" type="button" onClick={() => navigate(`/research/runs/${encodeURIComponent(state.runId || '')}`)}>Open complete research record</button>}
             {isCancelled && <div className="cancelled-callout" role="status"><Square size={15} /><span>Research was cancelled before the backend emitted a final result. Start a new investigation when ready.</span></div>}
             {state.error && <div className="error-callout" role="alert"><AlertTriangle size={16} /><span>{state.error}</span></div>}
           </div>

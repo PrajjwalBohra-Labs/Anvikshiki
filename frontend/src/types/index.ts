@@ -78,6 +78,182 @@ export interface ResearchRunRequestDTO {
   depth?: string;
 }
 
+export interface AuthUserDTO {
+  user_id: string;
+  username: string;
+}
+
+export interface UserResponseDTO extends AuthUserDTO {
+  created_at: string;
+  access_token?: string | null;
+}
+
+export interface ResearchQuestionSummaryDTO {
+  question_id: string;
+  user_id?: string | null;
+  main_question: string;
+  domain?: string | null;
+  research_status: string;
+  created_at: string;
+  run_ids: string[];
+}
+
+export interface ResearchQuestionDetailDTO extends ResearchQuestionSummaryDTO {
+  subquestions: string[];
+  scope?: string | null;
+  constraints: string[];
+  user_position?: string | null;
+  open_questions: string[];
+}
+
+export interface ResearchRunSummaryDTO {
+  run_id: string;
+  research_question_id?: string | null;
+  thread_id?: string | null;
+  user_id?: string | null;
+  query: string;
+  domain?: string | null;
+  depth?: string | null;
+  status: string;
+  error_message?: string | null;
+  started_at: string;
+  finished_at?: string | null;
+}
+
+export interface ResearchStepDTO {
+  step_name: string;
+  step_type: string;
+  status: string;
+  payload?: Record<string, unknown> | null;
+  event_id?: string | null;
+  event_sequence?: number | null;
+  created_at: string;
+}
+
+export interface ResearchPassageDTO {
+  passage_id: string;
+  source_id?: string | null;
+  source_title: string;
+  content: string;
+  page_number?: number | null;
+  source_type?: string | null;
+  retrieval_channels: string[];
+}
+
+export interface ValidatedClaimDTO {
+  claim_id?: string | null;
+  statement: string;
+  claim_type?: string | null;
+  passage_id?: string | null;
+  source_title?: string | null;
+  confidence: number;
+  is_verified: boolean;
+  reason?: string | null;
+}
+
+export interface SpecialistAnalysisDTO {
+  philosophical_arguments: Record<string, unknown>[];
+  source_criticisms: Record<string, unknown>[];
+  scientific_analyses: Record<string, unknown>[];
+  comparisons: Record<string, unknown>[];
+  challenges: Record<string, unknown>[];
+}
+
+export interface ResearchResultDTO {
+  run_id: string;
+  query: string;
+  domain?: string | null;
+  validation_status: string;
+  final_response: string;
+  validated_claims_count: number;
+  retrieved_passages: ResearchPassageDTO[];
+  claims: ValidatedClaimDTO[];
+  specialist_analysis: SpecialistAnalysisDTO;
+  validation: Record<string, unknown>;
+}
+
+export interface ResearchRunDetailDTO extends ResearchRunSummaryDTO {
+  output_references?: Record<string, unknown> | null;
+  steps: ResearchStepDTO[];
+  result?: ResearchResultDTO | null;
+}
+
+export interface EvidenceLinkDTO {
+  evidence_link_id: string;
+  claim_id?: string | null;
+  premise_id?: string | null;
+  passage_id: string;
+  relation_type: RelationType | string;
+  confidence_weight: number;
+}
+
+export interface ClaimEvidenceDTO {
+  claim_id: string;
+  statement: string;
+  claim_type: string;
+  provenance_id?: string | null;
+  confidence: number;
+  lifecycle_status: string;
+  evidence_links: EvidenceLinkDTO[];
+}
+
+export interface ProvenanceSourceDTO {
+  source_id: string;
+  title: string;
+  author?: string | null;
+  historical_era?: string | null;
+  original_language?: string | null;
+  source_type: string;
+  reference_url?: string | null;
+}
+
+export interface ProvenanceDocumentDTO {
+  document_id: string;
+  source_id: string;
+  checksum_sha256: string;
+  mime_type: string;
+  original_filename?: string | null;
+  total_pages?: number | null;
+}
+
+export interface ProvenancePassageDTO {
+  passage_id: string;
+  document_id: string;
+  page_number?: number | null;
+  content: string;
+  ocr_confidence?: number | null;
+  extraction_uncertainty: boolean;
+  language: string;
+}
+
+export interface EvidenceTraceDTO {
+  evidence_link_id: string;
+  claim_id?: string | null;
+  premise_id?: string | null;
+  relation_type: string;
+  confidence_weight: number;
+  passage: ProvenancePassageDTO;
+  document: ProvenanceDocumentDTO;
+  source: ProvenanceSourceDTO;
+  source_lineage: Record<string, unknown>[];
+}
+
+export interface DocumentDTO {
+  document_id: string;
+  source_id: string;
+  checksum_sha256: string;
+  mime_type: string;
+  original_filename?: string | null;
+  total_pages?: number | null;
+  created_at: string;
+  passages_count: number;
+}
+
+export interface WebAcquisitionResponseDTO {
+  source: SourceDTO;
+  document: DocumentDTO;
+}
+
 export interface ResearchClaimDTO {
   id?: string;
   statement: string;
@@ -91,12 +267,18 @@ export interface ResearchClaimDTO {
 
 export interface ResearchEventStarted {
   event: 'research_started';
+  event_id: string;
+  sequence: number;
+  run_id: string;
   query: string;
   thread_id: string;
 }
 
 export interface ResearchEventNode {
   event: `${string}_event`;
+  event_id: string;
+  sequence: number;
+  run_id: string;
   node: string;
   status: string;
   summary: string;
@@ -104,12 +286,25 @@ export interface ResearchEventNode {
 
 export interface ResearchEventCompleted {
   event: 'research_completed';
-  validation_status: string;
-  final_response: string;
-  validated_claims_count: number;
+  event_id: string;
+  sequence: number;
+  run_id: string;
+  status: string;
+  validation_status?: string;
+  final_response?: string;
+  validated_claims_count?: number;
+  result: ResearchResultDTO;
 }
 
-export type ResearchEventDTO = ResearchEventStarted | ResearchEventNode | ResearchEventCompleted;
+export interface ResearchEventError {
+  event: 'research_error';
+  event_id: string;
+  sequence: number;
+  run_id: string;
+  error: string;
+}
+
+export type ResearchEventDTO = ResearchEventStarted | ResearchEventNode | ResearchEventCompleted | ResearchEventError;
 
 export interface SearchResultDTO {
   passage_id: string;

@@ -16,8 +16,11 @@ from backend.app.api.v1.schemas.dtos import (
     ResearchRunSummaryResponseDTO,
     ResearchResumeRequestDTO,
     ResearchContinuityResponseDTO,
+    ResearchQuestionDetailResponseDTO,
+    ResearchQuestionSummaryResponseDTO,
     SpecialistAnalysisResponseDTO,
 )
+from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user, resolve_user_id
 from backend.app.application.orchestration.research_workflow import ResearchWorkflowEngine
 from backend.app.application.use_cases.claim_service import ClaimService
 from backend.app.application.use_cases.provenance import ProvenanceService
@@ -87,36 +90,89 @@ def _event_sequence(event_id: Optional[str], run_id: str) -> int:
 
 @router.get("/runs", response_model=List[ResearchRunSummaryResponseDTO])
 async def list_research_runs(
-    user_id: str = Query(..., min_length=1, max_length=128),
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
     status: Optional[str] = Query(default=None, max_length=32),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
-    runs = await ResearchRunService(db).list_runs(user_id=user_id, status=status, limit=limit, offset=offset)
+    owner_id = resolve_user_id(current_user, user_id)
+    runs = await ResearchRunService(db).list_runs(user_id=owner_id, status=status, limit=limit, offset=offset)
     return [_summary(run) for run in runs]
+
+
+def _question_summary(question: Any, run_ids: List[str]) -> ResearchQuestionSummaryResponseDTO:
+    return ResearchQuestionSummaryResponseDTO(
+        question_id=question.id,
+        user_id=question.user_id,
+        main_question=question.main_question,
+        domain=question.domain,
+        research_status=question.research_status,
+        created_at=question.created_at,
+        run_ids=run_ids,
+    )
+
+
+@router.get("/questions", response_model=List[ResearchQuestionSummaryResponseDTO])
+async def list_research_questions(
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
+    owner_id = resolve_user_id(current_user, user_id)
+    service = ResearchRunService(db)
+    questions = await service.list_questions(owner_id, limit=limit, offset=offset)
+    return [_question_summary(question, await service.list_question_run_ids(question.id, owner_id)) for question in questions]
+
+
+@router.get("/questions/{question_id}", response_model=ResearchQuestionDetailResponseDTO)
+async def get_research_question(
+    question_id: str,
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
+    owner_id = resolve_user_id(current_user, user_id)
+    service = ResearchRunService(db)
+    question = await service.get_owned_question(question_id, owner_id)
+    if question is None:
+        raise HTTPException(status_code=404, detail="Research question not found.")
+    summary = _question_summary(question, await service.list_question_run_ids(question.id, owner_id))
+    return ResearchQuestionDetailResponseDTO(
+        **summary.model_dump(),
+        subquestions=question.subquestions or [],
+        scope=question.scope,
+        constraints=question.constraints or [],
+        user_position=question.user_position,
+        open_questions=question.open_questions or [],
+    )
 
 
 @router.get("/runs/{run_id}", response_model=ResearchRunDetailResponseDTO)
 async def get_research_run(
     run_id: str,
-    user_id: str = Query(..., min_length=1, max_length=128),
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
     service = ResearchRunService(db)
-    run = await _owned_run(service, run_id, user_id)
+    run = await _owned_run(service, run_id, resolve_user_id(current_user, user_id))
     return await _detail(service, run)
 
 
 @router.get("/runs/{run_id}/events")
 async def replay_research_events(
     run_id: str,
-    user_id: str = Query(..., min_length=1, max_length=128),
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
     last_event_id: Optional[str] = Header(default=None, alias="Last-Event-ID"),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
     service = ResearchRunService(db)
-    await _owned_run(service, run_id, user_id)
+    await _owned_run(service, run_id, resolve_user_id(current_user, user_id))
     after_sequence = _event_sequence(last_event_id, run_id)
     events = await service.list_events(run_id, after_sequence=after_sequence)
 
@@ -134,12 +190,17 @@ async def replay_research_events(
 
 
 @router.post("/run", response_model=ResearchRunExecutionResponseDTO)
-async def run_research(payload: ResearchRunRequestDTO, db: AsyncSession = Depends(get_db)):
+async def run_research(
+    payload: ResearchRunRequestDTO,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
+    owner_id = resolve_user_id(current_user, payload.user_id)
     service = ResearchRunService(db)
-    question = await service.create_question(payload.query, payload.user_id, payload.domain)
+    question = await service.create_question(payload.query, owner_id, payload.domain)
     run = await service.create_run(
         query=payload.query,
-        user_id=payload.user_id,
+        user_id=owner_id,
         research_question_id=question.id,
         domain=payload.domain,
         depth=payload.depth,
@@ -148,7 +209,7 @@ async def run_research(payload: ResearchRunRequestDTO, db: AsyncSession = Depend
     try:
         result_state = await engine.execute_research(
             query=payload.query,
-            user_id=payload.user_id,
+            user_id=owner_id,
             domain=payload.domain or "Epistemology",
             thread_id=run.thread_id or run.id,
             run_id=run.id,
@@ -184,12 +245,17 @@ async def run_research(payload: ResearchRunRequestDTO, db: AsyncSession = Depend
 
 
 @router.post("/run/stream")
-async def stream_research_events(payload: ResearchRunRequestDTO, db: AsyncSession = Depends(get_db)):
+async def stream_research_events(
+    payload: ResearchRunRequestDTO,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
+    owner_id = resolve_user_id(current_user, payload.user_id)
     service = ResearchRunService(db)
-    question = await service.create_question(payload.query, payload.user_id, payload.domain)
+    question = await service.create_question(payload.query, owner_id, payload.domain)
     run = await service.create_run(
         query=payload.query,
-        user_id=payload.user_id,
+        user_id=owner_id,
         research_question_id=question.id,
         domain=payload.domain,
         depth=payload.depth,
@@ -201,7 +267,7 @@ async def stream_research_events(payload: ResearchRunRequestDTO, db: AsyncSessio
         try:
             async for event in engine.stream_research_events(
                 query=payload.query,
-                user_id=payload.user_id,
+                user_id=owner_id,
                 domain=payload.domain or "Epistemology",
                 thread_id=run.thread_id or run.id,
                 run_id=run.id,
@@ -236,20 +302,22 @@ async def stream_research_events(payload: ResearchRunRequestDTO, db: AsyncSessio
 @router.get("/runs/{run_id}/claims", response_model=List[ClaimEvidenceResponseDTO])
 async def get_research_claims(
     run_id: str,
-    user_id: str = Query(..., min_length=1, max_length=128),
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
-    await _owned_run(ResearchRunService(db), run_id, user_id)
+    await _owned_run(ResearchRunService(db), run_id, resolve_user_id(current_user, user_id))
     return await ClaimService(db).list_claims_for_run(run_id)
 
 
 @router.get("/runs/{run_id}/analysis", response_model=SpecialistAnalysisResponseDTO)
 async def get_research_analysis(
     run_id: str,
-    user_id: str = Query(..., min_length=1, max_length=128),
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
-    run = await _owned_run(ResearchRunService(db), run_id, user_id)
+    run = await _owned_run(ResearchRunService(db), run_id, resolve_user_id(current_user, user_id))
     result = _result(run)
     return result.specialist_analysis if result else SpecialistAnalysisResponseDTO()
 
@@ -257,17 +325,25 @@ async def get_research_analysis(
 @router.get("/runs/{run_id}/provenance", response_model=List[EvidenceTraceResponseDTO])
 async def get_research_provenance(
     run_id: str,
-    user_id: str = Query(..., min_length=1, max_length=128),
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
-    await _owned_run(ResearchRunService(db), run_id, user_id)
+    await _owned_run(ResearchRunService(db), run_id, resolve_user_id(current_user, user_id))
     return await ProvenanceService(db).trace_run(run_id)
 
 
 @router.post("/resume", response_model=ResearchContinuityResponseDTO)
-async def resume_research(payload: ResearchResumeRequestDTO, db: AsyncSession = Depends(get_db)):
+async def resume_research(
+    payload: ResearchResumeRequestDTO,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
+    owner_id = resolve_user_id(current_user, payload.user_id)
+    if await ResearchRunService(db).get_owned_question(payload.research_question_id, owner_id) is None:
+        raise HTTPException(status_code=404, detail="Research question not found.")
     service = ResearchContinuityService(db)
-    resumed = await service.resume_investigation(payload.research_question_id, payload.user_id)
+    resumed = await service.resume_investigation(payload.research_question_id, owner_id)
     if not resumed:
         raise HTTPException(status_code=404, detail=f"Research inquiry '{payload.research_question_id}' not found.")
     return ResearchContinuityResponseDTO(**resumed)

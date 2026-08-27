@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from backend.app.infrastructure.database.session import get_db
 from backend.app.infrastructure.database.models import SourceModel
 from backend.app.domain.models.enums import SourceType
-from backend.app.core.errors import AnvikshikiDomainError
+from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user
 
 router = APIRouter(prefix="/sources", tags=["Sources"])
 
@@ -23,7 +23,11 @@ class SourceResponse(SourceCreate):
     model_config = ConfigDict(from_attributes=True)
 
 @router.post("/", response_model=SourceResponse, status_code=status.HTTP_201_CREATED)
-async def create_source(payload: SourceCreate, db: AsyncSession = Depends(get_db)):
+async def create_source(
+    payload: SourceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
+):
     source = SourceModel(**payload.model_dump())
     db.add(source)
     await db.commit()

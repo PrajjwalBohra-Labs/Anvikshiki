@@ -6,6 +6,7 @@ from sqlalchemy.future import select
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 from backend.app.infrastructure.database.session import get_db
+from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.application.use_cases.document_service import DocumentService
@@ -35,6 +36,7 @@ class DocumentUploadResponse(BaseModel):
 async def list_documents(
     source_id: Optional[str] = Query(default=None),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
     return await DocumentService(db).list_documents(source_id=source_id)
 
@@ -42,7 +44,8 @@ async def list_documents(
 async def upload_document(
     source_id: str = Form(...),
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
     content = await file.read()
     storage = LocalStorageService()
@@ -63,7 +66,11 @@ async def upload_document(
     )
 
 @router.get("/{document_id}", response_model=DocumentResponseDTO)
-async def get_document(document_id: str, db: AsyncSession = Depends(get_db)):
+async def get_document(
+    document_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
     service = DocumentService(db)
     document = await service.get_document(document_id)
     if not document:
@@ -71,7 +78,11 @@ async def get_document(document_id: str, db: AsyncSession = Depends(get_db)):
     return await service.describe_document(document)
 
 @router.get("/{document_id}/file", response_class=FileResponse)
-async def serve_document(document_id: str, db: AsyncSession = Depends(get_db)):
+async def serve_document(
+    document_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
     service = DocumentService(db)
     document = await service.get_document(document_id)
     if not document:
@@ -84,7 +95,11 @@ async def serve_document(document_id: str, db: AsyncSession = Depends(get_db)):
     )
 
 @router.get("/{document_id}/passages", response_model=List[PassageResponse])
-async def get_document_passages(document_id: str, db: AsyncSession = Depends(get_db)):
+async def get_document_passages(
+    document_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
     doc_result = await db.execute(select(DocumentModel).where(DocumentModel.id == document_id))
     doc = doc_result.scalars().first()
     if not doc:

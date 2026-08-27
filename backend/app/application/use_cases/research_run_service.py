@@ -75,6 +75,40 @@ class ResearchRunService:
         result = await self.session.execute(stmt.offset(offset).limit(limit))
         return list(result.scalars().all())
 
+    async def list_questions(
+        self,
+        user_id: str,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> List[ResearchQuestionModel]:
+        stmt = (
+            select(ResearchQuestionModel)
+            .where(ResearchQuestionModel.user_id == user_id)
+            .order_by(ResearchQuestionModel.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_owned_question(self, question_id: str, user_id: str) -> Optional[ResearchQuestionModel]:
+        question = await self.session.get(ResearchQuestionModel, question_id)
+        if question is None or question.user_id != user_id:
+            return None
+        return question
+
+    async def list_question_run_ids(self, question_id: str, user_id: str) -> List[str]:
+        stmt = (
+            select(ResearchRunModel.id)
+            .where(
+                ResearchRunModel.research_question_id == question_id,
+                ResearchRunModel.user_id == user_id,
+            )
+            .order_by(ResearchRunModel.started_at.asc())
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
     async def get_owned_run(self, run_id: str, user_id: Optional[str] = None) -> Optional[ResearchRunModel]:
         run = await self.session.get(ResearchRunModel, run_id)
         if run is None or (user_id is not None and run.user_id != user_id):
