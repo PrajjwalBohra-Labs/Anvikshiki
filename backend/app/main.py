@@ -14,10 +14,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    # Vite's host=true development server is reachable through either local
+    # hostname. These are explicit local origins, not a wildcard.
+    allow_origins=list(dict.fromkeys([settings.FRONTEND_URL, "http://127.0.0.1:5173"])),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_headers=["Accept", "Authorization", "Content-Type", "Last-Event-ID"],
 )
 
 app.include_router(api_router)
