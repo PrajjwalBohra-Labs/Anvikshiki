@@ -1,5 +1,3 @@
-# Anvikshiki
-
 Anvikshiki is a quiet place for serious questions.
 
 The name points to the practice of looking closely: asking better questions, staying near the evidence, and remaining open to being wrong. Anvikshiki gives you room to gather sources, follow an idea, notice uncertainty, and see how your understanding changes over time.
