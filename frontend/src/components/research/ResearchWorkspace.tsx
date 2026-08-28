@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { AlertTriangle, Check, CircleDot, LoaderCircle, MessageCircle, Search, Square, Terminal } from 'lucide-react';
-import { useResearchStream } from '../../hooks/useResearchStream';
+import { AlertTriangle, BookOpen, Check, CheckCircle2, CircleDot, Database, GitBranch, Layers3, LoaderCircle, MessageCircle, Search, ShieldCheck, Square, Terminal } from 'lucide-react';
+import { useResearchStream, type ResearchStreamState } from '../../hooks/useResearchStream';
 import { executeDialogue, searchPassages } from '../../api/services';
 import { navigate } from '../../routing';
 import type { DialogueTurnDTO, SearchResultDTO } from '../../types';
@@ -15,6 +15,55 @@ const stageLabels: Record<string, string> = {
   challenger: 'Examining challenges',
   validator: 'Validating synthesis',
 };
+
+const workflowStages = [
+  { label: 'Question', node: 'coordinator' },
+  { label: 'Retrieval', node: 'retrieval' },
+  { label: 'Specialist analysis', node: 'specialist_analysis' },
+  { label: 'Challenge', node: 'challenger' },
+  { label: 'Validation', node: 'validator' },
+  { label: 'Synthesis', node: 'synthesis' },
+];
+
+function ResearchWorkflow({ state }: { state: ResearchStreamState }) {
+  const lastNode = [...state.activity].reverse().find((item) => item.node)?.node;
+  return <section className="workflow-panel" aria-label="Research workflow">
+    <div className="workflow-heading"><span className="eyebrow">Investigation path</span><span className="muted-copy">Question → synthesis</span></div>
+    <ol className="workflow-strip">
+      {workflowStages.map((stage) => {
+        const present = state.activity.some((item) => item.node === stage.node);
+        const active = state.status === 'streaming' && lastNode === stage.node;
+        const complete = present && !active;
+        return <li className={`${present ? 'present ' : ''}${active ? 'active ' : ''}${complete ? 'complete' : ''}`} key={stage.label}><span className="workflow-marker">{complete ? <Check size={12} /> : <span />}</span><strong>{stage.label}</strong></li>;
+      })}
+    </ol>
+  </section>;
+}
+
+function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStreamState; evidenceResults: SearchResultDTO[] }) {
+  const result = state.result;
+  const passages = result?.retrieved_passages ?? [];
+  const sourceCount = new Set(passages.map((passage) => passage.source_id || passage.source_title)).size;
+  const claimCount = result?.claims.length ?? 0;
+  const analysisCount = result ? Object.values(result.specialist_analysis).reduce((total, group) => total + group.length, 0) : 0;
+  const categories = [
+    { label: 'EVIDENCE', value: passages.length || evidenceResults.length, note: passages.length ? 'retrieved passages' : evidenceResults.length ? 'lookup passages' : 'not reported', icon: BookOpen, tone: 'evidence' },
+    { label: 'SOURCES', value: sourceCount || '—', note: sourceCount ? 'represented in result' : 'not reported', icon: Database, tone: 'archival' },
+    { label: 'CLAIMS', value: claimCount || '—', note: claimCount ? 'returned claims' : 'not reported', icon: CheckCircle2, tone: 'interpretation' },
+    { label: 'ARGUMENTS', value: analysisCount || '—', note: analysisCount ? 'specialist fields' : 'not reported', icon: GitBranch, tone: 'scientific' },
+    { label: 'CONCEPTS', value: '—', note: 'not exposed by current run', icon: Layers3, tone: 'hypothesis' },
+    { label: 'MEMORY', value: '—', note: 'not exposed by current run', icon: ShieldCheck, tone: 'memory' },
+    { label: 'ACTIVITY', value: state.activity.length, note: state.status === 'idle' ? 'awaiting research' : state.status, icon: Terminal, tone: state.status === 'failed' ? 'contradiction' : 'activity' },
+  ];
+  return <aside className="intelligence-sidebar" aria-label="Research intelligence">
+    <div className="intelligence-top"><div><span className="eyebrow">Intelligence</span><h2>Research signals</h2></div><span className="intelligence-pip" aria-hidden="true" /></div>
+    <p className="intelligence-intro">A compact view of relationships returned by the current investigation.</p>
+    <div className="intelligence-list">
+      {categories.map(({ label, value, note, icon: Icon, tone }) => <div className={`intelligence-item ${tone}`} key={label}><Icon size={14} /><div><strong>{label}</strong><small>{note}</small></div><b>{value}</b></div>)}
+    </div>
+    <div className="intelligence-trace"><span className="eyebrow">Trace boundary</span><p><span>Source</span><i>→</i><span>Passage</span><i>→</i><span>Claim</span></p><small>Only relationships returned by the backend are shown.</small></div>
+  </aside>;
+}
 
 export function ResearchWorkspace({ userId }: Props) {
   const [query, setQuery] = useState('');
@@ -82,6 +131,9 @@ export function ResearchWorkspace({ userId }: Props) {
         <p>Ask a question that deserves sources, arguments, and uncertainty made visible.</p>
       </section>
 
+      <div className="research-cockpit">
+        <div className="research-core">
+
       <form className="inquiry-form" onSubmit={submit}>
         <label htmlFor="research-question" className="eyebrow">Research question</label>
         <textarea
@@ -112,6 +164,8 @@ export function ResearchWorkspace({ userId }: Props) {
           </div>
         </div>
       </form>
+
+      <ResearchWorkflow state={state} />
 
       {state.status === 'idle' && (
         <section className="workspace-empty" aria-label="Research guidance">
@@ -190,6 +244,9 @@ export function ResearchWorkspace({ userId }: Props) {
         {dialogueError && <div className="error-callout" role="alert"><AlertTriangle size={16} /><span>{dialogueError}</span></div>}
         {dialogueTurn && <article className="dialogue-response"><div className="eyebrow">{dialogueTurn.dialogue_mode} response{dialogueTurn.source_title ? ' · ' + dialogueTurn.source_title : ''}</div><p>{dialogueTurn.response_text}</p><div className="dialogue-flags"><span>{dialogueTurn.evidence_linked ? 'Evidence linked' : 'No evidence linked'}</span><span>{dialogueTurn.preserves_uncertainty ? 'Uncertainty preserved' : 'Uncertainty not reported'}</span>{dialogueTurn.disagrees_with_user && <span>Challenges the premise</span>}</div></article>}
       </section>
+        </div>
+        <IntelligenceSidebar state={state} evidenceResults={evidenceResults} />
+      </div>
     </div>
   );
 }

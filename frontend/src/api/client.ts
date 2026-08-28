@@ -20,7 +20,18 @@ function errorMessage(body: unknown, fallback: string): string {
   if (typeof body === 'object' && body !== null && 'detail' in body) {
     const detail = body.detail;
     if (typeof detail === 'string') return detail;
-    if (Array.isArray(detail)) return 'The request did not pass validation.';
+    if (Array.isArray(detail)) {
+      const messages = detail.map((item) => {
+        if (typeof item !== 'object' || item === null) return null;
+        const value = item as { loc?: unknown; msg?: unknown };
+        const message = typeof value.msg === 'string' ? value.msg : null;
+        if (!message) return null;
+        const location = Array.isArray(value.loc) ? value.loc.filter((part): part is string | number => typeof part === 'string' || typeof part === 'number').join('.') : '';
+        return location ? `${location}: ${message}` : message;
+      }).filter((message): message is string => Boolean(message));
+      if (messages.length > 0) return messages.join(' ');
+      return 'The request did not pass validation.';
+    }
   }
   return fallback;
 }

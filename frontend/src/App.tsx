@@ -9,6 +9,7 @@ import { AnvikshikiShell, type AppView } from './components/shell/AnvikshikiShel
 import { executeDialogue, getEpistemicPositions, getHealth } from './api/services';
 import { navigate, routeView, useRoute } from './routing';
 import type { DialogueTurnDTO, EpistemicPositionDTO, HealthDTO } from './types';
+import './styles/tokens.css';
 import './styles/app.css';
 
 function LoadingMessage({ label }: { label: string }) { return <p className="muted-copy loading-message" role="status"><LoaderCircle className="spin" size={14} /> {label}</p>; }

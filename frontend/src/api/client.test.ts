@@ -23,4 +23,9 @@ describe('API client', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: 'Forbidden' }), { status: 403 })));
     await expect(request('/research/runs/other')).rejects.toMatchObject({ status: 403, message: 'Forbidden' });
   });
+
+  it('preserves FastAPI validation details for actionable auth errors', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: [{ loc: ['body', 'username'], msg: 'String should match pattern' }] }), { status: 422 })));
+    await expect(request('/users', { method: 'POST', body: JSON.stringify({ username: 'not valid' }) })).rejects.toMatchObject({ status: 422, message: 'body.username: String should match pattern' });
+  });
 });

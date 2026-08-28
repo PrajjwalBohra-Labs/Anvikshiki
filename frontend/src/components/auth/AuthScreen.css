@@ -1,9 +1,26 @@
-.auth-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--background); }
-.auth-card { width: min(100%, 520px); display: grid; gap: 16px; padding: clamp(24px, 6vw, 54px); border: 1px solid var(--border-subtle); background: var(--surface); box-shadow: var(--glow-warm); }
-.auth-card .brand-mark { margin-bottom: 6px; }
-.auth-card h1 { color: var(--text-secondary); font-size: clamp(30px, 6vw, 48px); font-weight: 500; letter-spacing: -.04em; margin: 0; }
-.auth-card .page-lede { margin: 0; }
-.auth-form { display: grid; gap: 16px; margin-top: 8px; }
+.auth-screen { min-height: 100vh; display: grid; place-items: center; padding: 28px; background: var(--background); }
+.auth-frame { width: min(100%, 930px); display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr); border: 1px solid var(--border-subtle); background: var(--surface); box-shadow: var(--shadow-deep); }
+.auth-card { display: grid; gap: 16px; padding: clamp(25px, 5vw, 58px); border-right: 1px solid var(--border-subtle); }
+.auth-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+.auth-brand .brand-mark { width: 31px; height: 31px; display: grid; place-items: center; border: 1px solid var(--aged-bronze); color: var(--dusty-oat); font: 600 14px var(--font-mono); }
+.auth-brand strong { display: block; margin-top: 5px; color: var(--text-secondary); font-size: 12px; letter-spacing: .17em; }
+.auth-card h1 { max-width: 500px; color: var(--text-secondary); font-family: var(--font-serif); font-size: clamp(31px, 5vw, 52px); font-weight: 500; letter-spacing: -.03em; line-height: 1.05; margin: 0; }
+.auth-card .page-lede { max-width: 470px; margin: 0; }
+.auth-form { display: grid; gap: 16px; max-width: 460px; margin-top: 7px; }
 .auth-form label { display: grid; gap: 8px; }
-.auth-form input { padding: 12px; border: 1px solid var(--border); background: var(--background); color: var(--text-primary); }
+.auth-form input { width: 100%; padding: 12px; }
 .auth-form .button { width: 100%; }
+.auth-notes { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 16px; min-height: 350px; padding: 27px; background: var(--surface-inset); }
+.auth-notes > p { color: var(--text-secondary); font-family: var(--font-serif); font-size: 18px; line-height: 1.45; margin: 0; }
+.auth-notes > small { color: var(--text-muted); font: 10px/1.5 var(--font-mono); }
+.auth-note-list { display: grid; gap: 10px; width: 100%; padding: 15px 0; border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font: 10px var(--font-mono); text-transform: uppercase; }
+.auth-note-list span { display: flex; align-items: center; gap: 9px; }
+.auth-note-list i { width: 6px; height: 6px; border: 1px solid var(--aged-bronze); display: inline-block; }
+
+@media (max-width: 650px) {
+  .auth-screen { padding: 14px; }
+  .auth-frame { grid-template-columns: 1fr; }
+  .auth-card { border-right: 0; border-bottom: 1px solid var(--border-subtle); padding: 25px 20px; }
+  .auth-notes { min-height: auto; padding: 20px; }
+  .auth-notes > p { font-size: 16px; }
+}

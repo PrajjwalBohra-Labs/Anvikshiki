@@ -1,55 +1,76 @@
 :root {
+  color-scheme: dark;
+  /* Anvikshiki palette: semantic names are the public design API. */
   --ink-black: #0d0d0d;
   --aged-bronze: #5b4636;
   --walnut-leather: #4b2e19;
   --dusty-oat: #b49a83;
+  --ash-grey: #a49c92;
   --burnt-umber: #7e3e28;
   --twilight-blue: #2c3e50;
   --olive-smoke: #5e6253;
   --dusty-plum: #5a3d55;
-  --ash-grey: #a49c92;
 
   --background: var(--ink-black);
-  --surface: #121212;
-  --surface-raised: #181c20;
-  --surface-overlay: #22262a;
-  --text-primary: var(--ash-grey);
+  --surface: #151413;
+  --surface-raised: #1b1917;
+  --surface-hover: #24201d;
+  --surface-overlay: #2a2521;
+  --surface-inset: #111110;
+  --border: rgba(180, 154, 131, 0.28);
+  --border-subtle: rgba(180, 154, 131, 0.15);
+  --border-strong: var(--aged-bronze);
+
+  --text-primary: #c9beb4;
   --text-secondary: var(--dusty-oat);
-  --text-muted: var(--olive-smoke);
-  --border: var(--aged-bronze);
-  --border-subtle: rgba(164, 156, 146, 0.16);
+  --text-muted: #8f877f;
+  --text-quiet: #68635d;
+  --accent: var(--dusty-oat);
   --accent-warm: var(--aged-bronze);
+  --accent-archival: var(--walnut-leather);
   --accent-cool: var(--twilight-blue);
-  --accent-philosophical: var(--dusty-plum);
-  --evidence: var(--aged-bronze);
-  --interpretation: var(--dusty-oat);
-  --hypothesis: var(--dusty-plum);
-  --uncertainty: var(--olive-smoke);
+
+  /* Epistemic semantics. */
+  --evidence: var(--dusty-oat);
+  --interpretation: var(--dusty-plum);
+  --hypothesis: var(--twilight-blue);
   --contradiction: var(--burnt-umber);
   --scientific: var(--twilight-blue);
-  --glow-warm: 0 0 18px rgba(91, 70, 54, 0.28);
-  --glow-cool: 0 0 18px rgba(44, 62, 80, 0.34);
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
+  --memory: var(--olive-smoke);
+  --warning: var(--burnt-umber);
+  --success: var(--olive-smoke);
+  --validation: var(--olive-smoke);
+  --uncertainty: var(--olive-smoke);
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
   --font-indic: 'Noto Sans Devanagari', sans-serif;
+  --shadow-deep: 0 18px 46px rgba(0, 0, 0, 0.28);
+  --shadow-inset: inset 0 1px rgba(255, 255, 255, 0.025);
+  --focus-ring: 0 0 0 2px var(--ink-black), 0 0 0 4px var(--dusty-oat);
 }
 
 * { box-sizing: border-box; }
 html, body, #root { min-height: 100%; }
+html { background: var(--background); }
 body {
   margin: 0;
   background: var(--background);
   color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
-  outline: 2px solid var(--dusty-oat);
-  outline-offset: 2px;
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visible, summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
-::selection { background: var(--aged-bronze); color: var(--ash-grey); }
+::selection { background: var(--aged-bronze); color: var(--text-primary); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

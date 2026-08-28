@@ -40,11 +40,12 @@ export function useRoute(): Route {
   return route;
 }
 
-export function routeView(route: Route): 'inquiry' | 'history' | 'questions' | 'library' | 'memory' | 'settings' {
+export function routeView(route: Route): 'inquiry' | 'history' | 'questions' | 'library' | 'memory' | 'dialogue' | 'settings' {
   if (route.name === 'research-runs' || route.name === 'research-run') return 'history';
   if (route.name === 'research-questions') return 'questions';
   if (route.name.startsWith('library')) return 'library';
   if (route.name === 'memory') return 'memory';
+  if (route.name === 'dialogue') return 'dialogue';
   if (route.name === 'settings') return 'settings';
   return 'inquiry';
 }
