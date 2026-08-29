@@ -5,7 +5,15 @@ from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignK
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.app.infrastructure.database.session import Base
 from backend.app.core.config import RuntimeProfile, settings
-from backend.app.domain.models.enums import SourceType, SourceRelationshipType, ClaimType, RelationType, EvidenceStatus
+from backend.app.domain.models.enums import (
+    ClaimType,
+    EvidenceStatus,
+    ProvenanceNodeType,
+    ProvenanceRelationType,
+    RelationType,
+    SourceRelationshipType,
+    SourceType,
+)
 
 try:
     from pgvector.sqlalchemy import Vector
@@ -180,6 +188,75 @@ class PassageModel(Base):
         "DocumentVersionModel", back_populates="passages"
     )
     page: Mapped[Optional["PageModel"]] = relationship("PageModel", back_populates="passages")
+
+
+class ProvenanceNodeModel(Base):
+    """Typed, stable graph nodes backed by existing domain identities."""
+
+    __tablename__ = "provenance_nodes"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    node_type: Mapped[ProvenanceNodeType] = mapped_column(
+        SQLEnum(ProvenanceNodeType), nullable=False, index=True
+    )
+    entity_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    label: Mapped[str] = mapped_column(String(512), nullable=False)
+    metadata_payload: Mapped[Optional[dict]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint("node_type", "entity_id", name="uix_provenance_node_identity"),
+    )
+
+    outgoing_edges: Mapped[List["ProvenanceEdgeModel"]] = relationship(
+        "ProvenanceEdgeModel",
+        foreign_keys="[ProvenanceEdgeModel.from_node_id]",
+        back_populates="from_node",
+        cascade="all, delete-orphan",
+    )
+    incoming_edges: Mapped[List["ProvenanceEdgeModel"]] = relationship(
+        "ProvenanceEdgeModel",
+        foreign_keys="[ProvenanceEdgeModel.to_node_id]",
+        back_populates="to_node",
+        cascade="all, delete-orphan",
+    )
+
+
+class ProvenanceEdgeModel(Base):
+    """Append-oriented typed relationship between two provenance nodes."""
+
+    __tablename__ = "provenance_edges"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    from_node_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("provenance_nodes.id"), nullable=False, index=True
+    )
+    to_node_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("provenance_nodes.id"), nullable=False, index=True
+    )
+    relationship_type: Mapped[ProvenanceRelationType] = mapped_column(
+        SQLEnum(ProvenanceRelationType), nullable=False, index=True
+    )
+    metadata_payload: Mapped[Optional[dict]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "from_node_id",
+            "to_node_id",
+            "relationship_type",
+            name="uix_provenance_edge_identity",
+        ),
+    )
+
+    from_node: Mapped["ProvenanceNodeModel"] = relationship(
+        "ProvenanceNodeModel",
+        foreign_keys=[from_node_id],
+        back_populates="outgoing_edges",
+    )
+    to_node: Mapped["ProvenanceNodeModel"] = relationship(
+        "ProvenanceNodeModel",
+        foreign_keys=[to_node_id],
+        back_populates="incoming_edges",
+    )
 
 class ClaimModel(Base):
     __tablename__ = "claims"

@@ -19,6 +19,7 @@ from backend.app.infrastructure.database.models import (
 from backend.app.infrastructure.document_parsers.pdf_parser import PdfDocumentParser, TextDocumentParser
 from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
+from backend.app.application.use_cases.provenance import ProvenanceService
 
 
 SUPPORTED_MIME_TYPES = {"application/pdf", "text/markdown", "text/plain"}
@@ -267,6 +268,12 @@ class DocumentIngestionService:
                 self.session.add(passage)
                 passage_models.append(passage)
 
+            await ProvenanceService(self.session).record_document_ancestry(
+                new_document,
+                version,
+                page_models.values(),
+                passage_models,
+            )
             await self.session.commit()
             return new_document, passage_models
         except Exception:

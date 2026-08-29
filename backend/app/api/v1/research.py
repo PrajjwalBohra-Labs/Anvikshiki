@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.api.v1.schemas.dtos import (
     ClaimEvidenceResponseDTO,
     EvidenceTraceResponseDTO,
+    ProvenanceGraphResponseDTO,
     ResearchResultResponseDTO,
     ResearchRunDetailResponseDTO,
     ResearchRunExecutionResponseDTO,
@@ -331,6 +332,20 @@ async def get_research_provenance(
 ):
     await _owned_run(ResearchRunService(db), run_id, resolve_user_id(current_user, user_id))
     return await ProvenanceService(db).trace_run(run_id)
+
+
+@router.get("/runs/{run_id}/provenance/graph", response_model=ProvenanceGraphResponseDTO)
+async def get_research_provenance_graph(
+    run_id: str,
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
+    await _owned_run(ResearchRunService(db), run_id, resolve_user_id(current_user, user_id))
+    graph = await ProvenanceService(db).trace_run_graph(run_id)
+    if graph is None:
+        raise HTTPException(status_code=404, detail="Research run not found.")
+    return graph
 
 
 @router.post("/resume", response_model=ResearchContinuityResponseDTO)
