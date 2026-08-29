@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     HYBRID_LEXICAL_CANDIDATE_LIMIT: int = Field(default=30, ge=1, le=500)
     HYBRID_SEMANTIC_CANDIDATE_LIMIT: int = Field(default=30, ge=1, le=500)
     HYBRID_RRF_K: int = Field(default=60, ge=1, le=1000)
+    RERANKER_ENABLED: bool = True
+    RERANKER_CANDIDATE_MULTIPLIER: int = Field(default=2, ge=1, le=10)
     RERANKER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     
     # Subsystems Toggles

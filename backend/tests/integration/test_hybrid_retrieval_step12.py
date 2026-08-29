@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+import asyncio
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -218,3 +219,57 @@ async def test_reranker_failure_returns_fused_candidates_as_degraded():
     assert outcome.results[0].hybrid_score == 1.0
     assert outcome.results[0].rerank_score is None
     assert outcome.warnings == ["reranker retrieval unavailable (RuntimeError)."]
+
+
+@pytest.mark.asyncio
+async def test_reranker_timeout_is_degraded_without_fabricated_score():
+    passage = _passage("passage-timeout", 0, "anumana is inference")
+    fused = ScoredPassage(
+        passage, score=1.0, retrieval_method="hybrid", hybrid_score=1.0
+    )
+
+    class TimedOutReranker:
+        async def rerank(self, *args, **kwargs):
+            raise asyncio.TimeoutError()
+
+    retriever = AdvancedRetriever(
+        session=None, embedding_client=object(), reranker_client=TimedOutReranker()
+    )
+
+    async def candidates(*args, **kwargs):
+        return RetrievalOutcome(results=[fused])
+
+    retriever.hybrid_retrieve_with_metadata = candidates
+    outcome = await retriever.retrieve_and_rerank_with_metadata("anumana", top_k=1)
+    assert outcome.status == "degraded"
+    assert outcome.results[0].rerank_score is None
+    assert "TimeoutError" in outcome.warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_reranker_can_be_disabled_without_losing_fused_candidates(monkeypatch):
+    monkeypatch.setattr(settings, "RERANKER_ENABLED", False)
+    monkeypatch.setattr(settings, "RERANKER_CANDIDATE_MULTIPLIER", 3)
+    passages = [_passage(f"passage-{index}", index) for index in range(3)]
+    fused = [ScoredPassage(item, 1.0, retrieval_method="hybrid", hybrid_score=1.0) for item in passages]
+    requested_pool = []
+
+    class FailingReranker:
+        async def rerank(self, *args, **kwargs):
+            raise AssertionError("disabled reranker must not be called")
+
+    retriever = AdvancedRetriever(
+        session=None, embedding_client=object(), reranker_client=FailingReranker()
+    )
+
+    async def candidates(*args, **kwargs):
+        requested_pool.append(kwargs["top_k"])
+        return RetrievalOutcome(results=fused)
+
+    retriever.hybrid_retrieve_with_metadata = candidates
+    outcome = await retriever.retrieve_and_rerank_with_metadata("query", top_k=1)
+    assert requested_pool == [3]
+    assert outcome.status == "complete"
+    assert [item.passage.id for item in outcome.results] == ["passage-0"]
+    assert outcome.results[0].rerank_score is None
+    assert outcome.results[0].hybrid_score == 1.0

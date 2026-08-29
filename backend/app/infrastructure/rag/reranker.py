@@ -120,12 +120,15 @@ class AdvancedRetriever(HybridRetriever):
             query=query,
             source_type=source_type,
             language=language,
-            top_k=top_k * 2,
+            top_k=top_k * settings.RERANKER_CANDIDATE_MULTIPLIER,
             source_id=source_id,
             document_id=document_id,
             document_version_id=document_version_id,
         )
         if not outcome.results:
+            return outcome
+        if not settings.RERANKER_ENABLED:
+            outcome.results = outcome.results[:top_k]
             return outcome
         try:
             reranked = await self.reranker.rerank(
