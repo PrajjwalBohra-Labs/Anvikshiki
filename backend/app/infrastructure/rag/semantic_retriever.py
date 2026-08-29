@@ -36,6 +36,7 @@ class SemanticRetriever:
         limit: int = 10,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
+        source_id: Optional[str] = None,
     ) -> List[ScoredPassage]:
         """
         Performs semantic vector search across passage embeddings.
@@ -70,6 +71,8 @@ class SemanticRetriever:
             stmt = stmt.where(PassageModel.document_id == document_id)
         if document_version_id:
             stmt = stmt.where(PassageModel.document_version_id == document_version_id)
+        if source_id:
+            stmt = stmt.where(DocumentModel.source_id == source_id)
             
         # Eager load provenance to prevent N+1 serialization delays
         stmt = stmt.options(selectinload(PassageModel.document).selectinload(DocumentModel.source))
@@ -83,7 +86,11 @@ class SemanticRetriever:
                 .where(PassageModel.embedding.is_not(None))
                 .where(PassageModel.embedding_status == EmbeddingIndexStatus.INDEXED)
                 .options(selectinload(PassageModel.document).selectinload(DocumentModel.source))
-                .order_by(distance)
+                .order_by(
+                    distance,
+                    PassageModel.passage_order.asc().nulls_last(),
+                    PassageModel.id.asc(),
+                )
                 .limit(limit)
             )
             if source_type:
@@ -92,9 +99,16 @@ class SemanticRetriever:
                 stmt = stmt.where(PassageModel.document_id == document_id)
             if document_version_id:
                 stmt = stmt.where(PassageModel.document_version_id == document_version_id)
+            if source_id:
+                stmt = stmt.where(DocumentModel.source_id == source_id)
             result = await self.session.execute(stmt)
             return [
-                ScoredPassage(passage=passage, score=1.0 - float(distance_value))
+                ScoredPassage(
+                    passage=passage,
+                    score=1.0 - float(distance_value),
+                    retrieval_method="semantic",
+                    semantic_score=1.0 - float(distance_value),
+                )
                 for passage, distance_value in result.all()
             ]
 
@@ -107,8 +121,15 @@ class SemanticRetriever:
             if passage.embedding:
                 # Cosine similarity ranges from -1.0 (opposite) to 1.0 (exact match)
                 score = cosine_similarity(query_vector, passage.embedding)
-                scored_results.append(ScoredPassage(passage=passage, score=score))
+                scored_results.append(
+                    ScoredPassage(
+                        passage=passage,
+                        score=score,
+                        retrieval_method="semantic",
+                        semantic_score=score,
+                    )
+                )
                 
         # Sort descending (highest similarity first)
-        scored_results.sort(key=lambda x: x.score, reverse=True)
+        scored_results.sort(key=lambda x: (-x.score, x.passage.id))
         return scored_results[:limit]

@@ -18,10 +18,12 @@ from backend.app.domain.models.enums import (
 
 try:
     from pgvector.sqlalchemy import Vector
+    from sqlalchemy.dialects.postgresql import TSVECTOR
     PGVECTOR_AVAILABLE = True
 except ImportError:
     PGVECTOR_AVAILABLE = False
     Vector = None
+    TSVECTOR = None
 
 def generate_uuid() -> str:
     return str(uuid.uuid4())
@@ -195,6 +197,12 @@ class PassageModel(Base):
     embedding_error: Mapped[Optional[str]] = mapped_column(Text)
     embedding: Mapped[Optional[Any]] = mapped_column(
         Vector(384) if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST else JSON
+    )
+    # Derived search state. ``content`` remains authoritative. The 0010
+    # migration maintains this tsvector with a PostgreSQL trigger; SQLite
+    # test databases use text and the retriever's compatibility path.
+    search_vector: Mapped[Optional[Any]] = mapped_column(
+        TSVECTOR() if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST else Text
     )
     
     document: Mapped["DocumentModel"] = relationship("DocumentModel", back_populates="passages")

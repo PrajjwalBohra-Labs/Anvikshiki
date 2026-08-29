@@ -4,7 +4,11 @@ from backend.app.core.config import RuntimeProfile, settings
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalCrossEncoderRerankerAdapter,
 )
-from backend.app.infrastructure.rag.retriever import HybridRetriever, ScoredPassage
+from backend.app.infrastructure.rag.retriever import (
+    HybridRetriever,
+    RetrievalOutcome,
+    ScoredPassage,
+)
 
 
 class LocalRerankerClient:
@@ -31,6 +35,17 @@ class LocalRerankerClient:
                 ScoredPassage(
                     passage=item.passage,
                     score=self._compute_deterministic_rerank_score(query, item.passage.content),
+                    retrieval_method=item.retrieval_method,
+                    lexical_score=item.lexical_score,
+                    semantic_score=item.semantic_score,
+                    lexical_rank=item.lexical_rank,
+                    semantic_rank=item.semantic_rank,
+                    normalized_lexical_score=item.normalized_lexical_score,
+                    normalized_semantic_score=item.normalized_semantic_score,
+                    hybrid_score=item.hybrid_score,
+                    rerank_score=self._compute_deterministic_rerank_score(
+                        query, item.passage.content
+                    ),
                 )
                 for item in passages
             ]
@@ -43,11 +58,20 @@ class LocalRerankerClient:
                 ScoredPassage(
                     passage=item.passage,
                     score=float(score_by_content[item.passage.content]),
+                    retrieval_method=item.retrieval_method,
+                    lexical_score=item.lexical_score,
+                    semantic_score=item.semantic_score,
+                    lexical_rank=item.lexical_rank,
+                    semantic_rank=item.semantic_rank,
+                    normalized_lexical_score=item.normalized_lexical_score,
+                    normalized_semantic_score=item.normalized_semantic_score,
+                    hybrid_score=item.hybrid_score,
+                    rerank_score=float(score_by_content[item.passage.content]),
                 )
                 for item in passages
             ]
 
-        reranked.sort(key=lambda x: x.score, reverse=True)
+        reranked.sort(key=lambda x: (-x.score, x.passage.id))
         return reranked[:top_k]
 
 
@@ -67,11 +91,52 @@ class AdvancedRetriever(HybridRetriever):
         source_type=None,
         language: Optional[str] = None,
         top_k: int = 5,
+        source_id: Optional[str] = None,
+        document_id: Optional[str] = None,
+        document_version_id: Optional[str] = None,
     ) -> List[ScoredPassage]:
-        candidates = await self.hybrid_retrieve(
+        outcome = await self.retrieve_and_rerank_with_metadata(
+            query=query,
+            source_type=source_type,
+            language=language,
+            top_k=top_k,
+            source_id=source_id,
+            document_id=document_id,
+            document_version_id=document_version_id,
+        )
+        return outcome.results
+
+    async def retrieve_and_rerank_with_metadata(
+        self,
+        query: str,
+        source_type=None,
+        language: Optional[str] = None,
+        top_k: int = 5,
+        source_id: Optional[str] = None,
+        document_id: Optional[str] = None,
+        document_version_id: Optional[str] = None,
+    ) -> RetrievalOutcome:
+        outcome = await self.hybrid_retrieve_with_metadata(
             query=query,
             source_type=source_type,
             language=language,
             top_k=top_k * 2,
+            source_id=source_id,
+            document_id=document_id,
+            document_version_id=document_version_id,
         )
-        return await self.reranker.rerank(query=query, passages=candidates, top_k=top_k)
+        if not outcome.results:
+            return outcome
+        try:
+            reranked = await self.reranker.rerank(
+                query=query, passages=outcome.results, top_k=top_k
+            )
+        except Exception as exc:
+            # Reranking is derived refinement. Preserve the valid fused
+            # candidates and report degradation instead of fabricating scores.
+            outcome.results = outcome.results[:top_k]
+            outcome.status = "degraded"
+            outcome.warnings.append(self._warning("reranker", exc))
+            return outcome
+        outcome.results = reranked
+        return outcome
