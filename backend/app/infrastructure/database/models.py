@@ -7,6 +7,7 @@ from backend.app.infrastructure.database.session import Base
 from backend.app.core.config import RuntimeProfile, settings
 from backend.app.domain.models.enums import (
     ClaimType,
+    EmbeddingIndexStatus,
     EvidenceStatus,
     ProvenanceNodeType,
     ProvenanceRelationType,
@@ -179,6 +180,19 @@ class PassageModel(Base):
     language: Mapped[str] = mapped_column(String(16), default="en")
     
     embedding_model: Mapped[Optional[str]] = mapped_column(String(128))
+    embedding_provider: Mapped[Optional[str]] = mapped_column(String(64))
+    embedding_model_version: Mapped[Optional[str]] = mapped_column(String(128))
+    embedding_dimension: Mapped[Optional[int]] = mapped_column(Integer)
+    embedding_config_fingerprint: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    embedding_content_sha256: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    embedding_generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    embedding_status: Mapped[EmbeddingIndexStatus] = mapped_column(
+        # A row constructed by legacy callers with a vector is already a
+        # usable derived index entry. Canonical ingestion explicitly sets
+        # PENDING before invoking EmbeddingIndexService.
+        SQLEnum(EmbeddingIndexStatus), default=EmbeddingIndexStatus.INDEXED, nullable=False
+    )
+    embedding_error: Mapped[Optional[str]] = mapped_column(Text)
     embedding: Mapped[Optional[Any]] = mapped_column(
         Vector(384) if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST else JSON
     )

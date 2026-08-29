@@ -52,6 +52,13 @@ class EvidenceStatus(str, Enum):
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
 
 
+class EmbeddingIndexStatus(str, Enum):
+    PENDING = "PENDING"
+    INDEXING = "INDEXING"
+    INDEXED = "INDEXED"
+    FAILED = "FAILED"
+
+
 class ProvenanceNodeType(str, Enum):
     SOURCE = "SOURCE"
     DOCUMENT = "DOCUMENT"

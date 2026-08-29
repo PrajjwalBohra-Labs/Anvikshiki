@@ -250,6 +250,12 @@ class ProvenanceService:
                     "ocr_confidence": passage.ocr_confidence,
                     "language": passage.language,
                     "section_heading": passage.section_heading,
+                    "embedding_status": self._enum_value(passage.embedding_status),
+                    "embedding_provider": passage.embedding_provider,
+                    "embedding_model_version": passage.embedding_model_version,
+                    "embedding_dimension": passage.embedding_dimension,
+                    "embedding_config_fingerprint": passage.embedding_config_fingerprint,
+                    "embedding_content_sha256": passage.embedding_content_sha256,
                 },
             )
             parent = page_nodes.get(passage.page_id) or version_node

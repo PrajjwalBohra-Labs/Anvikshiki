@@ -10,9 +10,9 @@ from backend.app.infrastructure.database.models import (
     SourceModel,
     Vector,
 )
-from backend.app.domain.models.enums import SourceType
+from backend.app.domain.models.enums import EmbeddingIndexStatus, SourceType
 from backend.app.infrastructure.rag.lexical_retriever import ScoredPassage
-from backend.app.core.config import settings, RuntimeProfile
+from backend.app.core.config import settings
 
 def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
     """Calculates cosine similarity between two dense vectors."""
@@ -33,7 +33,9 @@ class SemanticRetriever:
         self,
         query_vector: List[float],
         source_type: Optional[SourceType] = None,
-        limit: int = 10
+        limit: int = 10,
+        document_id: Optional[str] = None,
+        document_version_id: Optional[str] = None,
     ) -> List[ScoredPassage]:
         """
         Performs semantic vector search across passage embeddings.
@@ -53,12 +55,21 @@ class SemanticRetriever:
             raise RuntimeError(
                 "PostgreSQL semantic retrieval requires a pgvector Vector column."
             )
+        if is_postgres and len(query_vector) != settings.EMBEDDING_DIMENSIONS:
+            raise ValueError(
+                f"Query embedding dimension {len(query_vector)} does not match "
+                f"the configured {settings.EMBEDDING_DIMENSIONS}-dimensional index."
+            )
 
         stmt = select(PassageModel).join(PassageModel.document).join(DocumentModel.source)
         
         # Apply Metadata Filters
         if source_type:
             stmt = stmt.where(SourceModel.source_type == source_type)
+        if document_id:
+            stmt = stmt.where(PassageModel.document_id == document_id)
+        if document_version_id:
+            stmt = stmt.where(PassageModel.document_version_id == document_version_id)
             
         # Eager load provenance to prevent N+1 serialization delays
         stmt = stmt.options(selectinload(PassageModel.document).selectinload(DocumentModel.source))
@@ -70,12 +81,17 @@ class SemanticRetriever:
                 .join(PassageModel.document)
                 .join(DocumentModel.source)
                 .where(PassageModel.embedding.is_not(None))
+                .where(PassageModel.embedding_status == EmbeddingIndexStatus.INDEXED)
                 .options(selectinload(PassageModel.document).selectinload(DocumentModel.source))
                 .order_by(distance)
                 .limit(limit)
             )
             if source_type:
                 stmt = stmt.where(SourceModel.source_type == source_type)
+            if document_id:
+                stmt = stmt.where(PassageModel.document_id == document_id)
+            if document_version_id:
+                stmt = stmt.where(PassageModel.document_version_id == document_version_id)
             result = await self.session.execute(stmt)
             return [
                 ScoredPassage(passage=passage, score=1.0 - float(distance_value))

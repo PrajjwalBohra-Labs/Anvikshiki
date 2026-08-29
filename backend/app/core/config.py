@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     
     # Embeddings & Reranking
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_PROVIDER: str = "sentence-transformers"
+    EMBEDDING_DIMENSIONS: int = Field(default=384, ge=1, le=4096)
+    EMBEDDING_BATCH_SIZE: int = Field(default=32, ge=1, le=512)
     RERANKER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     
     # Subsystems Toggles
