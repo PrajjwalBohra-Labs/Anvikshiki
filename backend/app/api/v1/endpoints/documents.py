@@ -54,7 +54,8 @@ async def upload_document(
     doc, passages = await ingestion_service.ingest_file(
         source_id=source_id,
         filename=file.filename or "document.txt",
-        content=content
+        content=content,
+        mime_type=file.content_type,
     )
     
     return DocumentUploadResponse(

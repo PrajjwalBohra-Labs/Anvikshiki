@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     
     # Subsystems Toggles
     ENABLE_OCR: bool = True
+    OCR_TESSERACT_CMD: Optional[str] = None
+    OCR_LANGUAGES: str = "eng"
+    OCR_DPI: int = Field(default=300, ge=72, le=600)
+    OCR_TIMEOUT_SECONDS: float = Field(default=120.0, gt=0, le=600)
     ENABLE_WEB_RETRIEVAL: bool = True
     WEB_RETRIEVAL_MAX_RESULTS: int = Field(default=5, ge=1, le=20)
     WEB_MAX_RESPONSE_BYTES: int = Field(default=5_000_000, ge=1_024, le=50_000_000)
