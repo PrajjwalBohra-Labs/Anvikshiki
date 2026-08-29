@@ -6,9 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from backend.app.core.errors import AnvikshikiDomainError
-from backend.app.infrastructure.ai.embedding_reranker_adapters import (
-    LocalSentenceTransformerEmbeddingAdapter,
-)
 from backend.app.infrastructure.database.models import (
     DocumentModel,
     DocumentVersionModel,
@@ -19,6 +16,8 @@ from backend.app.infrastructure.database.models import (
 from backend.app.infrastructure.document_parsers.pdf_parser import PdfDocumentParser, TextDocumentParser
 from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
+from backend.app.application.use_cases.provenance import ProvenanceService
+from backend.app.application.use_cases.embedding_indexing import EmbeddingIndexService
 
 
 SUPPORTED_MIME_TYPES = {"application/pdf", "text/markdown", "text/plain"}
@@ -28,9 +27,6 @@ class DocumentIngestionService:
     def __init__(self, session: AsyncSession, storage_service: LocalStorageService):
         self.session = session
         self.storage = storage_service
-        # This is the existing embedding integration. It is retained for
-        # compatibility; no embedding or retrieval behavior is changed here.
-        self.embedder = LocalSentenceTransformerEmbeddingAdapter()
         self.ocr_service = TesseractOcrService()
 
     @staticmethod
@@ -243,9 +239,8 @@ class DocumentIngestionService:
             if page_models:
                 await self.session.flush()
 
-            vectors = await self.embedder.embed_texts([item["content"] for item in parsed_data])
             passage_models = []
-            for passage_order, (passage_data, vector) in enumerate(zip(parsed_data, vectors)):
+            for passage_order, passage_data in enumerate(parsed_data):
                 page_model = page_models.get(passage_data.get("page_number"))
                 passage = PassageModel(
                     document_id=new_document.id,
@@ -261,13 +256,24 @@ class DocumentIngestionService:
                     ),
                     extraction_uncertainty=passage_data.get("extraction_uncertainty", False),
                     language=passage_data.get("language") or source.original_language or "unknown",
-                    embedding_model=self.embedder.model_version,
-                    embedding=vector,
+                    embedding_status="PENDING",
                 )
                 self.session.add(passage)
                 passage_models.append(passage)
 
+            await ProvenanceService(self.session).record_document_ancestry(
+                new_document,
+                version,
+                page_models.values(),
+                passage_models,
+            )
             await self.session.commit()
+            await EmbeddingIndexService(self.session).index_passages(
+                passage_ids=[passage.id for passage in passage_models]
+            )
+            await self.session.refresh(new_document)
+            for passage in passage_models:
+                await self.session.refresh(passage)
             return new_document, passage_models
         except Exception:
             await self.session.rollback()

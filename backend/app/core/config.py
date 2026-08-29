@@ -44,6 +44,25 @@ class Settings(BaseSettings):
     
     # Embeddings & Reranking
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_PROVIDER: str = "sentence-transformers"
+    EMBEDDING_DIMENSIONS: int = Field(default=384, ge=1, le=4096)
+    EMBEDDING_BATCH_SIZE: int = Field(default=32, ge=1, le=512)
+    # Conservative PostgreSQL parser for scholarly terminology. ``simple``
+    # tokenizes without English stemming or stop words.
+    LEXICAL_SEARCH_CONFIG: Literal["simple"] = "simple"
+    LEXICAL_MAX_QUERY_LENGTH: int = Field(default=1000, ge=1, le=10_000)
+    LEXICAL_DEFAULT_LIMIT: int = Field(default=10, ge=1, le=100)
+    LEXICAL_MAX_RESULTS: int = Field(default=100, ge=1, le=1000)
+    # Hybrid retrieval uses rank-aware fusion because lexical rank and vector
+    # similarity are not comparable raw scores.  The candidate limits are
+    # intentionally separate from the public top_k result limit.
+    HYBRID_LEXICAL_WEIGHT: float = Field(default=1.0, ge=0, le=10)
+    HYBRID_SEMANTIC_WEIGHT: float = Field(default=1.0, ge=0, le=10)
+    HYBRID_LEXICAL_CANDIDATE_LIMIT: int = Field(default=30, ge=1, le=500)
+    HYBRID_SEMANTIC_CANDIDATE_LIMIT: int = Field(default=30, ge=1, le=500)
+    HYBRID_RRF_K: int = Field(default=60, ge=1, le=1000)
+    RERANKER_ENABLED: bool = True
+    RERANKER_CANDIDATE_MULTIPLIER: int = Field(default=2, ge=1, le=10)
     RERANKER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     
     # Subsystems Toggles
