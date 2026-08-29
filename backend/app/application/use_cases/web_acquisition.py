@@ -159,6 +159,7 @@ class WebAcquisitionService:
             total_pages=1,
             original_filename=metadata.original_filename,
             storage_path=metadata.storage_path,
+            size_bytes=metadata.size_bytes,
         )
         self.session.add(new_doc)
         await self.session.flush()

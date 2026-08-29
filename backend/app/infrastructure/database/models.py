@@ -78,6 +78,7 @@ class DocumentModel(Base):
     total_pages: Mapped[Optional[int]] = mapped_column(Integer)
     original_filename: Mapped[Optional[str]] = mapped_column(String(512))
     storage_path: Mapped[Optional[str]] = mapped_column(String(1024))
+    size_bytes: Mapped[Optional[int]] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     source: Mapped["SourceModel"] = relationship("SourceModel", back_populates="documents")
     passages: Mapped[List["PassageModel"]] = relationship("PassageModel", back_populates="document", cascade="all, delete-orphan")

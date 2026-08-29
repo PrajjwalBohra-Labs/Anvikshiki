@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     EXTRACTED_LOCAL_ROOT: str = "data/extracted"
     OCR_LOCAL_ROOT: str = "data/OCR"
     CACHE_LOCAL_ROOT: str = "data/cached_web"
+    EXPORTS_LOCAL_ROOT: str = "data/exports"
+    TEMPORARY_LOCAL_ROOT: str = "data/temporary"
 
     # Local AI Inference
     OLLAMA_BASE_URL: str = "http://localhost:11434"

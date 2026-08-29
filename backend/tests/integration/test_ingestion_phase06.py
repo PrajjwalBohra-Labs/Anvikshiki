@@ -1,8 +1,6 @@
 ﻿import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel
+from backend.app.infrastructure.database.models import SourceModel
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.domain.models.enums import SourceType
@@ -49,6 +47,7 @@ async def test_text_document_ingestion_lifecycle(setup_test_env):
         assert doc.id is not None
         assert doc.mime_type == "text/plain"
         assert doc.total_pages == 1
+        assert doc.size_bytes == len(content)
         
         # 4. Verify Passages
         assert len(passages) == 2
