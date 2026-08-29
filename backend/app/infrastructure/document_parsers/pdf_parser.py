@@ -1,58 +1,214 @@
-﻿import fitz  # PyMuPDF
-from typing import List, Dict
+import re
+from typing import Dict, List
+
+import fitz  # PyMuPDF
 import structlog
+
 
 logger = structlog.get_logger(__name__)
 
+
 class PdfDocumentParser:
+    """Deterministic, page-preserving text extraction for normal PDFs."""
+
+    EXTRACTION_METHOD = "pymupdf_text"
+
+    @staticmethod
+    def parse_pages(content: bytes) -> List[Dict]:
+        try:
+            document = fitz.open(stream=content, filetype="pdf")
+        except Exception as exc:
+            logger.error("Failed to open PDF stream", error=str(exc))
+            raise ValueError(f"Invalid PDF content: {exc}") from exc
+
+        pages: List[Dict] = []
+        try:
+            for page_index in range(len(document)):
+                page = document[page_index]
+                raw_text = page.get_text("text")
+                extracted_text = raw_text.strip()
+                warnings: List[str] = []
+                page_passages: List[Dict] = []
+
+                # A short or empty page is preserved as a partial extraction.
+                # OCR is deliberately not invoked here; that belongs to STEP 08.
+                if len(extracted_text) < 10:
+                    warnings.append("Page contains fewer than 10 extracted characters.")
+                    page_passages.append(
+                        {
+                            "content": extracted_text,
+                            "page_number": page_index + 1,
+                            "extraction_method": PdfDocumentParser.EXTRACTION_METHOD,
+                            "extraction_status": "partial",
+                            "extraction_uncertainty": True,
+                            "language": None,
+                            "section_heading": None,
+                        }
+                    )
+                else:
+                    blocks = list(page.get_text("blocks"))
+                    blocks.sort(key=lambda block: (block[1], block[0]))
+                    for block in blocks:
+                        if block[6] != 0:
+                            continue
+                        block_text = block[4].strip()
+                        if block_text:
+                            page_passages.append(
+                                {
+                                    "content": block_text,
+                                    "page_number": page_index + 1,
+                                    "extraction_method": PdfDocumentParser.EXTRACTION_METHOD,
+                                    "extraction_status": "success",
+                                    "extraction_uncertainty": False,
+                                    "language": None,
+                                    "section_heading": None,
+                                }
+                            )
+                    if not page_passages:
+                        page_passages.append(
+                            {
+                                "content": extracted_text,
+                                "page_number": page_index + 1,
+                                "extraction_method": PdfDocumentParser.EXTRACTION_METHOD,
+                                "extraction_status": "success",
+                                "extraction_uncertainty": False,
+                                "language": None,
+                                "section_heading": None,
+                            }
+                        )
+
+                pages.append(
+                    {
+                        "page_number": page_index + 1,
+                        "page_order": page_index,
+                        "extracted_text": extracted_text,
+                        "extraction_method": PdfDocumentParser.EXTRACTION_METHOD,
+                        "extraction_status": "success" if not warnings else "partial",
+                        "extraction_warnings": warnings,
+                        "passages": page_passages,
+                    }
+                )
+        finally:
+            document.close()
+
+        if not pages:
+            raise ValueError("PDF contains no pages.")
+        return pages
+
     @staticmethod
     def parse_pdf(content: bytes) -> List[Dict]:
-        """
-        Parses a PDF from bytes.
-        Extracts text blocks preserving reading order and page numbers.
-        Flags any page with minimal text (scanned, diagrams, or blank) for OCR.
-        """
-        try:
-            doc = fitz.open(stream=content, filetype="pdf")
-        except Exception as e:
-            logger.error("Failed to open PDF stream", error=str(e))
-            raise ValueError(f"Invalid PDF content: {str(e)}")
+        """Compatibility projection retaining the previous flat parser API."""
+        return [passage for page in PdfDocumentParser.parse_pages(content) for passage in page["passages"]]
 
+
+class TextDocumentParser:
+    """Deterministic paragraph extraction for plain text and Markdown."""
+
+    @staticmethod
+    def _decode(content: bytes) -> tuple[str, List[str]]:
+        text = content.decode("utf-8", errors="replace")
+        warnings = ["Invalid UTF-8 bytes were replaced."] if "\ufffd" in text else []
+        return text, warnings
+
+    @staticmethod
+    def decode_warnings(content: bytes) -> List[str]:
+        """Return decoding warnings without changing the parser output."""
+        return TextDocumentParser._decode(content)[1]
+
+    @staticmethod
+    def segment_text(
+        text: str,
+        extraction_method: str,
+        page_number: int = 1,
+        extraction_status: str = "success",
+        extraction_uncertainty: bool = False,
+        section_heading: str | None = None,
+    ) -> List[Dict]:
+        """Split text deterministically while retaining its page and method."""
         passages = []
+        for chunk in re.split(r"\n\s*\n", text):
+            cleaned = chunk.strip()
+            if cleaned:
+                passages.append(
+                    {
+                        "content": cleaned,
+                        "page_number": page_number,
+                        "extraction_method": extraction_method,
+                        "extraction_status": extraction_status,
+                        "extraction_uncertainty": extraction_uncertainty,
+                        "language": None,
+                        "section_heading": section_heading,
+                    }
+                )
+        return passages
 
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            raw_text = page.get_text("text").strip()
-            
-            # Heuristic: If a page yields fewer than 10 characters, it is 
-            # likely a scanned image, diagram, or blank page.
-            is_uncertain = len(raw_text) < 10
-            
-            if is_uncertain:
-                passages.append({
-                    "content": raw_text if raw_text else "[UNREADABLE OR BLANK PAGE - PENDING OCR]",
-                    "page_number": page_num + 1,
-                    "extraction_uncertainty": True,
-                    "language": "en"
-                })
+    @staticmethod
+    def parse_text(content: bytes) -> List[Dict]:
+        text, _ = TextDocumentParser._decode(content)
+        return TextDocumentParser.segment_text(text, "utf8_text")
+
+    @staticmethod
+    def parse_ocr_text(
+        text: str,
+        page_number: int,
+        extraction_status: str = "success",
+        extraction_uncertainty: bool = False,
+    ) -> List[Dict]:
+        return TextDocumentParser.segment_text(
+            text,
+            "tesseract_ocr",
+            page_number=page_number,
+            extraction_status=extraction_status,
+            extraction_uncertainty=extraction_uncertainty,
+        )
+
+    @staticmethod
+    def parse_markdown(content: bytes) -> List[Dict]:
+        text, _ = TextDocumentParser._decode(content)
+        passages: List[Dict] = []
+        current_heading = None
+        buffer: List[str] = []
+
+        def flush() -> None:
+            if not buffer:
+                return
+            cleaned = "\n".join(buffer).strip()
+            buffer.clear()
+            if cleaned:
+                passages.append(
+                    {
+                        "content": cleaned,
+                        "page_number": 1,
+                        "extraction_method": "markdown_text",
+                        "extraction_status": "success",
+                        "extraction_uncertainty": False,
+                        "language": None,
+                        "section_heading": current_heading,
+                    }
+                )
+
+        for line in text.splitlines():
+            heading_match = re.match(r"^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$", line)
+            if heading_match:
+                flush()
+                current_heading = heading_match.group(2).strip()
                 continue
+            if not line.strip() and buffer:
+                flush()
+                continue
+            buffer.append(line)
+        flush()
 
-            # Extract text blocks (x0, y0, x1, y1, "text", block_no, block_type)
-            blocks = page.get_text("blocks")
-            
-            # Sort by vertical (y0) then horizontal (x0) to preserve reading order
-            blocks.sort(key=lambda b: (b[1], b[0]))
-            
-            for block in blocks:
-                if block[6] == 0:  # 0 indicates text block
-                    block_text = block[4].strip()
-                    if block_text:
-                        passages.append({
-                            "content": block_text,
-                            "page_number": page_num + 1,
-                            "extraction_uncertainty": False,
-                            "language": "en"
-                        })
-                        
-        doc.close()
+        if not passages and current_heading:
+            passages.append(
+                {
+                    "content": current_heading,
+                    "page_number": 1,
+                    "extraction_method": "markdown_text",
+                    "extraction_status": "success",
+                    "extraction_uncertainty": False,
+                    "language": None,
+                    "section_heading": current_heading,
+                }
+            )
         return passages

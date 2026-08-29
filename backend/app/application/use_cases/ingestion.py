@@ -1,105 +1,274 @@
-﻿from typing import List, Tuple
+import mimetypes
+from datetime import datetime, timezone
+from typing import List, Tuple
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from backend.app.infrastructure.database.models import DocumentModel, PassageModel, SourceModel
-from backend.app.infrastructure.storage.local_storage import LocalStorageService
+
 from backend.app.core.errors import AnvikshikiDomainError
-from backend.app.infrastructure.document_parsers.pdf_parser import PdfDocumentParser
-from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalSentenceTransformerEmbeddingAdapter,
 )
+from backend.app.infrastructure.database.models import (
+    DocumentModel,
+    DocumentVersionModel,
+    PageModel,
+    PassageModel,
+    SourceModel,
+)
+from backend.app.infrastructure.document_parsers.pdf_parser import PdfDocumentParser, TextDocumentParser
+from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
+from backend.app.infrastructure.storage.local_storage import LocalStorageService
 
-class TextDocumentParser:
-    @staticmethod
-    def parse_text(content: bytes) -> List[dict]:
-        text = content.decode("utf-8", errors="replace")
-        raw_chunks = text.split("\n\n")
-        passages = []
-        for chunk in raw_chunks:
-            cleaned = chunk.strip()
-            if cleaned:
-                passages.append({
-                    "content": cleaned,
-                    "page_number": 1,
-                    "extraction_uncertainty": False,
-                    "language": "en"
-                })
-        return passages
+
+SUPPORTED_MIME_TYPES = {"application/pdf", "text/markdown", "text/plain"}
+
 
 class DocumentIngestionService:
     def __init__(self, session: AsyncSession, storage_service: LocalStorageService):
         self.session = session
         self.storage = storage_service
+        # This is the existing embedding integration. It is retained for
+        # compatibility; no embedding or retrieval behavior is changed here.
+        self.embedder = LocalSentenceTransformerEmbeddingAdapter()
         self.ocr_service = TesseractOcrService()
 
-    async def ingest_file(self, source_id: str, filename: str, content: bytes) -> Tuple[DocumentModel, List[PassageModel]]:
+    @staticmethod
+    def _resolve_mime_type(filename: str, mime_type: str | None) -> str:
+        supplied = (mime_type or "").split(";", 1)[0].strip().lower()
+        guessed = (mimetypes.guess_type(filename)[0] or "").lower()
+        resolved = guessed if supplied in {"", "application/octet-stream"} else supplied
+        if resolved not in SUPPORTED_MIME_TYPES:
+            raise AnvikshikiDomainError(
+                f"Unsupported document MIME type: {resolved or 'unknown'}.", status_code=415
+            )
+        return resolved
+
+    @staticmethod
+    def _extraction_metadata(
+        mime_type: str,
+        parsed_data: List[dict],
+        page_data: List[dict] | None = None,
+        additional_warnings: List[str] | None = None,
+    ) -> tuple[str, str, List[str]]:
+        if mime_type == "application/pdf":
+            method = PdfDocumentParser.EXTRACTION_METHOD
+        elif mime_type == "text/markdown":
+            method = "markdown_text"
+        else:
+            method = "utf8_text"
+        warnings = list(additional_warnings or [])
+        pages = page_data or []
+        methods = {item.get("extraction_method") for item in pages}
+        if "tesseract_ocr" in methods and "pymupdf_text" in methods:
+            method = "pymupdf_text+tesseract_ocr"
+        elif "tesseract_ocr" in methods:
+            method = "tesseract_ocr"
+        for page in pages:
+            warnings.extend(page.get("extraction_warnings") or [])
+        partial_extraction = any(
+            item.get("extraction_status") == "partial" for item in parsed_data + pages
+        )
+        if partial_extraction or additional_warnings:
+            warnings.append("One or more extracted regions are partial or uncertain.")
+        if any(page.get("ocr_status") not in {None, "success", "partial"} for page in pages):
+            warnings.append("One or more OCR page attempts did not produce usable text.")
+        unique_warnings = list(dict.fromkeys(warnings))
+        status = "partial" if partial_extraction or additional_warnings else "success"
+        return method, status, unique_warnings
+
+    def _apply_ocr_to_pages(self, page_data: List[dict], pdf_content: bytes) -> None:
+        """Apply OCR only to uncertain pages and retain native page metadata."""
+        for page in page_data:
+            if not page.get("passages") or not any(
+                passage.get("extraction_uncertainty") for passage in page["passages"]
+            ):
+                continue
+
+            page["native_extracted_text"] = page.get("extracted_text", "")
+            if not self.ocr_service.is_available():
+                error = self.ocr_service.availability_error() or "OCR is unavailable."
+                page["ocr_status"] = "disabled" if not self.ocr_service.enabled else "unavailable"
+                page["ocr_language"] = self.ocr_service.languages
+                page["ocr_dpi"] = self.ocr_service.dpi
+                page["ocr_text_length"] = 0
+                page["ocr_processed_at"] = datetime.now(timezone.utc)
+                page["ocr_error"] = error
+                page.setdefault("extraction_warnings", []).append(error)
+                page["extraction_status"] = "partial"
+                continue
+
+            page_number = page["page_number"]
+            result = self.ocr_service.process_pdf_page(
+                pdf_content, page_number, language=self.ocr_service.languages
+            )
+            content = (result.get("content") or "").strip()
+            confidence = float(result.get("confidence") or 0.0)
+            status = result.get("status") or (
+                "partial" if confidence < 0.60 else "success"
+            )
+            page["ocr_status"] = status
+            page["ocr_language"] = result.get("language", self.ocr_service.languages)
+            page["ocr_dpi"] = result.get("dpi", self.ocr_service.dpi)
+            page["ocr_text_length"] = result.get("text_length", len(content))
+            processed_at = result.get("processed_at")
+            page["ocr_processed_at"] = (
+                datetime.fromisoformat(processed_at)
+                if isinstance(processed_at, str)
+                else datetime.now(timezone.utc)
+            )
+            page["ocr_error"] = result.get("error")
+
+            if result.get("success") and content:
+                uncertainty = status == "partial" or confidence < 0.60
+                page["extracted_text"] = content
+                page["extraction_method"] = TesseractOcrService.EXTRACTION_METHOD
+                page["extraction_status"] = "partial" if uncertainty else "success"
+                page["extraction_warnings"] = list(page.get("extraction_warnings") or [])
+                page["passages"] = TextDocumentParser.parse_ocr_text(
+                    content,
+                    page_number,
+                    extraction_status=page["extraction_status"],
+                    extraction_uncertainty=uncertainty,
+                )
+                for passage in page["passages"]:
+                    passage["ocr_confidence"] = confidence
+                continue
+
+            error = result.get("error") or "OCR did not produce usable text."
+            page.setdefault("extraction_warnings", []).append(error)
+            page["extraction_status"] = "partial"
+
+    async def ingest_file(
+        self,
+        source_id: str,
+        filename: str,
+        content: bytes,
+        mime_type: str | None = None,
+    ) -> Tuple[DocumentModel, List[PassageModel]]:
         source_result = await self.session.execute(select(SourceModel).where(SourceModel.id == source_id))
         source = source_result.scalars().first()
         if not source:
             raise AnvikshikiDomainError(f"Source {source_id} not found.", status_code=404)
 
-        metadata = await self.storage.store_original(content, filename)
+        if not content or not content.strip():
+            raise AnvikshikiDomainError("Document content cannot be empty.", status_code=422)
+        resolved_mime_type = self._resolve_mime_type(filename, mime_type)
 
-        doc_result = await self.session.execute(
-            select(DocumentModel).where(
-                DocumentModel.source_id == source_id,
-                DocumentModel.checksum_sha256 == metadata.checksum_sha256
-            )
+        metadata = await self.storage.store_original(content, filename, mime_type=resolved_mime_type)
+        existing_result = await self.session.execute(
+            select(DocumentModel).where(DocumentModel.checksum_sha256 == metadata.checksum_sha256)
         )
-        if doc_result.scalars().first():
-            raise AnvikshikiDomainError(f"Document with checksum {metadata.checksum_sha256} already ingested.", status_code=409)
-
-        if metadata.mime_type in ["text/plain", "text/markdown"]:
-            parsed_data = TextDocumentParser.parse_text(content)
-            total_pages = 1
-        elif metadata.mime_type == "application/pdf":
-            parsed_data = PdfDocumentParser.parse_pdf(content)
-            total_pages = max([p["page_number"] for p in parsed_data], default=1) if parsed_data else 1
-            
-            # --- OCR Pipeline Integration ---
-            ocr_available = self.ocr_service.is_available()
-            for p_data in parsed_data:
-                if p_data.get("extraction_uncertainty") and ocr_available:
-                    ocr_result = self.ocr_service.process_pdf_page(content, p_data["page_number"])
-                    if ocr_result["success"] and ocr_result["content"]:
-                        p_data["content"] = ocr_result["content"]
-                        p_data["ocr_confidence"] = ocr_result["confidence"]
-                        # Strict Threshold: If confidence is below 60%, maintain uncertainty flag
-                        p_data["extraction_uncertainty"] = ocr_result["confidence"] < 0.60
-        else:
-            raise AnvikshikiDomainError(f"Unsupported MIME type: {metadata.mime_type}", status_code=415)
-
-        new_doc = DocumentModel(
-            source_id=source_id,
-            checksum_sha256=metadata.checksum_sha256,
-            mime_type=metadata.mime_type,
-            total_pages=total_pages,
-            original_filename=metadata.original_filename,
-            storage_path=metadata.storage_path,
-            size_bytes=metadata.size_bytes,
-        )
-        self.session.add(new_doc)
-        await self.session.flush()
-
-        passage_models = []
-        embedder = LocalSentenceTransformerEmbeddingAdapter()
-        vectors = await embedder.embed_texts([item["content"] for item in parsed_data])
-        for p_data in parsed_data:
-            vector = vectors[len(passage_models)]
-            uncertainty = p_data.get("extraction_uncertainty", False)
-            passage = PassageModel(
-                document_id=new_doc.id,
-                content=p_data["content"],
-                page_number=p_data["page_number"],
-                ocr_confidence=p_data.get("ocr_confidence", 0.0 if uncertainty else 1.0),
-                extraction_uncertainty=uncertainty,
-                language=p_data.get("language", "en"),
-                embedding_model=embedder.model_version,
-                embedding=vector,
+        if existing_result.scalars().first():
+            raise AnvikshikiDomainError(
+                f"Document with checksum {metadata.checksum_sha256} already ingested.", status_code=409
             )
-            passage_models.append(passage)
-            self.session.add(passage)
 
-        await self.session.commit()
-        return new_doc, passage_models
+        try:
+            page_data: List[dict] = []
+            if resolved_mime_type == "application/pdf":
+                page_data = PdfDocumentParser.parse_pages(content)
+                self._apply_ocr_to_pages(page_data, content)
+                parsed_data = [passage for page in page_data for passage in page["passages"]]
+            elif resolved_mime_type == "text/markdown":
+                parsed_data = TextDocumentParser.parse_markdown(content)
+            else:
+                parsed_data = TextDocumentParser.parse_text(content)
+        except ValueError as exc:
+            raise AnvikshikiDomainError(f"Document extraction failed: {exc}", status_code=422) from exc
+
+        if not parsed_data:
+            raise AnvikshikiDomainError("Document extraction produced no passages.", status_code=422)
+
+        decoding_warnings = (
+            TextDocumentParser.decode_warnings(content)
+            if resolved_mime_type in {"text/markdown", "text/plain"}
+            else []
+        )
+        extraction_method, extraction_status, extraction_warnings = self._extraction_metadata(
+            resolved_mime_type, parsed_data, page_data, decoding_warnings
+        )
+        try:
+            new_document = DocumentModel(
+                source_id=source_id,
+                checksum_sha256=metadata.checksum_sha256,
+                mime_type=resolved_mime_type,
+                total_pages=len(page_data) if page_data else 1,
+                original_filename=metadata.original_filename,
+                storage_path=metadata.storage_path,
+                size_bytes=metadata.size_bytes,
+                language=source.original_language,
+                extraction_method=extraction_method,
+                extraction_status=extraction_status,
+                extraction_warnings=extraction_warnings or None,
+            )
+            self.session.add(new_document)
+            await self.session.flush()
+
+            version = DocumentVersionModel(
+                document_id=new_document.id,
+                version_number=1,
+                checksum_sha256=metadata.checksum_sha256,
+                original_filename=metadata.original_filename,
+                mime_type=resolved_mime_type,
+                storage_path=metadata.storage_path,
+                size_bytes=metadata.size_bytes,
+                extraction_method=extraction_method,
+                extraction_status=extraction_status,
+                extraction_warnings=extraction_warnings or None,
+            )
+            self.session.add(version)
+            await self.session.flush()
+
+            page_models: dict[int, PageModel] = {}
+            for page in page_data:
+                page_model = PageModel(
+                    document_version_id=version.id,
+                    page_number=page["page_number"],
+                    page_order=page["page_order"],
+                    extracted_text=page["extracted_text"],
+                    native_extracted_text=page.get("native_extracted_text", page["extracted_text"]),
+                    extraction_method=page["extraction_method"],
+                    extraction_status=page["extraction_status"],
+                    extraction_warnings=page["extraction_warnings"] or None,
+                    ocr_status=page.get("ocr_status"),
+                    ocr_language=page.get("ocr_language"),
+                    ocr_dpi=page.get("ocr_dpi"),
+                    ocr_text_length=page.get("ocr_text_length"),
+                    ocr_processed_at=page.get("ocr_processed_at"),
+                    ocr_error=page.get("ocr_error"),
+                )
+                self.session.add(page_model)
+                page_models[page["page_number"]] = page_model
+            if page_models:
+                await self.session.flush()
+
+            vectors = await self.embedder.embed_texts([item["content"] for item in parsed_data])
+            passage_models = []
+            for passage_order, (passage_data, vector) in enumerate(zip(parsed_data, vectors)):
+                page_model = page_models.get(passage_data.get("page_number"))
+                passage = PassageModel(
+                    document_id=new_document.id,
+                    document_version_id=version.id,
+                    page_id=page_model.id if page_model else None,
+                    page_number=passage_data.get("page_number"),
+                    passage_order=passage_order,
+                    content=passage_data["content"],
+                    extraction_method=passage_data.get("extraction_method", extraction_method),
+                    section_heading=passage_data.get("section_heading"),
+                    ocr_confidence=passage_data.get(
+                        "ocr_confidence", 0.0 if passage_data.get("extraction_uncertainty") else 1.0
+                    ),
+                    extraction_uncertainty=passage_data.get("extraction_uncertainty", False),
+                    language=passage_data.get("language") or source.original_language or "unknown",
+                    embedding_model=self.embedder.model_version,
+                    embedding=vector,
+                )
+                self.session.add(passage)
+                passage_models.append(passage)
+
+            await self.session.commit()
+            return new_document, passage_models
+        except Exception:
+            await self.session.rollback()
+            raise
