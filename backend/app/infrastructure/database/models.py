@@ -1,9 +1,21 @@
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional, Any
-from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, JSON
+from typing import Any, List, Optional
+
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from backend.app.infrastructure.database.session import Base
+
 from backend.app.core.config import RuntimeProfile, settings
 from backend.app.domain.models.enums import (
     ClaimType,
@@ -15,6 +27,7 @@ from backend.app.domain.models.enums import (
     SourceRelationshipType,
     SourceType,
 )
+from backend.app.infrastructure.database.session import Base
 
 try:
     from pgvector.sqlalchemy import Vector
@@ -94,6 +107,7 @@ class DocumentModel(Base):
     extraction_method: Mapped[Optional[str]] = mapped_column(String(64))
     extraction_status: Mapped[Optional[str]] = mapped_column(String(32))
     extraction_warnings: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    web_metadata: Mapped[Optional[dict]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     source: Mapped["SourceModel"] = relationship("SourceModel", back_populates="documents")
     versions: Mapped[List["DocumentVersionModel"]] = relationship(

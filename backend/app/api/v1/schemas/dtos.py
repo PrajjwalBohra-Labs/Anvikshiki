@@ -1,6 +1,8 @@
-﻿from typing import List, Dict, Any, Optional
-from datetime import datetime
+﻿from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
+
 
 # --- Dialogue & Conversation Schemas ---
 class CitationDTO(BaseModel):
@@ -302,6 +304,22 @@ class DocumentResponseDTO(BaseModel):
 class WebAcquisitionRequestDTO(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
     source_title: Optional[str] = Field(default=None, max_length=512)
+
+class WebSearchRequestDTO(BaseModel):
+    query: str = Field(..., min_length=1, max_length=1000)
+    max_results: int = Field(default=5, ge=1, le=20)
+
+class WebSearchResultDTO(BaseModel):
+    title: str
+    url: str
+    canonical_url: str
+    snippet: str
+    rank: int
+    domain: str
+
+class WebSearchResponseDTO(BaseModel):
+    query: str
+    results: List[WebSearchResultDTO]
 
 class WebAcquisitionResponseDTO(BaseModel):
     source: SourceResponseDTO

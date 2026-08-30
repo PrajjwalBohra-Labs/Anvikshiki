@@ -182,7 +182,11 @@ class ProvenanceService:
             ProvenanceNodeType.SOURCE,
             source.id,
             source.title,
-            {"source_type": self._enum_value(source.source_type), "author": source.author},
+            {
+                "source_type": self._enum_value(source.source_type),
+                "author": source.author,
+                "reference_url": source.reference_url,
+            },
         )
         document_node = await self._node(
             ProvenanceNodeType.DOCUMENT,
@@ -192,6 +196,7 @@ class ProvenanceService:
                 "source_id": document.source_id,
                 "checksum_sha256": document.checksum_sha256,
                 "mime_type": document.mime_type,
+                "web_metadata": document.web_metadata,
             },
         )
         await self._edge(source_node, document_node, ProvenanceRelationType.CONTAINS)

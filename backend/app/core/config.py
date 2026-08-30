@@ -1,7 +1,9 @@
 ﻿from enum import Enum
 from typing import Any, Literal, Optional
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class RuntimeProfile(str, Enum):
     CPU = "cpu"
@@ -76,7 +78,12 @@ class Settings(BaseSettings):
     WEB_RETRIEVAL_MAX_RESULTS: int = Field(default=5, ge=1, le=20)
     WEB_MAX_RESPONSE_BYTES: int = Field(default=5_000_000, ge=1_024, le=50_000_000)
     WEB_REQUEST_TIMEOUT_SECONDS: float = Field(default=20.0, gt=0, le=120)
+    WEB_USER_AGENT: str = "AnvikshikiResearchBot/1.0"
+    WEB_SEARCH_USER_AGENT: str = "Mozilla/5.0 (compatible; Anvikshiki/1.0)"
+    WEB_RESPECT_ROBOTS: bool = True
     ENABLE_MCP_SERVER: bool = False
+    MCP_SERVER_NAME: str = "anvikshiki"
+    MCP_SERVER_VERSION: str = "1.0.0"
     
     # Frontend/CORS
     FRONTEND_URL: str = "http://localhost:5173"
