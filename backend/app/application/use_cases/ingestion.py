@@ -56,9 +56,11 @@ class DocumentIngestionService:
         warnings = list(additional_warnings or [])
         pages = page_data or []
         methods = {item.get("extraction_method") for item in pages}
-        if "tesseract_ocr" in methods and "pymupdf_text" in methods:
+        has_ocr = any("tesseract_ocr" in method for method in methods if method)
+        has_native = any("pymupdf_text" in method for method in methods if method)
+        if has_ocr and has_native:
             method = "pymupdf_text+tesseract_ocr"
-        elif "tesseract_ocr" in methods:
+        elif has_ocr:
             method = "tesseract_ocr"
         for page in pages:
             warnings.extend(page.get("extraction_warnings") or [])
@@ -88,6 +90,8 @@ class DocumentIngestionService:
                 page["ocr_language"] = self.ocr_service.languages
                 page["ocr_dpi"] = self.ocr_service.dpi
                 page["ocr_text_length"] = 0
+                page["ocr_text"] = None
+                page["ocr_confidence"] = 0.0
                 page["ocr_processed_at"] = datetime.now(timezone.utc)
                 page["ocr_error"] = error
                 page.setdefault("extraction_warnings", []).append(error)
@@ -101,12 +105,14 @@ class DocumentIngestionService:
             content = (result.get("content") or "").strip()
             confidence = float(result.get("confidence") or 0.0)
             status = result.get("status") or (
-                "partial" if confidence < 0.60 else "success"
+                "partial" if confidence < self.ocr_service.min_confidence else "success"
             )
             page["ocr_status"] = status
             page["ocr_language"] = result.get("language", self.ocr_service.languages)
             page["ocr_dpi"] = result.get("dpi", self.ocr_service.dpi)
             page["ocr_text_length"] = result.get("text_length", len(content))
+            page["ocr_text"] = content or None
+            page["ocr_confidence"] = confidence
             processed_at = result.get("processed_at")
             page["ocr_processed_at"] = (
                 datetime.fromisoformat(processed_at)
@@ -116,9 +122,19 @@ class DocumentIngestionService:
             page["ocr_error"] = result.get("error")
 
             if result.get("success") and content:
-                uncertainty = status == "partial" or confidence < 0.60
-                page["extracted_text"] = content
-                page["extraction_method"] = TesseractOcrService.EXTRACTION_METHOD
+                uncertainty = status == "partial" or confidence < self.ocr_service.min_confidence
+                if uncertainty:
+                    # Keep low-confidence OCR available for explicitly marked
+                    # review/retrieval, but never promote it to the page's
+                    # authoritative extracted_text field.
+                    page["extracted_text"] = page["native_extracted_text"]
+                    page["extraction_method"] = "pymupdf_text+tesseract_ocr"
+                    page.setdefault("extraction_warnings", []).append(
+                        "OCR confidence is below the acceptance threshold; OCR text is not authoritative."
+                    )
+                else:
+                    page["extracted_text"] = content
+                    page["extraction_method"] = TesseractOcrService.EXTRACTION_METHOD
                 page["extraction_status"] = "partial" if uncertainty else "success"
                 page["extraction_warnings"] = list(page.get("extraction_warnings") or [])
                 page["passages"] = TextDocumentParser.parse_ocr_text(
@@ -126,6 +142,7 @@ class DocumentIngestionService:
                     page_number,
                     extraction_status=page["extraction_status"],
                     extraction_uncertainty=uncertainty,
+                    language=result.get("language", self.ocr_service.languages),
                 )
                 for passage in page["passages"]:
                     passage["ocr_confidence"] = confidence
@@ -231,6 +248,8 @@ class DocumentIngestionService:
                     ocr_language=page.get("ocr_language"),
                     ocr_dpi=page.get("ocr_dpi"),
                     ocr_text_length=page.get("ocr_text_length"),
+                    ocr_text=page.get("ocr_text"),
+                    ocr_confidence=page.get("ocr_confidence"),
                     ocr_processed_at=page.get("ocr_processed_at"),
                     ocr_error=page.get("ocr_error"),
                 )
