@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import fitz  # PyMuPDF
 import structlog
-
+from bs4 import BeautifulSoup
 
 logger = structlog.get_logger(__name__)
 
@@ -143,6 +143,7 @@ class TextDocumentParser:
                 )
         return passages
 
+
     @staticmethod
     def parse_text(content: bytes) -> List[Dict]:
         text, _ = TextDocumentParser._decode(content)
@@ -216,3 +217,35 @@ class TextDocumentParser:
                 }
             )
         return passages
+
+
+class HtmlDocumentParser:
+    """Deterministic, non-executing extraction for acquired HTML."""
+
+    REMOVED_ELEMENTS = ("script", "style", "nav", "footer", "header", "form")
+
+    @classmethod
+    def parse_html(cls, content: bytes) -> List[Dict]:
+        text = content.decode("utf-8", errors="replace")
+        soup = BeautifulSoup(text, "html.parser")
+        for element in soup(cls.REMOVED_ELEMENTS):
+            element.decompose()
+        paragraphs = [paragraph.get_text(" ", strip=True) for paragraph in soup.find_all("p")]
+        selected = [paragraph for paragraph in paragraphs if paragraph]
+        if not selected:
+            body = soup.body or soup
+            fallback = body.get_text("\n", strip=True)
+            selected = [fallback] if fallback else []
+        return [
+            {
+                "content": paragraph,
+                "page_number": 1,
+                "extraction_method": "html_text",
+                "extraction_status": "success",
+                "extraction_uncertainty": False,
+                "language": soup.html.get("lang") if soup.html else None,
+                "section_heading": None,
+            }
+            for paragraph in selected
+            if paragraph.strip()
+        ]

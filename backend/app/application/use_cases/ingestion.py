@@ -5,6 +5,8 @@ from typing import List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from backend.app.application.use_cases.embedding_indexing import EmbeddingIndexService
+from backend.app.application.use_cases.provenance import ProvenanceService
 from backend.app.core.errors import AnvikshikiDomainError
 from backend.app.infrastructure.database.models import (
     DocumentModel,
@@ -13,14 +15,21 @@ from backend.app.infrastructure.database.models import (
     PassageModel,
     SourceModel,
 )
-from backend.app.infrastructure.document_parsers.pdf_parser import PdfDocumentParser, TextDocumentParser
+from backend.app.infrastructure.document_parsers.pdf_parser import (
+    HtmlDocumentParser,
+    PdfDocumentParser,
+    TextDocumentParser,
+)
 from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
-from backend.app.application.use_cases.provenance import ProvenanceService
-from backend.app.application.use_cases.embedding_indexing import EmbeddingIndexService
 
-
-SUPPORTED_MIME_TYPES = {"application/pdf", "text/markdown", "text/plain"}
+SUPPORTED_MIME_TYPES = {
+    "application/pdf",
+    "text/html",
+    "application/xhtml+xml",
+    "text/markdown",
+    "text/plain",
+}
 
 
 class DocumentIngestionService:
@@ -49,6 +58,8 @@ class DocumentIngestionService:
     ) -> tuple[str, str, List[str]]:
         if mime_type == "application/pdf":
             method = PdfDocumentParser.EXTRACTION_METHOD
+        elif mime_type in {"text/html", "application/xhtml+xml"}:
+            method = "html_text"
         elif mime_type == "text/markdown":
             method = "markdown_text"
         else:
@@ -183,6 +194,8 @@ class DocumentIngestionService:
                 page_data = PdfDocumentParser.parse_pages(content)
                 self._apply_ocr_to_pages(page_data, content)
                 parsed_data = [passage for page in page_data for passage in page["passages"]]
+            elif resolved_mime_type in {"text/html", "application/xhtml+xml"}:
+                parsed_data = HtmlDocumentParser.parse_html(content)
             elif resolved_mime_type == "text/markdown":
                 parsed_data = TextDocumentParser.parse_markdown(content)
             else:
