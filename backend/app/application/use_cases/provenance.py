@@ -229,6 +229,7 @@ class ProvenanceService:
                     "ocr_status": page.ocr_status,
                     "ocr_language": page.ocr_language,
                     "ocr_text_length": page.ocr_text_length,
+                    "ocr_confidence": page.ocr_confidence,
                 },
             )
             page_nodes[page.id] = page_node

@@ -8,12 +8,14 @@ from typing import Dict, Optional
 import fitz  # PyMuPDF
 import pytesseract
 import structlog
+from langdetect import DetectorFactory, LangDetectException, detect_langs
 from PIL import Image
 
 from backend.app.core.config import settings
 
 
 logger = structlog.get_logger(__name__)
+DetectorFactory.seed = 0
 
 
 class TesseractOcrService:
@@ -26,6 +28,7 @@ class TesseractOcrService:
         self.languages = settings.OCR_LANGUAGES.strip() or "eng"
         self.dpi = settings.OCR_DPI
         self.timeout_seconds = settings.OCR_TIMEOUT_SECONDS
+        self.min_confidence = settings.OCR_MIN_CONFIDENCE
         if settings.OCR_TESSERACT_CMD:
             # The executable is deployment configuration, never client input.
             pytesseract.pytesseract.tesseract_cmd = settings.OCR_TESSERACT_CMD
@@ -87,6 +90,66 @@ class TesseractOcrService:
             "error": error,
         }
 
+    @staticmethod
+    def _parse_data(data: Dict) -> tuple[str, float]:
+        text_parts = []
+        confidence_values = []
+        for raw_text, raw_confidence in zip(data.get("text", []), data.get("conf", [])):
+            text = str(raw_text or "").strip()
+            try:
+                confidence = float(raw_confidence)
+            except (TypeError, ValueError):
+                continue
+            if text and confidence >= 0:
+                text_parts.append(text)
+                confidence_values.append(confidence)
+
+        final_text = " ".join(text_parts).strip()
+        average_confidence = (
+            sum(confidence_values) / len(confidence_values) / 100.0
+            if confidence_values
+            else 0.0
+        )
+        return final_text, average_confidence
+
+    def _recognize_with_language(self, image: Image.Image, language: str) -> tuple[str, float]:
+        data = pytesseract.image_to_data(
+            image,
+            lang=language,
+            output_type=pytesseract.Output.DICT,
+            timeout=self.timeout_seconds,
+        )
+        return self._parse_data(data)
+
+    @staticmethod
+    def _detect_content_language(text: str, selected_language: str, candidates: list[str]) -> str:
+        """Detect language from OCR output, constrained to usable Tesseract candidates."""
+        language_map = {
+            "ar": "ara",
+            "de": "deu",
+            "en": "eng",
+            "es": "spa",
+            "fr": "fra",
+            "hi": "hin",
+            "it": "ita",
+            "ja": "jpn",
+            "ko": "kor",
+            "la": "lat",
+            "nl": "nld",
+            "pt": "por",
+            "ru": "rus",
+            "zh-cn": "chi_sim",
+            "zh-tw": "chi_tra",
+        }
+        try:
+            for detected in detect_langs(text):
+                mapped_language = language_map.get(detected.lang)
+                if mapped_language in candidates:
+                    return mapped_language
+        except LangDetectException:
+            pass
+        return selected_language
+
     def process_pdf_page(
         self, pdf_bytes: bytes, page_num: int, language: Optional[str] = None
     ) -> Dict:
@@ -123,11 +186,22 @@ class TesseractOcrService:
                 )
 
             try:
-                data = pytesseract.image_to_data(
-                    image,
-                    lang="+".join(self._language_parts(requested_language)),
-                    output_type=pytesseract.Output.DICT,
-                    timeout=self.timeout_seconds,
+                language_parts = self._language_parts(requested_language)
+                # With one configured candidate the recognition call itself is
+                # the runtime validation. With multiple candidates, compare
+                # real Tesseract confidence scores and retain the best result.
+                # This detects the language from installed traineddata rather
+                # than merely copying an unchecked configuration value.
+                candidate_languages = language_parts or ["eng"]
+                candidates = [
+                    (candidate, *self._recognize_with_language(image, candidate))
+                    for candidate in candidate_languages
+                ]
+                selected_language, final_text, average_confidence = max(
+                    candidates, key=lambda candidate: (bool(candidate[1]), candidate[2])
+                )
+                selected_language = self._detect_content_language(
+                    final_text, selected_language, candidate_languages
                 )
             except FileNotFoundError:
                 return self._result(
@@ -147,31 +221,17 @@ class TesseractOcrService:
                     page_num, requested_language, "failed", error=f"Tesseract OCR failed: {exc}"
                 )
 
-            text_parts = []
-            confidence_values = []
-            for raw_text, raw_confidence in zip(data.get("text", []), data.get("conf", [])):
-                text = raw_text.strip()
-                try:
-                    confidence = float(raw_confidence)
-                except (TypeError, ValueError):
-                    continue
-                if text and confidence >= 0:
-                    text_parts.append(text)
-                    confidence_values.append(confidence)
-
-            final_text = " ".join(text_parts).strip()
             if not final_text:
                 return self._result(
                     page_num,
-                    requested_language,
+                    selected_language,
                     "empty",
                     error="Tesseract returned no text for the rendered page.",
                 )
-            average_confidence = sum(confidence_values) / len(confidence_values) / 100.0
-            status = "partial" if average_confidence < 0.60 else "success"
+            status = "partial" if average_confidence < self.min_confidence else "success"
             return self._result(
                 page_num,
-                requested_language,
+                selected_language,
                 status,
                 content=final_text,
                 confidence=average_confidence,

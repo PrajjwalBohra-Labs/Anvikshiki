@@ -123,6 +123,7 @@ class TextDocumentParser:
         extraction_status: str = "success",
         extraction_uncertainty: bool = False,
         section_heading: str | None = None,
+        language: str | None = None,
     ) -> List[Dict]:
         """Split text deterministically while retaining its page and method."""
         passages = []
@@ -136,7 +137,7 @@ class TextDocumentParser:
                         "extraction_method": extraction_method,
                         "extraction_status": extraction_status,
                         "extraction_uncertainty": extraction_uncertainty,
-                        "language": None,
+                        "language": language,
                         "section_heading": section_heading,
                     }
                 )
@@ -153,6 +154,7 @@ class TextDocumentParser:
         page_number: int,
         extraction_status: str = "success",
         extraction_uncertainty: bool = False,
+        language: str | None = None,
     ) -> List[Dict]:
         return TextDocumentParser.segment_text(
             text,
@@ -160,6 +162,8 @@ class TextDocumentParser:
             page_number=page_number,
             extraction_status=extraction_status,
             extraction_uncertainty=extraction_uncertainty,
+            section_heading=None,
+            language=language,
         )
 
     @staticmethod

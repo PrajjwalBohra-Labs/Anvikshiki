@@ -148,6 +148,8 @@ class PageModel(Base):
     ocr_language: Mapped[Optional[str]] = mapped_column(String(128))
     ocr_dpi: Mapped[Optional[int]] = mapped_column(Integer)
     ocr_text_length: Mapped[Optional[int]] = mapped_column(Integer)
+    ocr_text: Mapped[Optional[str]] = mapped_column(Text)
+    ocr_confidence: Mapped[Optional[float]] = mapped_column(Float)
     ocr_processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     ocr_error: Mapped[Optional[str]] = mapped_column(Text)
 

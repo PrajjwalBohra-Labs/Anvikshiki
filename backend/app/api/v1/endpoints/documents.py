@@ -20,6 +20,7 @@ class PassageResponse(BaseModel):
     id: str
     page_number: Optional[int]
     content: str
+    extraction_method: Optional[str]
     ocr_confidence: float
     extraction_uncertainty: bool
     language: str

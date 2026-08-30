@@ -1,0 +1,2323 @@
+{
+  "baseline_comparison": null,
+  "configuration": {
+    "database_dialect": "postgresql",
+    "embedding_dimensions": 384,
+    "embedding_model": "all-MiniLM-L6-v2",
+    "embedding_provider": "sentence-transformers",
+    "hybrid_rrf_k": 60,
+    "lexical_search_config": "simple",
+    "reranker_enabled": true,
+    "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "top_k": 5
+  },
+  "corpus_identity": {
+    "aristotle_nicomachean_ethics_eval": {
+      "checksum_sha256": "2e77aa60916baa17d13f95aae2019cc5a025b31d4d7ddd836a03d7e9c83161f9",
+      "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+      "passage_ids": {
+        "habituation": "0941ee8e-49c4-4684-bf54-0bfc379870b8",
+        "virtue_mean": "41dc1ce1-7ecb-4791-b39e-0651f921ae86"
+      },
+      "passage_pages": {
+        "habituation": 1,
+        "virtue_mean": 1
+      },
+      "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+      "source_key": "aristotle_nicomachean_ethics"
+    },
+    "epictetus_enchiridion_eval": {
+      "checksum_sha256": "6c3d711e29b6ddc9c6cbdd53ea4d91eae3ca13ca86da5e3f09ac7eef909477d6",
+      "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+      "passage_ids": {
+        "control": "764b0b81-75c4-4a83-9630-37065726f7ec",
+        "judgments": "501362e3-507d-431a-86aa-67e46bfa4b89"
+      },
+      "passage_pages": {
+        "control": 1,
+        "judgments": 1
+      },
+      "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+      "source_key": "epictetus_enchiridion"
+    },
+    "epicurus_letter_menoeceus_eval": {
+      "checksum_sha256": "b30267b370bec7120e7db27cb4d3343c4a2835b9f8abe09e1350a8bc6ae55484",
+      "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+      "passage_ids": {
+        "pleasure_end": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+        "simple_pleasures": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5"
+      },
+      "passage_pages": {
+        "pleasure_end": 1,
+        "simple_pleasures": 1
+      },
+      "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+      "source_key": "epicurus_letter_menoeceus"
+    },
+    "marcus_aurelius_meditations_eval": {
+      "checksum_sha256": "9697995b06d196c16a5522cd5c2fb3fabe2d81eb6951c75e5f3ac5d8f487535a",
+      "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+      "passage_ids": {
+        "last_act": "5be5b5da-8b54-4e6a-9cbf-44fb87238af9",
+        "soul_thoughts": "47b8e601-8f86-42f3-8b8c-ab6f16987634"
+      },
+      "passage_pages": {
+        "last_act": 1,
+        "soul_thoughts": 1
+      },
+      "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+      "source_key": "marcus_aurelius_meditations"
+    },
+    "plato_apology_eval": {
+      "checksum_sha256": "74417a6fc36c55e4d4bdee5bbe58097a996ca3d4d645b1eefbcbdfdf4d9d7758",
+      "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+      "passage_ids": {
+        "examined_life": "26fc90f0-ce32-4a32-8851-2ad122b82baa",
+        "socratic_wisdom": "f30349b7-4792-407c-a48f-d6dc51473b80"
+      },
+      "passage_pages": {
+        "examined_life": 1,
+        "socratic_wisdom": 1
+      },
+      "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+      "source_key": "plato_apology"
+    },
+    "tarka_samgraha_eval": {
+      "checksum_sha256": "3223129c4482e7912f19039c11690d0fd92c88209a5f5b90e62b1712d2f58e39",
+      "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+      "passage_ids": {
+        "anumana": "89314ac1-e2f8-43eb-86d5-9cc58dc8dc82",
+        "prama": "8db779ed-8796-48fd-aadc-eb48f0c02cc2"
+      },
+      "passage_pages": {
+        "anumana": 2,
+        "prama": 1
+      },
+      "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+      "source_key": "tarka_samgraha"
+    }
+  },
+  "dataset": {
+    "corpus_document_count": 6,
+    "corpus_passage_count": 12,
+    "dataset_id": "anvikshiki-philosophy-retrieval-golden-v1",
+    "dataset_version": 1,
+    "query_count": 7
+  },
+  "deterministic_signature": "112ec19ca82cdedfa11138d9040b1c27f53d7d8cee4043e01e7d9b88716ce83d",
+  "generated_at": "2026-08-30T08:44:53.065669+00:00",
+  "methods": {
+    "hybrid": {
+      "empty_result_count": 0,
+      "metrics": {
+        "citation_accuracy@k": 1.0,
+        "contradiction_recall": 1.0,
+        "contradiction_recall@5": 1.0,
+        "mrr": 1.0,
+        "ndcg@5": 0.972002288394152,
+        "precision@5": 0.37142857142857144,
+        "primary_source_hit": 1.0,
+        "primary_source_hit_rate": 1.0,
+        "provenance_resolution_rate@k": 1.0,
+        "recall@5": 0.9285714285714286
+      },
+      "queries": [
+        {
+          "difficulty": "direct terminology",
+          "domain": "Indian epistemology",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "tarka_samgraha/tarka_samgraha_eval/prama": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.2,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "What does Nyaya mean by prama?",
+          "query_id": "q_nyaya_prama",
+          "retrieved": [
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 1",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "a8672755-b53d-4c87-b564-8c3496a399fc",
+              "page_number": 1,
+              "passage_id": "8db779ed-8796-48fd-aadc-eb48f0c02cc2",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/prama",
+              "retrieval_method": "hybrid",
+              "score": 1.0,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 2",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "f4d8a671-b2b0-40db-a30d-77150abe7b76",
+              "page_number": 2,
+              "passage_id": "89314ac1-e2f8-43eb-86d5-9cc58dc8dc82",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/anumana",
+              "retrieval_method": "hybrid",
+              "score": 0.9838709677419354,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "hybrid",
+              "score": 0.9682539682539681,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "764b0b81-75c4-4a83-9630-37065726f7ec",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/control",
+              "retrieval_method": "hybrid",
+              "score": 0.953125,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "hybrid",
+              "score": 0.9384615384615385,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "terminology paraphrase",
+          "domain": "Indian epistemology",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "tarka_samgraha/tarka_samgraha_eval/anumana": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.2,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "How does Nyaya describe inference as a means of knowledge?",
+          "query_id": "q_nyaya_inference",
+          "retrieved": [
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 2",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "f4d8a671-b2b0-40db-a30d-77150abe7b76",
+              "page_number": 2,
+              "passage_id": "89314ac1-e2f8-43eb-86d5-9cc58dc8dc82",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/anumana",
+              "retrieval_method": "hybrid",
+              "score": 1.0,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 1",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "a8672755-b53d-4c87-b564-8c3496a399fc",
+              "page_number": 1,
+              "passage_id": "8db779ed-8796-48fd-aadc-eb48f0c02cc2",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/prama",
+              "retrieval_method": "hybrid",
+              "score": 0.9838709677419354,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "hybrid",
+              "score": 0.9682539682539681,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "hybrid",
+              "score": 0.953125,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Apology, p. 1",
+              "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+              "document_version_id": "b84a015a-f1c9-401a-99a8-6ef60888c089",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "f30349b7-4792-407c-a48f-d6dc51473b80",
+              "passage_key": "plato_apology/plato_apology_eval/socratic_wisdom",
+              "retrieval_method": "hybrid",
+              "score": 0.9384615384615385,
+              "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+              "source_title": "Apology",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "direct doctrinal question",
+          "domain": "Stoic ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "epictetus_enchiridion/epictetus_enchiridion_eval/control": 3,
+            "epictetus_enchiridion/epictetus_enchiridion_eval/judgments": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.4,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "What does Epictetus say is within our control?",
+          "query_id": "q_epictetus_control",
+          "retrieved": [
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "764b0b81-75c4-4a83-9630-37065726f7ec",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/control",
+              "retrieval_method": "hybrid",
+              "score": 1.0,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "hybrid",
+              "score": 0.9838709677419354,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "hybrid",
+              "score": 0.9682539682539681,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end",
+              "retrieval_method": "hybrid",
+              "score": 0.953125,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 1",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "a8672755-b53d-4c87-b564-8c3496a399fc",
+              "page_number": 1,
+              "passage_id": "8db779ed-8796-48fd-aadc-eb48f0c02cc2",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/prama",
+              "retrieval_method": "hybrid",
+              "score": 0.9384615384615385,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "canonical formulation",
+          "domain": "Socratic ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "plato_apology/plato_apology_eval/examined_life": 3,
+            "plato_apology/plato_apology_eval/socratic_wisdom": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 0.8262346571285599,
+            "precision@5": 0.2,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 0.5
+          },
+          "query": "According to Socrates, what makes a life worth living?",
+          "query_id": "q_plato_examined_life",
+          "retrieved": [
+            {
+              "citation": "Apology, p. 1",
+              "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+              "document_version_id": "b84a015a-f1c9-401a-99a8-6ef60888c089",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "26fc90f0-ce32-4a32-8851-2ad122b82baa",
+              "passage_key": "plato_apology/plato_apology_eval/examined_life",
+              "retrieval_method": "hybrid",
+              "score": 1.0,
+              "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+              "source_title": "Apology",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "hybrid",
+              "score": 0.9838709677419354,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "hybrid",
+              "score": 0.9682539682539681,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "5be5b5da-8b54-4e6a-9cbf-44fb87238af9",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/last_act",
+              "retrieval_method": "hybrid",
+              "score": 0.953125,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end",
+              "retrieval_method": "hybrid",
+              "score": 0.9384615384615385,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "conceptual definition",
+          "domain": "Aristotelian ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation": 1,
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.4,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "How does Aristotle define moral virtue in relation to excess and defect?",
+          "query_id": "q_aristotle_virtue",
+          "retrieved": [
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "hybrid",
+              "score": 1.0,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "0941ee8e-49c4-4684-bf54-0bfc379870b8",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation",
+              "retrieval_method": "hybrid",
+              "score": 0.9838709677419354,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "hybrid",
+              "score": 0.9682539682539681,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "hybrid",
+              "score": 0.953125,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "hybrid",
+              "score": 0.9384615384615385,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "contrasting doctrines",
+          "domain": "ancient theories of the good life",
+          "empty_result": false,
+          "evaluation_type": "contradiction",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean": 3,
+            "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end": 3,
+            "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures": 2
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "contradiction_recall@5": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 0.9777813616305049,
+            "precision@5": 0.6,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "Is the good life grounded primarily in pleasure or in virtuous activity?",
+          "query_id": "q_good_life_contradiction",
+          "retrieved": [
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end",
+              "retrieval_method": "hybrid",
+              "score": 1.0,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "hybrid",
+              "score": 0.9838709677419354,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "hybrid",
+              "score": 0.9682539682539681,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "0941ee8e-49c4-4684-bf54-0bfc379870b8",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation",
+              "retrieval_method": "hybrid",
+              "score": 0.953125,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "5be5b5da-8b54-4e6a-9cbf-44fb87238af9",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/last_act",
+              "retrieval_method": "hybrid",
+              "score": 0.9384615384615385,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "cross-passage synthesis",
+          "domain": "Stoic ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "epictetus_enchiridion/epictetus_enchiridion_eval/control": 2,
+            "epictetus_enchiridion/epictetus_enchiridion_eval/judgments": 3,
+            "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.6,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "What does Stoicism say about events and the judgments that disturb us?",
+          "query_id": "q_stoic_judgment",
+          "retrieved": [
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "hybrid",
+              "score": 1.0,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "764b0b81-75c4-4a83-9630-37065726f7ec",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/control",
+              "retrieval_method": "hybrid",
+              "score": 0.9838709677419354,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "hybrid",
+              "score": 0.9682539682539681,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "hybrid",
+              "score": 0.953125,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "hybrid",
+              "score": 0.9384615384615385,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            }
+          ]
+        }
+      ],
+      "status": "complete"
+    },
+    "lexical": {
+      "empty_result_count": 7,
+      "metrics": {
+        "citation_accuracy@k": null,
+        "contradiction_recall": 0.0,
+        "contradiction_recall@5": 0.0,
+        "mrr": 0.0,
+        "ndcg@5": 0.0,
+        "precision@5": 0.0,
+        "primary_source_hit": 0.0,
+        "primary_source_hit_rate": 0.0,
+        "provenance_resolution_rate@k": 0.0,
+        "recall@5": 0.0
+      },
+      "queries": [
+        {
+          "difficulty": "direct terminology",
+          "domain": "Indian epistemology",
+          "empty_result": true,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "tarka_samgraha/tarka_samgraha_eval/prama": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": null,
+            "mrr": 0.0,
+            "ndcg@5": 0.0,
+            "precision@5": 0.0,
+            "primary_source_hit": 0.0,
+            "provenance_resolution_rate@k": 0.0,
+            "recall@5": 0.0
+          },
+          "query": "What does Nyaya mean by prama?",
+          "query_id": "q_nyaya_prama",
+          "retrieved": []
+        },
+        {
+          "difficulty": "terminology paraphrase",
+          "domain": "Indian epistemology",
+          "empty_result": true,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "tarka_samgraha/tarka_samgraha_eval/anumana": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": null,
+            "mrr": 0.0,
+            "ndcg@5": 0.0,
+            "precision@5": 0.0,
+            "primary_source_hit": 0.0,
+            "provenance_resolution_rate@k": 0.0,
+            "recall@5": 0.0
+          },
+          "query": "How does Nyaya describe inference as a means of knowledge?",
+          "query_id": "q_nyaya_inference",
+          "retrieved": []
+        },
+        {
+          "difficulty": "direct doctrinal question",
+          "domain": "Stoic ethics",
+          "empty_result": true,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "epictetus_enchiridion/epictetus_enchiridion_eval/control": 3,
+            "epictetus_enchiridion/epictetus_enchiridion_eval/judgments": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": null,
+            "mrr": 0.0,
+            "ndcg@5": 0.0,
+            "precision@5": 0.0,
+            "primary_source_hit": 0.0,
+            "provenance_resolution_rate@k": 0.0,
+            "recall@5": 0.0
+          },
+          "query": "What does Epictetus say is within our control?",
+          "query_id": "q_epictetus_control",
+          "retrieved": []
+        },
+        {
+          "difficulty": "canonical formulation",
+          "domain": "Socratic ethics",
+          "empty_result": true,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "plato_apology/plato_apology_eval/examined_life": 3,
+            "plato_apology/plato_apology_eval/socratic_wisdom": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": null,
+            "mrr": 0.0,
+            "ndcg@5": 0.0,
+            "precision@5": 0.0,
+            "primary_source_hit": 0.0,
+            "provenance_resolution_rate@k": 0.0,
+            "recall@5": 0.0
+          },
+          "query": "According to Socrates, what makes a life worth living?",
+          "query_id": "q_plato_examined_life",
+          "retrieved": []
+        },
+        {
+          "difficulty": "conceptual definition",
+          "domain": "Aristotelian ethics",
+          "empty_result": true,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation": 1,
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": null,
+            "mrr": 0.0,
+            "ndcg@5": 0.0,
+            "precision@5": 0.0,
+            "primary_source_hit": 0.0,
+            "provenance_resolution_rate@k": 0.0,
+            "recall@5": 0.0
+          },
+          "query": "How does Aristotle define moral virtue in relation to excess and defect?",
+          "query_id": "q_aristotle_virtue",
+          "retrieved": []
+        },
+        {
+          "difficulty": "contrasting doctrines",
+          "domain": "ancient theories of the good life",
+          "empty_result": true,
+          "evaluation_type": "contradiction",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean": 3,
+            "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end": 3,
+            "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures": 2
+          },
+          "metrics": {
+            "citation_accuracy@k": null,
+            "contradiction_recall@5": 0.0,
+            "mrr": 0.0,
+            "ndcg@5": 0.0,
+            "precision@5": 0.0,
+            "primary_source_hit": 0.0,
+            "provenance_resolution_rate@k": 0.0,
+            "recall@5": 0.0
+          },
+          "query": "Is the good life grounded primarily in pleasure or in virtuous activity?",
+          "query_id": "q_good_life_contradiction",
+          "retrieved": []
+        },
+        {
+          "difficulty": "cross-passage synthesis",
+          "domain": "Stoic ethics",
+          "empty_result": true,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "epictetus_enchiridion/epictetus_enchiridion_eval/control": 2,
+            "epictetus_enchiridion/epictetus_enchiridion_eval/judgments": 3,
+            "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": null,
+            "mrr": 0.0,
+            "ndcg@5": 0.0,
+            "precision@5": 0.0,
+            "primary_source_hit": 0.0,
+            "provenance_resolution_rate@k": 0.0,
+            "recall@5": 0.0
+          },
+          "query": "What does Stoicism say about events and the judgments that disturb us?",
+          "query_id": "q_stoic_judgment",
+          "retrieved": []
+        }
+      ],
+      "status": "complete"
+    },
+    "reranked": {
+      "empty_result_count": 0,
+      "metrics": {
+        "citation_accuracy@k": 1.0,
+        "contradiction_recall": 0.6666666666666666,
+        "contradiction_recall@5": 0.6666666666666666,
+        "mrr": 0.9285714285714286,
+        "ndcg@5": 0.8352468192976878,
+        "precision@5": 0.3428571428571429,
+        "primary_source_hit": 1.0,
+        "primary_source_hit_rate": 1.0,
+        "provenance_resolution_rate@k": 1.0,
+        "recall@5": 0.9047619047619048
+      },
+      "queries": [
+        {
+          "difficulty": "direct terminology",
+          "domain": "Indian epistemology",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "tarka_samgraha/tarka_samgraha_eval/prama": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.2,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "What does Nyaya mean by prama?",
+          "query_id": "q_nyaya_prama",
+          "retrieved": [
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 1",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "a8672755-b53d-4c87-b564-8c3496a399fc",
+              "page_number": 1,
+              "passage_id": "8db779ed-8796-48fd-aadc-eb48f0c02cc2",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/prama",
+              "retrieval_method": "hybrid",
+              "score": 0.34924107789993286,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 2",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "f4d8a671-b2b0-40db-a30d-77150abe7b76",
+              "page_number": 2,
+              "passage_id": "89314ac1-e2f8-43eb-86d5-9cc58dc8dc82",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/anumana",
+              "retrieval_method": "hybrid",
+              "score": -9.50461196899414,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "hybrid",
+              "score": -10.522408485412598,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "0941ee8e-49c4-4684-bf54-0bfc379870b8",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation",
+              "retrieval_method": "hybrid",
+              "score": -10.544361114501953,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Apology, p. 1",
+              "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+              "document_version_id": "b84a015a-f1c9-401a-99a8-6ef60888c089",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "26fc90f0-ce32-4a32-8851-2ad122b82baa",
+              "passage_key": "plato_apology/plato_apology_eval/examined_life",
+              "retrieval_method": "hybrid",
+              "score": -10.63243293762207,
+              "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+              "source_title": "Apology",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "terminology paraphrase",
+          "domain": "Indian epistemology",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "tarka_samgraha/tarka_samgraha_eval/anumana": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.2,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "How does Nyaya describe inference as a means of knowledge?",
+          "query_id": "q_nyaya_inference",
+          "retrieved": [
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 2",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "f4d8a671-b2b0-40db-a30d-77150abe7b76",
+              "page_number": 2,
+              "passage_id": "89314ac1-e2f8-43eb-86d5-9cc58dc8dc82",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/anumana",
+              "retrieval_method": "hybrid",
+              "score": -7.963725566864014,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 1",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "a8672755-b53d-4c87-b564-8c3496a399fc",
+              "page_number": 1,
+              "passage_id": "8db779ed-8796-48fd-aadc-eb48f0c02cc2",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/prama",
+              "retrieval_method": "hybrid",
+              "score": -10.569435119628906,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "hybrid",
+              "score": -10.590280532836914,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "0941ee8e-49c4-4684-bf54-0bfc379870b8",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation",
+              "retrieval_method": "hybrid",
+              "score": -10.92674446105957,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "hybrid",
+              "score": -10.980137825012207,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "direct doctrinal question",
+          "domain": "Stoic ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "epictetus_enchiridion/epictetus_enchiridion_eval/control": 3,
+            "epictetus_enchiridion/epictetus_enchiridion_eval/judgments": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 0.5,
+            "ndcg@5": 0.6590018048024133,
+            "precision@5": 0.4,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "What does Epictetus say is within our control?",
+          "query_id": "q_epictetus_control",
+          "retrieved": [
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "hybrid",
+              "score": -10.755836486816406,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "764b0b81-75c4-4a83-9630-37065726f7ec",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/control",
+              "retrieval_method": "hybrid",
+              "score": -10.782984733581543,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "hybrid",
+              "score": -10.873440742492676,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 2",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "f4d8a671-b2b0-40db-a30d-77150abe7b76",
+              "page_number": 2,
+              "passage_id": "89314ac1-e2f8-43eb-86d5-9cc58dc8dc82",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/anumana",
+              "retrieval_method": "hybrid",
+              "score": -11.180987358093262,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end",
+              "retrieval_method": "hybrid",
+              "score": -11.230464935302734,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "canonical formulation",
+          "domain": "Socratic ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "plato_apology/plato_apology_eval/examined_life": 3,
+            "plato_apology/plato_apology_eval/socratic_wisdom": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 0.9327783893101107,
+            "precision@5": 0.4,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "According to Socrates, what makes a life worth living?",
+          "query_id": "q_plato_examined_life",
+          "retrieved": [
+            {
+              "citation": "Apology, p. 1",
+              "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+              "document_version_id": "b84a015a-f1c9-401a-99a8-6ef60888c089",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "26fc90f0-ce32-4a32-8851-2ad122b82baa",
+              "passage_key": "plato_apology/plato_apology_eval/examined_life",
+              "retrieval_method": "hybrid",
+              "score": 1.147141695022583,
+              "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+              "source_title": "Apology",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "hybrid",
+              "score": -3.8490216732025146,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "5be5b5da-8b54-4e6a-9cbf-44fb87238af9",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/last_act",
+              "retrieval_method": "hybrid",
+              "score": -8.048687934875488,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end",
+              "retrieval_method": "hybrid",
+              "score": -8.53477668762207,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Apology, p. 1",
+              "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+              "document_version_id": "b84a015a-f1c9-401a-99a8-6ef60888c089",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "f30349b7-4792-407c-a48f-d6dc51473b80",
+              "passage_key": "plato_apology/plato_apology_eval/socratic_wisdom",
+              "retrieval_method": "hybrid",
+              "score": -9.025550842285156,
+              "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+              "source_title": "Apology",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "conceptual definition",
+          "domain": "Aristotelian ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation": 1,
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 0.7967075809905066,
+            "precision@5": 0.4,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "How does Aristotle define moral virtue in relation to excess and defect?",
+          "query_id": "q_aristotle_virtue",
+          "retrieved": [
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "0941ee8e-49c4-4684-bf54-0bfc379870b8",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation",
+              "retrieval_method": "hybrid",
+              "score": -0.7786337733268738,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "hybrid",
+              "score": -3.308196544647217,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "hybrid",
+              "score": -9.477046012878418,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Apology, p. 1",
+              "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+              "document_version_id": "b84a015a-f1c9-401a-99a8-6ef60888c089",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "26fc90f0-ce32-4a32-8851-2ad122b82baa",
+              "passage_key": "plato_apology/plato_apology_eval/examined_life",
+              "retrieval_method": "hybrid",
+              "score": -10.519354820251465,
+              "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+              "source_title": "Apology",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "764b0b81-75c4-4a83-9630-37065726f7ec",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/control",
+              "retrieval_method": "hybrid",
+              "score": -10.619988441467285,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "contrasting doctrines",
+          "domain": "ancient theories of the good life",
+          "empty_result": false,
+          "evaluation_type": "contradiction",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean": 3,
+            "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end": 3,
+            "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures": 2
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "contradiction_recall@5": 0.6666666666666666,
+            "mrr": 1.0,
+            "ndcg@5": 0.7232329748419101,
+            "precision@5": 0.4,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 0.6666666666666666
+          },
+          "query": "Is the good life grounded primarily in pleasure or in virtuous activity?",
+          "query_id": "q_good_life_contradiction",
+          "retrieved": [
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end",
+              "retrieval_method": "hybrid",
+              "score": -0.38142889738082886,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "hybrid",
+              "score": -7.532389163970947,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "0941ee8e-49c4-4684-bf54-0bfc379870b8",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation",
+              "retrieval_method": "hybrid",
+              "score": -8.59578800201416,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Apology, p. 1",
+              "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+              "document_version_id": "b84a015a-f1c9-401a-99a8-6ef60888c089",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "26fc90f0-ce32-4a32-8851-2ad122b82baa",
+              "passage_key": "plato_apology/plato_apology_eval/examined_life",
+              "retrieval_method": "hybrid",
+              "score": -8.939865112304688,
+              "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+              "source_title": "Apology",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "5be5b5da-8b54-4e6a-9cbf-44fb87238af9",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/last_act",
+              "retrieval_method": "hybrid",
+              "score": -9.803140640258789,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "cross-passage synthesis",
+          "domain": "Stoic ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "epictetus_enchiridion/epictetus_enchiridion_eval/control": 2,
+            "epictetus_enchiridion/epictetus_enchiridion_eval/judgments": 3,
+            "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 0.7350069851388743,
+            "precision@5": 0.4,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 0.6666666666666666
+          },
+          "query": "What does Stoicism say about events and the judgments that disturb us?",
+          "query_id": "q_stoic_judgment",
+          "retrieved": [
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "hybrid",
+              "score": -8.488536834716797,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "hybrid",
+              "score": -10.663708686828613,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "hybrid",
+              "score": -10.788772583007812,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 1",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "a8672755-b53d-4c87-b564-8c3496a399fc",
+              "page_number": 1,
+              "passage_id": "8db779ed-8796-48fd-aadc-eb48f0c02cc2",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/prama",
+              "retrieval_method": "hybrid",
+              "score": -10.875154495239258,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "5be5b5da-8b54-4e6a-9cbf-44fb87238af9",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/last_act",
+              "retrieval_method": "hybrid",
+              "score": -10.880914688110352,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            }
+          ]
+        }
+      ],
+      "status": "complete"
+    },
+    "semantic": {
+      "empty_result_count": 0,
+      "metrics": {
+        "citation_accuracy@k": 1.0,
+        "contradiction_recall": 1.0,
+        "contradiction_recall@5": 1.0,
+        "mrr": 1.0,
+        "ndcg@5": 0.972002288394152,
+        "precision@5": 0.37142857142857144,
+        "primary_source_hit": 1.0,
+        "primary_source_hit_rate": 1.0,
+        "provenance_resolution_rate@k": 1.0,
+        "recall@5": 0.9285714285714286
+      },
+      "queries": [
+        {
+          "difficulty": "direct terminology",
+          "domain": "Indian epistemology",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "tarka_samgraha/tarka_samgraha_eval/prama": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.2,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "What does Nyaya mean by prama?",
+          "query_id": "q_nyaya_prama",
+          "retrieved": [
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 1",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "a8672755-b53d-4c87-b564-8c3496a399fc",
+              "page_number": 1,
+              "passage_id": "8db779ed-8796-48fd-aadc-eb48f0c02cc2",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/prama",
+              "retrieval_method": "semantic",
+              "score": 0.5202260768480922,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 2",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "f4d8a671-b2b0-40db-a30d-77150abe7b76",
+              "page_number": 2,
+              "passage_id": "89314ac1-e2f8-43eb-86d5-9cc58dc8dc82",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/anumana",
+              "retrieval_method": "semantic",
+              "score": 0.29132354259490967,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "semantic",
+              "score": 0.1992824673652649,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "764b0b81-75c4-4a83-9630-37065726f7ec",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/control",
+              "retrieval_method": "semantic",
+              "score": 0.1878035850641978,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "semantic",
+              "score": 0.17684675753116608,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "terminology paraphrase",
+          "domain": "Indian epistemology",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "tarka_samgraha/tarka_samgraha_eval/anumana": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.2,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "How does Nyaya describe inference as a means of knowledge?",
+          "query_id": "q_nyaya_inference",
+          "retrieved": [
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 2",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "f4d8a671-b2b0-40db-a30d-77150abe7b76",
+              "page_number": 2,
+              "passage_id": "89314ac1-e2f8-43eb-86d5-9cc58dc8dc82",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/anumana",
+              "retrieval_method": "semantic",
+              "score": 0.34599916064744285,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 1",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "a8672755-b53d-4c87-b564-8c3496a399fc",
+              "page_number": 1,
+              "passage_id": "8db779ed-8796-48fd-aadc-eb48f0c02cc2",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/prama",
+              "retrieval_method": "semantic",
+              "score": 0.343431194322373,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "semantic",
+              "score": 0.27218355917383663,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "semantic",
+              "score": 0.26658670505364557,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Apology, p. 1",
+              "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+              "document_version_id": "b84a015a-f1c9-401a-99a8-6ef60888c089",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "f30349b7-4792-407c-a48f-d6dc51473b80",
+              "passage_key": "plato_apology/plato_apology_eval/socratic_wisdom",
+              "retrieval_method": "semantic",
+              "score": 0.20968135566469048,
+              "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+              "source_title": "Apology",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "direct doctrinal question",
+          "domain": "Stoic ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "epictetus_enchiridion/epictetus_enchiridion_eval/control": 3,
+            "epictetus_enchiridion/epictetus_enchiridion_eval/judgments": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.4,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "What does Epictetus say is within our control?",
+          "query_id": "q_epictetus_control",
+          "retrieved": [
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "764b0b81-75c4-4a83-9630-37065726f7ec",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/control",
+              "retrieval_method": "semantic",
+              "score": 0.3450301474296871,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "semantic",
+              "score": 0.30587504471093196,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "semantic",
+              "score": 0.2973913373117847,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end",
+              "retrieval_method": "semantic",
+              "score": 0.25324241797671254,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Tarka Samgraha of Annambhatta, p. 1",
+              "document_id": "76b13aff-14ba-4c42-a07f-cca63afb6a11",
+              "document_version_id": "7ccbd731-381b-4925-93aa-dae2f7787cb1",
+              "page_id": "a8672755-b53d-4c87-b564-8c3496a399fc",
+              "page_number": 1,
+              "passage_id": "8db779ed-8796-48fd-aadc-eb48f0c02cc2",
+              "passage_key": "tarka_samgraha/tarka_samgraha_eval/prama",
+              "retrieval_method": "semantic",
+              "score": 0.24837119137134678,
+              "source_id": "5d61214a-968c-4562-a4a2-4a5271d87971",
+              "source_title": "Tarka Samgraha of Annambhatta",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "canonical formulation",
+          "domain": "Socratic ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "plato_apology/plato_apology_eval/examined_life": 3,
+            "plato_apology/plato_apology_eval/socratic_wisdom": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 0.8262346571285599,
+            "precision@5": 0.2,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 0.5
+          },
+          "query": "According to Socrates, what makes a life worth living?",
+          "query_id": "q_plato_examined_life",
+          "retrieved": [
+            {
+              "citation": "Apology, p. 1",
+              "document_id": "e1519586-23bf-452f-8c2a-019916012ba7",
+              "document_version_id": "b84a015a-f1c9-401a-99a8-6ef60888c089",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "26fc90f0-ce32-4a32-8851-2ad122b82baa",
+              "passage_key": "plato_apology/plato_apology_eval/examined_life",
+              "retrieval_method": "semantic",
+              "score": 0.5419709359424758,
+              "source_id": "dbfdd139-cf5c-4aed-beb7-0f1a2531cd6e",
+              "source_title": "Apology",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "semantic",
+              "score": 0.43941472290202177,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "semantic",
+              "score": 0.36209553480148315,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "5be5b5da-8b54-4e6a-9cbf-44fb87238af9",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/last_act",
+              "retrieval_method": "semantic",
+              "score": 0.3581129099063337,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end",
+              "retrieval_method": "semantic",
+              "score": 0.32875680923461914,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "conceptual definition",
+          "domain": "Aristotelian ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation": 1,
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean": 3
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.4,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "How does Aristotle define moral virtue in relation to excess and defect?",
+          "query_id": "q_aristotle_virtue",
+          "retrieved": [
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "semantic",
+              "score": 0.6258368678640389,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "0941ee8e-49c4-4684-bf54-0bfc379870b8",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation",
+              "retrieval_method": "semantic",
+              "score": 0.604725801663054,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "semantic",
+              "score": 0.297187864780426,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "semantic",
+              "score": 0.2843076288700104,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "semantic",
+              "score": 0.2547956705093384,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "contrasting doctrines",
+          "domain": "ancient theories of the good life",
+          "empty_result": false,
+          "evaluation_type": "contradiction",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean": 3,
+            "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end": 3,
+            "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures": 2
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "contradiction_recall@5": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 0.9777813616305049,
+            "precision@5": 0.6,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "Is the good life grounded primarily in pleasure or in virtuous activity?",
+          "query_id": "q_good_life_contradiction",
+          "retrieved": [
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "3e8193d1-a0d9-4999-b0e3-cc6c5e6b698c",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/pleasure_end",
+              "retrieval_method": "semantic",
+              "score": 0.6297097206115723,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "semantic",
+              "score": 0.49263307452201843,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "semantic",
+              "score": 0.442965550511049,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "0941ee8e-49c4-4684-bf54-0bfc379870b8",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/habituation",
+              "retrieval_method": "semantic",
+              "score": 0.4165620555542682,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "5be5b5da-8b54-4e6a-9cbf-44fb87238af9",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/last_act",
+              "retrieval_method": "semantic",
+              "score": 0.3319814305316555,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            }
+          ]
+        },
+        {
+          "difficulty": "cross-passage synthesis",
+          "domain": "Stoic ethics",
+          "empty_result": false,
+          "evaluation_type": "primary",
+          "excluded_out_of_corpus_count": 0,
+          "ground_truth": {
+            "epictetus_enchiridion/epictetus_enchiridion_eval/control": 2,
+            "epictetus_enchiridion/epictetus_enchiridion_eval/judgments": 3,
+            "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts": 1
+          },
+          "metrics": {
+            "citation_accuracy@k": 1.0,
+            "mrr": 1.0,
+            "ndcg@5": 1.0,
+            "precision@5": 0.6,
+            "primary_source_hit": 1.0,
+            "provenance_resolution_rate@k": 1.0,
+            "recall@5": 1.0
+          },
+          "query": "What does Stoicism say about events and the judgments that disturb us?",
+          "query_id": "q_stoic_judgment",
+          "retrieved": [
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "501362e3-507d-431a-86aa-67e46bfa4b89",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/judgments",
+              "retrieval_method": "semantic",
+              "score": 0.42772358655929565,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Enchiridion, p. 1",
+              "document_id": "28ed619a-a25f-4a79-9885-fabf4dc041f7",
+              "document_version_id": "0f32de36-a088-4525-80c6-53fd81150245",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "764b0b81-75c4-4a83-9630-37065726f7ec",
+              "passage_key": "epictetus_enchiridion/epictetus_enchiridion_eval/control",
+              "retrieval_method": "semantic",
+              "score": 0.32455442401442447,
+              "source_id": "d0f73153-ff24-4ead-b1c5-d532295aa55c",
+              "source_title": "The Enchiridion",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Meditations, p. 1",
+              "document_id": "73ee99f3-0e48-4164-9afb-39fa0989abe4",
+              "document_version_id": "b341f683-b03c-429a-8b63-7b2d120e565d",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "47b8e601-8f86-42f3-8b8c-ab6f16987634",
+              "passage_key": "marcus_aurelius_meditations/marcus_aurelius_meditations_eval/soul_thoughts",
+              "retrieval_method": "semantic",
+              "score": 0.3167110085487366,
+              "source_id": "d6c05690-77f6-4ebe-8f82-8fd36c231004",
+              "source_title": "Meditations",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "Letter to Menoeceus, p. 1",
+              "document_id": "57a3bfbb-ca3c-479f-a2e0-788a24ec03a7",
+              "document_version_id": "f8f68402-af2d-4fd2-b473-d7c4bb655a11",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "9e2b0de7-3b23-4dad-82dd-82d2400c3bb5",
+              "passage_key": "epicurus_letter_menoeceus/epicurus_letter_menoeceus_eval/simple_pleasures",
+              "retrieval_method": "semantic",
+              "score": 0.28089749813079834,
+              "source_id": "dc9d755e-50dc-42cf-a082-624c4b8f8a5f",
+              "source_title": "Letter to Menoeceus",
+              "source_type": "PRIMARY"
+            },
+            {
+              "citation": "The Nicomachean Ethics, p. 1",
+              "document_id": "dbf3e056-8ce1-46e0-8d66-212523261b36",
+              "document_version_id": "b402f001-ae6a-44d1-a9bf-9d298a5cff18",
+              "page_id": null,
+              "page_number": 1,
+              "passage_id": "41dc1ce1-7ecb-4791-b39e-0651f921ae86",
+              "passage_key": "aristotle_nicomachean_ethics/aristotle_nicomachean_ethics_eval/virtue_mean",
+              "retrieval_method": "semantic",
+              "score": 0.2544303016194792,
+              "source_id": "97f7db7d-c159-4753-baba-be0c39f1172a",
+              "source_title": "The Nicomachean Ethics",
+              "source_type": "PRIMARY"
+            }
+          ]
+        }
+      ],
+      "status": "complete"
+    }
+  },
+  "warnings": []
+}

@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     OCR_LANGUAGES: str = "eng"
     OCR_DPI: int = Field(default=300, ge=72, le=600)
     OCR_TIMEOUT_SECONDS: float = Field(default=120.0, gt=0, le=600)
+    OCR_MIN_CONFIDENCE: float = Field(default=0.60, ge=0.0, le=1.0)
     ENABLE_WEB_RETRIEVAL: bool = True
     WEB_RETRIEVAL_MAX_RESULTS: int = Field(default=5, ge=1, le=20)
     WEB_MAX_RESPONSE_BYTES: int = Field(default=5_000_000, ge=1_024, le=50_000_000)
