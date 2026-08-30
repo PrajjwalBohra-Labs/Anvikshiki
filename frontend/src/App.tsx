@@ -6,20 +6,16 @@ import { DocumentsPage, DocumentDetailPage, SourcesPage, WebAcquisitionPanel } f
 import { ResearchHistoryPage, ResearchQuestionsPage, ResearchRunDetailPage } from './components/research/ResearchRecords';
 import { ResearchWorkspace } from './components/research/ResearchWorkspace';
 import { AnvikshikiShell, type AppView } from './components/shell/AnvikshikiShell';
-import { executeDialogue, getEpistemicPositions, getHealth } from './api/services';
+import { executeDialogue, getHealth } from './api/services';
+import { MemoryPage } from './components/memory/MemoryPage';
+import { KnowledgeGraphPage } from './components/knowledge/KnowledgeGraphPage';
 import { navigate, routeView, useRoute } from './routing';
-import type { DialogueTurnDTO, EpistemicPositionDTO, HealthDTO } from './types';
+import type { DialogueTurnDTO, HealthDTO } from './types';
 import './styles/tokens.css';
 import './styles/app.css';
 
 function LoadingMessage({ label }: { label: string }) { return <p className="muted-copy loading-message" role="status"><LoaderCircle className="spin" size={14} /> {label}</p>; }
 function ErrorMessage({ message }: { message: string }) { return <div className="inline-error" role="alert"><AlertTriangle size={15} />{message}</div>; }
-
-function MemoryPage({ userId }: { userId: string }) {
-  const [positions, setPositions] = useState<EpistemicPositionDTO[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
-  useEffect(() => { let active = true; void getEpistemicPositions(userId).then((value) => { if (active) setPositions(value); }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'Epistemic context could not be loaded.'); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [userId]);
-  return <section className="secondary-page"><div className="eyebrow">Understanding / Epistemic memory</div><h1>Current understanding</h1><p className="page-lede">Persisted positions are research continuity context, not automatically source evidence.</p>{loading && <LoadingMessage label="Loading epistemic positions..." />}{error && <ErrorMessage message={error} />}{!loading && !error && positions.length === 0 && <div className="empty-card"><ShieldCheck size={18} />No epistemic positions are currently returned for this user.</div>}<div className="position-list">{positions.map((position) => <article className="position-card" key={position.position_id}><div className="position-heading"><span className="eyebrow">{position.status}</span><span>{Math.round(position.confidence * 100)}% confidence</span></div><p>{position.claim_statement}</p><small>{position.position}</small></article>)}</div></section>;
-}
 
 function DialoguePage() {
   const [input, setInput] = useState(''); const [mode, setMode] = useState('socratic'); const [turn, setTurn] = useState<DialogueTurnDTO | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState('');
@@ -51,6 +47,8 @@ function AuthenticatedApp() {
     case 'library-sources': content = <><SourcesPage /><section className="secondary-page secondary-page-compact"><WebAcquisitionPanel /></section></>; break;
     case 'library': content = <SourcesPage />; break;
     case 'memory': content = <MemoryPage userId={user.user_id} />; break;
+    case 'knowledge-graph': content = <KnowledgeGraphPage />; break;
+    case 'knowledge-graph-run': content = <KnowledgeGraphPage runId={route.id} />; break;
     case 'dialogue': content = <DialoguePage />; break;
     case 'settings': content = <SettingsPage user={user} />; break;
     case 'not-found': content = <section className="secondary-page"><div className="eyebrow">404 / Not found</div><h1>This path is not part of the instrument.</h1><button className="button button-primary" type="button" onClick={() => navigate('/research')}>Return to inquiry</button></section>; break;

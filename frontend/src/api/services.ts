@@ -6,6 +6,8 @@ import type {
   DocumentDTO,
   DocumentUploadResponseDTO,
   EpistemicPositionDTO,
+  EpistemicPositionCreateDTO,
+  EpistemicPositionUpdateDTO,
   EvidenceTraceDTO,
   HealthDTO,
   ResearchQuestionDetailDTO,
@@ -16,6 +18,7 @@ import type {
   ResearchRunRequestDTO,
   SearchResponseDTO,
   PassageDTO,
+  ProvenanceGraphDTO,
   SpecialistAnalysisDTO,
   SourceCreateDTO,
   SourceDTO,
@@ -150,12 +153,33 @@ export function getRunProvenance(runId: string): Promise<EvidenceTraceDTO[]> {
   return request<EvidenceTraceDTO[]>(`/research/runs/${encodeURIComponent(runId)}/provenance`);
 }
 
+export function getRunProvenanceGraph(runId: string): Promise<ProvenanceGraphDTO> {
+  return request<ProvenanceGraphDTO>(`/research/runs/${encodeURIComponent(runId)}/provenance/graph`);
+}
+
 export function getHealth(): Promise<HealthDTO> {
   return requestRoot<HealthDTO>('/health');
 }
 
 export function getEpistemicPositions(userId: string): Promise<EpistemicPositionDTO[]> {
   return request<EpistemicPositionDTO[]>(`/epistemic/user/${encodeURIComponent(userId)}/positions`);
+}
+
+export function createEpistemicPosition(payload: EpistemicPositionCreateDTO): Promise<EpistemicPositionDTO> {
+  return request<EpistemicPositionDTO>('/epistemic/positions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateEpistemicPositionStatus(
+  positionId: string,
+  payload: EpistemicPositionUpdateDTO,
+): Promise<EpistemicPositionDTO> {
+  return request<EpistemicPositionDTO>(`/epistemic/positions/${encodeURIComponent(positionId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
 }
 
 export function executeDialogue(userUtterance: string, dialogueMode = 'socratic'): Promise<DialogueTurnDTO> {
