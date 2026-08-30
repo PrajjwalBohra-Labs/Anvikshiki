@@ -43,7 +43,12 @@ async def test_mcp_tools_execute_against_indexed_postgresql_sources() -> None:
         register_mcp_research_tools(server, session)
 
         search_result = await server.execute_tool(
-            "search_local_sources", {"query": "fluctuations consciousness", "top_k": 1}
+            "search_local_sources",
+            {
+                "query": "fluctuations consciousness",
+                "top_k": 1,
+                "retrieval": "lexical",
+            },
         )
         assert search_result["success"] is True
         assert search_result["result"]["sources_found"][0]["passage_id"] == passage_id
