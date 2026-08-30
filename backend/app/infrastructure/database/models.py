@@ -46,7 +46,9 @@ def utc_now() -> datetime:
 
 class UserModel(Base):
     __tablename__ = "users"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=generate_uuid
+    )
     username: Mapped[str] = mapped_column(String(128), unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     conversations: Mapped[List["ConversationModel"]] = relationship("ConversationModel", back_populates="user", cascade="all, delete-orphan")
@@ -226,6 +228,33 @@ class PassageModel(Base):
         "DocumentVersionModel", back_populates="passages"
     )
     page: Mapped[Optional["PageModel"]] = relationship("PageModel", back_populates="passages")
+
+
+class MemoryRecordModel(Base):
+    """Durable, user-owned record for the generic Step 43 memory tiers."""
+
+    __tablename__ = "memory_records"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    memory_tier: Mapped[str] = mapped_column(
+        String(32), nullable=False, index=True
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
+    provenance_source_id: Mapped[Optional[str]] = mapped_column(
+        String(256), index=True
+    )
+    source_event: Mapped[str] = mapped_column(
+        String(256), nullable=False, default="interaction"
+    )
+    retention_policy: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="durable"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
 
 
 class ProvenanceNodeModel(Base):

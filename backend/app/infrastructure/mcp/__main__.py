@@ -1,12 +1,12 @@
-"""Entrypoint for the foundation-only MCP stdio server."""
+"""Entrypoint for the Anvikshiki MCP research-tool server."""
 
 import asyncio
 
-from backend.app.infrastructure.mcp.server import AnvikshikiMCPServer
+from backend.app.infrastructure.mcp.research_tools import create_mcp_research_server
 
 
 def main() -> None:
-    asyncio.run(AnvikshikiMCPServer().run_stdio())
+    asyncio.run(create_mcp_research_server().run_stdio())
 
 
 if __name__ == "__main__":

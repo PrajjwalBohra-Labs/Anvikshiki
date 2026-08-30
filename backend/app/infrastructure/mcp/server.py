@@ -144,8 +144,8 @@ class AnvikshikiMCPServer:
         definition = self._tools[tool_name]
         try:
             Draft202012Validator(definition.input_schema).validate(arguments)
-        except JsonSchemaValidationError as exc:
-            logger.warning("mcp_tool_input_rejected", tool_name=tool_name, error=str(exc))
+        except JsonSchemaValidationError:
+            logger.warning("mcp_tool_input_rejected", tool_name=tool_name)
             return {"success": False, "error": "Invalid tool input."}
 
         try:
@@ -168,11 +168,11 @@ class AnvikshikiMCPServer:
             if inspect.isawaitable(result):
                 result = await result
             return {"success": True, "result": result}
-        except ValidationError as exc:
-            logger.warning("mcp_tool_validation_error", tool_name=tool_name, error=str(exc))
+        except ValidationError:
+            logger.warning("mcp_tool_validation_error", tool_name=tool_name)
             return {"success": False, "error": "Tool input was rejected."}
-        except ValueError as exc:
-            logger.warning("mcp_tool_security_validation_error", tool_name=tool_name, error=str(exc))
+        except ValueError:
+            logger.warning("mcp_tool_security_validation_error", tool_name=tool_name)
             return {"success": False, "error": "Security violation: tool input was rejected."}
         except Exception:
             logger.exception("mcp_tool_execution_error", tool_name=tool_name)

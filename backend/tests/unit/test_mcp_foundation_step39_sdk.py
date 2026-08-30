@@ -107,4 +107,7 @@ async def test_stdio_entrypoint_performs_real_mcp_handshake() -> None:
         tools = await client.list_tools()
     assert initialized.server_info.name == "anvikshiki"
     assert initialized.protocol_version
-    assert tools.tools == []
+    assert {tool.name for tool in tools.tools} == {
+        "search_local_sources",
+        "trace_citation",
+    }
