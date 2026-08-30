@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileSearch, FileText, Library, LogOut, Menu, MessageCircle, Network, Settings, X } from 'lucide-react';
+import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileSearch, FileText, Library, LogOut, Menu, MessageCircle, Network, Settings, Share2, X } from 'lucide-react';
 import { navigate } from '../../routing';
 import './AnvikshikiShell.css';
 
-export type AppView = 'inquiry' | 'history' | 'questions' | 'library' | 'memory' | 'dialogue' | 'settings';
+export type AppView = 'inquiry' | 'history' | 'questions' | 'library' | 'memory' | 'knowledge-graph' | 'dialogue' | 'settings';
 
 interface NavItem { id: AppView; label: string; icon: typeof CircleHelp; path?: string; }
 const navGroups: { label: string; items: NavItem[] }[] = [
@@ -19,6 +19,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   ] },
   { label: 'Knowledge', items: [
     { id: 'memory', label: 'Memory', icon: Network },
+    { id: 'knowledge-graph', label: 'Knowledge graph', icon: Share2, path: '/knowledge-graph' },
     { id: 'dialogue', label: 'Dialogue', icon: MessageCircle },
   ] },
   { label: 'System', items: [{ id: 'settings', label: 'Settings', icon: Settings }] },

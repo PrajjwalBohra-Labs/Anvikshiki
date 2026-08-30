@@ -238,6 +238,29 @@ export interface EvidenceTraceDTO {
   source_lineage: Record<string, unknown>[];
 }
 
+export interface ProvenanceNodeDTO {
+  node_id: string;
+  node_type: string;
+  entity_id: string;
+  label: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ProvenanceEdgeDTO {
+  edge_id: string;
+  from_node_id: string;
+  to_node_id: string;
+  relationship_type: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ProvenanceGraphDTO {
+  nodes: ProvenanceNodeDTO[];
+  edges: ProvenanceEdgeDTO[];
+}
+
 export interface DocumentDTO {
   document_id: string;
   source_id: string;
@@ -351,6 +374,21 @@ export interface EpistemicPositionDTO {
   counterarguments?: Record<string, unknown>[];
   updated_at: string;
   history: Record<string, unknown>[];
+}
+
+export interface EpistemicPositionCreateDTO {
+  user_id: string;
+  claim_statement: string;
+  position: string;
+  confidence: number;
+  supporting_evidence?: Record<string, unknown>[];
+  counterarguments?: Record<string, unknown>[];
+  status?: string;
+}
+
+export interface EpistemicPositionUpdateDTO {
+  new_status: string;
+  change_reason?: string;
 }
 
 export interface ResearchContinuityResponseDTO {
