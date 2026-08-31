@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.core.config import settings
@@ -10,7 +10,9 @@ from backend.app.infrastructure.ai.embedding_reranker_adapters import (
 )
 from backend.app.infrastructure.database.models import (
     DocumentModel,
+    DocumentVersionModel,
     EvidenceLinkModel,
+    PageModel,
     PassageModel,
     SourceModel,
 )
@@ -50,6 +52,17 @@ async def test_text_ingestion_generates_and_persists_real_pgvector_embedding(tmp
         source_id = source.id
         await session.execute(delete(EvidenceLinkModel).where(EvidenceLinkModel.passage_id == passage_id))
         await session.execute(delete(PassageModel).where(PassageModel.id == passage_id))
+        version_ids = (
+            await session.scalars(
+                select(DocumentVersionModel.id).where(
+                    DocumentVersionModel.document_id == document_id
+                )
+            )
+        ).all()
+        await session.execute(delete(PageModel).where(PageModel.document_version_id.in_(version_ids)))
+        await session.execute(
+            delete(DocumentVersionModel).where(DocumentVersionModel.id.in_(version_ids))
+        )
         await session.execute(delete(DocumentModel).where(DocumentModel.id == document_id))
         await session.execute(delete(SourceModel).where(SourceModel.id == source_id))
         await session.commit()

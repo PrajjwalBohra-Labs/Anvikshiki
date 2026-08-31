@@ -2,13 +2,15 @@ from uuid import uuid4
 
 import fitz
 import pytest
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.core.config import settings
 from backend.app.infrastructure.database.models import (
     DocumentModel,
+    DocumentVersionModel,
     EvidenceLinkModel,
+    PageModel,
     PassageModel,
     SourceModel,
 )
@@ -59,6 +61,17 @@ async def test_pdf_text_extraction_preserves_page_provenance_and_pgvector_embedd
 
         await session.execute(delete(EvidenceLinkModel).where(EvidenceLinkModel.passage_id.in_(passage_ids)))
         await session.execute(delete(PassageModel).where(PassageModel.id.in_(passage_ids)))
+        version_ids = (
+            await session.scalars(
+                select(DocumentVersionModel.id).where(
+                    DocumentVersionModel.document_id == document_id
+                )
+            )
+        ).all()
+        await session.execute(delete(PageModel).where(PageModel.document_version_id.in_(version_ids)))
+        await session.execute(
+            delete(DocumentVersionModel).where(DocumentVersionModel.id.in_(version_ids))
+        )
         await session.execute(delete(DocumentModel).where(DocumentModel.id == document_id))
         await session.execute(delete(SourceModel).where(SourceModel.id == source_id))
         await session.commit()
