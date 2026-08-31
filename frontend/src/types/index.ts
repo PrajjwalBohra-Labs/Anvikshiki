@@ -416,6 +416,24 @@ export interface HealthDTO {
   environment?: string;
 }
 
+export interface NotebookDTO {
+  notebook_id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotebookCreateDTO {
+  title: string;
+  content: string;
+}
+
+export interface NotebookUpdateDTO {
+  title?: string;
+  content?: string;
+}
+
 export interface Message {
   id: string;
   role: DialogueRole;

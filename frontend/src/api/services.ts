@@ -10,6 +10,9 @@ import type {
   EpistemicPositionUpdateDTO,
   EvidenceTraceDTO,
   HealthDTO,
+  NotebookCreateDTO,
+  NotebookDTO,
+  NotebookUpdateDTO,
   ResearchQuestionDetailDTO,
   ResearchQuestionSummaryDTO,
   ResearchEventDTO,
@@ -159,6 +162,32 @@ export function getRunProvenanceGraph(runId: string): Promise<ProvenanceGraphDTO
 
 export function getHealth(): Promise<HealthDTO> {
   return requestRoot<HealthDTO>('/health');
+}
+
+export function listNotebooks(): Promise<NotebookDTO[]> {
+  return request<NotebookDTO[]>('/notebooks');
+}
+
+export function createNotebook(payload: NotebookCreateDTO): Promise<NotebookDTO> {
+  return request<NotebookDTO>('/notebooks', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getNotebook(notebookId: string): Promise<NotebookDTO> {
+  return request<NotebookDTO>(`/notebooks/${encodeURIComponent(notebookId)}`);
+}
+
+export function updateNotebook(notebookId: string, payload: NotebookUpdateDTO): Promise<NotebookDTO> {
+  return request<NotebookDTO>(`/notebooks/${encodeURIComponent(notebookId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteNotebook(notebookId: string): Promise<void> {
+  return request<void>(`/notebooks/${encodeURIComponent(notebookId)}`, { method: 'DELETE' });
 }
 
 export function getEpistemicPositions(userId: string): Promise<EpistemicPositionDTO[]> {

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 const client = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock('./client', () => ({ request: client.request, requestBlob: vi.fn(), requestRoot: vi.fn(), streamSSE: vi.fn() }));
 
-import { createEpistemicPosition, getRunProvenanceGraph, updateEpistemicPositionStatus } from './services';
+import { createEpistemicPosition, createNotebook, getNotebook, getRunProvenanceGraph, updateEpistemicPositionStatus } from './services';
 
 describe('epistemic memory API services', () => {
   it('posts a position through the authenticated API contract', async () => {
@@ -30,5 +30,14 @@ describe('epistemic memory API services', () => {
     await getRunProvenanceGraph('run/1');
 
     expect(client.request).toHaveBeenCalledWith('/research/runs/run%2F1/provenance/graph');
+  });
+
+  it('uses the authenticated notebook resource contract', async () => {
+    client.request.mockResolvedValue({ notebook_id: 'notebook-1' });
+    await createNotebook({ title: 'Notes', content: 'A note.' });
+    expect(client.request).toHaveBeenCalledWith('/notebooks', { method: 'POST', body: JSON.stringify({ title: 'Notes', content: 'A note.' }) });
+
+    await getNotebook('notebook/1');
+    expect(client.request).toHaveBeenCalledWith('/notebooks/notebook%2F1');
   });
 });
