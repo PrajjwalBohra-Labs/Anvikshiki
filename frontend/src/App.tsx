@@ -9,6 +9,7 @@ import { AnvikshikiShell, type AppView } from './components/shell/AnvikshikiShel
 import { executeDialogue, getHealth } from './api/services';
 import { MemoryPage } from './components/memory/MemoryPage';
 import { KnowledgeGraphPage } from './components/knowledge/KnowledgeGraphPage';
+import { NotebookPage } from './components/notebook/NotebookPage';
 import { navigate, routeView, useRoute } from './routing';
 import type { DialogueTurnDTO, HealthDTO } from './types';
 import './styles/tokens.css';
@@ -49,6 +50,8 @@ function AuthenticatedApp() {
     case 'memory': content = <MemoryPage userId={user.user_id} />; break;
     case 'knowledge-graph': content = <KnowledgeGraphPage />; break;
     case 'knowledge-graph-run': content = <KnowledgeGraphPage runId={route.id} />; break;
+    case 'notebook': content = <NotebookPage />; break;
+    case 'notebook-entry': content = <NotebookPage notebookId={route.id} />; break;
     case 'dialogue': content = <DialoguePage />; break;
     case 'settings': content = <SettingsPage user={user} />; break;
     case 'not-found': content = <section className="secondary-page"><div className="eyebrow">404 / Not found</div><h1>This path is not part of the instrument.</h1><button className="button button-primary" type="button" onClick={() => navigate('/research')}>Return to inquiry</button></section>; break;

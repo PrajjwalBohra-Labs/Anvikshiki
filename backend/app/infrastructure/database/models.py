@@ -1,19 +1,7 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Any, List, Optional
-
-from sqlalchemy import (
-    JSON,
-    Boolean,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-)
-from sqlalchemy import Enum as SQLEnum
+from typing import List, Optional, Any
+from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.config import RuntimeProfile, settings
@@ -53,6 +41,7 @@ class UserModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     conversations: Mapped[List["ConversationModel"]] = relationship("ConversationModel", back_populates="user", cascade="all, delete-orphan")
     auth_sessions: Mapped[List["AuthSessionModel"]] = relationship("AuthSessionModel", back_populates="user", cascade="all, delete-orphan")
+    notebooks: Mapped[List["NotebookModel"]] = relationship("NotebookModel", back_populates="user", cascade="all, delete-orphan")
 
 
 class AuthSessionModel(Base):
@@ -483,6 +472,20 @@ class ConversationModel(Base):
     
     user: Mapped["UserModel"] = relationship("UserModel", back_populates="conversations")
     messages: Mapped[List["MessageModel"]] = relationship("MessageModel", back_populates="conversation", cascade="all, delete-orphan")
+
+
+class NotebookModel(Base):
+    __tablename__ = "notebooks"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (Index("ix_notebooks_user_updated", "user_id", "updated_at"),)
+
+    user: Mapped["UserModel"] = relationship("UserModel", back_populates="notebooks")
 
 class MessageModel(Base):
     __tablename__ = "messages"
