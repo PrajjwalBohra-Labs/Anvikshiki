@@ -6,8 +6,13 @@ import type {
   DocumentDTO,
   DocumentUploadResponseDTO,
   EpistemicPositionDTO,
+  EpistemicPositionCreateDTO,
+  EpistemicPositionUpdateDTO,
   EvidenceTraceDTO,
   HealthDTO,
+  NotebookCreateDTO,
+  NotebookDTO,
+  NotebookUpdateDTO,
   ResearchQuestionDetailDTO,
   ResearchQuestionSummaryDTO,
   ResearchEventDTO,
@@ -16,6 +21,7 @@ import type {
   ResearchRunRequestDTO,
   SearchResponseDTO,
   PassageDTO,
+  ProvenanceGraphDTO,
   SpecialistAnalysisDTO,
   SourceCreateDTO,
   SourceDTO,
@@ -150,12 +156,59 @@ export function getRunProvenance(runId: string): Promise<EvidenceTraceDTO[]> {
   return request<EvidenceTraceDTO[]>(`/research/runs/${encodeURIComponent(runId)}/provenance`);
 }
 
+export function getRunProvenanceGraph(runId: string): Promise<ProvenanceGraphDTO> {
+  return request<ProvenanceGraphDTO>(`/research/runs/${encodeURIComponent(runId)}/provenance/graph`);
+}
+
 export function getHealth(): Promise<HealthDTO> {
   return requestRoot<HealthDTO>('/health');
 }
 
+export function listNotebooks(): Promise<NotebookDTO[]> {
+  return request<NotebookDTO[]>('/notebooks');
+}
+
+export function createNotebook(payload: NotebookCreateDTO): Promise<NotebookDTO> {
+  return request<NotebookDTO>('/notebooks', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getNotebook(notebookId: string): Promise<NotebookDTO> {
+  return request<NotebookDTO>(`/notebooks/${encodeURIComponent(notebookId)}`);
+}
+
+export function updateNotebook(notebookId: string, payload: NotebookUpdateDTO): Promise<NotebookDTO> {
+  return request<NotebookDTO>(`/notebooks/${encodeURIComponent(notebookId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteNotebook(notebookId: string): Promise<void> {
+  return request<void>(`/notebooks/${encodeURIComponent(notebookId)}`, { method: 'DELETE' });
+}
+
 export function getEpistemicPositions(userId: string): Promise<EpistemicPositionDTO[]> {
   return request<EpistemicPositionDTO[]>(`/epistemic/user/${encodeURIComponent(userId)}/positions`);
+}
+
+export function createEpistemicPosition(payload: EpistemicPositionCreateDTO): Promise<EpistemicPositionDTO> {
+  return request<EpistemicPositionDTO>('/epistemic/positions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateEpistemicPositionStatus(
+  positionId: string,
+  payload: EpistemicPositionUpdateDTO,
+): Promise<EpistemicPositionDTO> {
+  return request<EpistemicPositionDTO>(`/epistemic/positions/${encodeURIComponent(positionId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
 }
 
 export function executeDialogue(userUtterance: string, dialogueMode = 'socratic'): Promise<DialogueTurnDTO> {

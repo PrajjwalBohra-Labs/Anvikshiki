@@ -1,9 +1,9 @@
 ﻿import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.infrastructure.database.session import engine, Base
 from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel
 from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.rag.lexical_retriever import LexicalRetriever
+from backend.app.core.config import settings
 
 @pytest.fixture
 async def setup_test_env():
@@ -64,3 +64,24 @@ async def test_lexical_search_and_filtering(setup_test_env):
         results_lang = await retriever.search("pratyaksha", language="sa")
         assert len(results_lang) == 1
         assert results_lang[0].passage.id == p1.id
+
+        # Filters preserve the documentary identity used by later provenance
+        # and citation stages.
+        results_document = await retriever.search("pratyaksha", document_id=doc_p.id)
+        assert [item.passage.id for item in results_document] == [p1.id]
+        results_source = await retriever.search("pratyaksha", source_id=src_primary.id)
+        assert [item.passage.id for item in results_source] == [p1.id]
+        assert await retriever.search("absent terminology") == []
+
+
+@pytest.mark.asyncio
+async def test_lexical_query_validation(setup_test_env):
+    from backend.app.infrastructure.database.session import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        retriever = LexicalRetriever(session)
+        assert await retriever.search("   ") == []
+        with pytest.raises(ValueError, match="exceeds"):
+            await retriever.search("x" * (settings.LEXICAL_MAX_QUERY_LENGTH + 1))
+        with pytest.raises(ValueError, match="between"):
+            await retriever.search("term", limit=0)
