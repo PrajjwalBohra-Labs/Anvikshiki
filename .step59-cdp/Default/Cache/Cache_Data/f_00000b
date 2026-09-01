@@ -1,0 +1,1000 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/research/ResearchWorkspace.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=75bb4dba"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=75bb4dba"; const useState = __vite__cjsImport3_react["useState"];
+import { AlertTriangle, BookOpen, Check, CheckCircle2, CircleDot, Database, GitBranch, Layers3, LoaderCircle, MessageCircle, Search, ShieldCheck, Square, Terminal } from "/node_modules/.vite/deps/lucide-react.js?v=75bb4dba";
+import { useResearchStream } from "/src/hooks/useResearchStream.ts";
+import { executeDialogue, searchPassages } from "/src/api/services.ts";
+import { navigate } from "/src/routing.ts";
+import "/src/components/research/ResearchWorkspace.css";
+const stageLabels = {
+  coordinator: "Question understood",
+  retrieval: "Retrieving indexed evidence",
+  specialist_analysis: "Running specialist analysis",
+  challenger: "Examining challenges",
+  validator: "Validating synthesis"
+};
+const workflowStages = [
+  { label: "Question", node: "coordinator" },
+  { label: "Retrieval", node: "retrieval" },
+  { label: "Specialist analysis", node: "specialist_analysis" },
+  { label: "Challenge", node: "challenger" },
+  { label: "Validation", node: "validator" },
+  { label: "Synthesis", node: "synthesis" }
+];
+function ResearchWorkflow({ state }) {
+  const lastNode = [...state.activity].reverse().find((item) => item.node)?.node;
+  return /* @__PURE__ */ jsxDEV("section", { className: "workflow-panel", "aria-label": "Research workflow", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "workflow-heading", children: [
+      /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Investigation path" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 50,
+        columnNumber: 39
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { className: "muted-copy", children: "Question → synthesis" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 50,
+        columnNumber: 90
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+      lineNumber: 50,
+      columnNumber: 5
+    }, this),
+    /* @__PURE__ */ jsxDEV("ol", { className: "workflow-strip", children: workflowStages.map((stage) => {
+      const present = state.activity.some((item) => item.node === stage.node);
+      const active = state.status === "streaming" && lastNode === stage.node;
+      const complete = present && !active;
+      return /* @__PURE__ */ jsxDEV("li", { className: `${present ? "present " : ""}${active ? "active " : ""}${complete ? "complete" : ""}`, children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "workflow-marker", children: complete ? /* @__PURE__ */ jsxDEV(Check, { size: 12 }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 56,
+          columnNumber: 182
+        }, this) : /* @__PURE__ */ jsxDEV("span", {}, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 56,
+          columnNumber: 204
+        }, this) }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 56,
+          columnNumber: 136
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: stage.label }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 56,
+          columnNumber: 220
+        }, this)
+      ] }, stage.label, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 56,
+        columnNumber: 16
+      }, this);
+    }) }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+      lineNumber: 51,
+      columnNumber: 5
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+    lineNumber: 49,
+    columnNumber: 10
+  }, this);
+}
+_c = ResearchWorkflow;
+function IntelligenceSidebar({ state, evidenceResults }) {
+  const result = state.result;
+  const passages = result?.retrieved_passages ?? [];
+  const sourceCount = new Set(passages.map((passage) => passage.source_id || passage.source_title)).size;
+  const claimCount = result?.claims.length ?? 0;
+  const analysisCount = result ? Object.values(result.specialist_analysis).reduce((total, group) => total + group.length, 0) : 0;
+  const categories = [
+    { label: "EVIDENCE", value: passages.length || evidenceResults.length, note: passages.length ? "retrieved passages" : evidenceResults.length ? "lookup passages" : "not reported", icon: BookOpen, tone: "evidence" },
+    { label: "SOURCES", value: sourceCount || "—", note: sourceCount ? "represented in result" : "not reported", icon: Database, tone: "archival" },
+    { label: "CLAIMS", value: claimCount || "—", note: claimCount ? "returned claims" : "not reported", icon: CheckCircle2, tone: "interpretation" },
+    { label: "ARGUMENTS", value: analysisCount || "—", note: analysisCount ? "specialist fields" : "not reported", icon: GitBranch, tone: "scientific" },
+    { label: "CONCEPTS", value: "—", note: "not exposed by current run", icon: Layers3, tone: "hypothesis" },
+    { label: "MEMORY", value: "—", note: "not exposed by current run", icon: ShieldCheck, tone: "memory" },
+    { label: "ACTIVITY", value: state.activity.length, note: state.status === "idle" ? "awaiting research" : state.status, icon: Terminal, tone: state.status === "failed" ? "contradiction" : "activity" }
+  ];
+  return /* @__PURE__ */ jsxDEV("aside", { className: "intelligence-sidebar", "aria-label": "Research intelligence", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "intelligence-top", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Intelligence" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 78,
+          columnNumber: 44
+        }, this),
+        /* @__PURE__ */ jsxDEV("h2", { children: "Research signals" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 78,
+          columnNumber: 89
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 78,
+        columnNumber: 39
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { className: "intelligence-pip", "aria-hidden": "true" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 78,
+        columnNumber: 120
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+      lineNumber: 78,
+      columnNumber: 5
+    }, this),
+    /* @__PURE__ */ jsxDEV("p", { className: "intelligence-intro", children: "A compact view of relationships returned by the current investigation." }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+      lineNumber: 79,
+      columnNumber: 5
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "intelligence-list", children: categories.map(({ label, value, note, icon: Icon, tone }) => /* @__PURE__ */ jsxDEV("div", { className: `intelligence-item ${tone}`, children: [
+      /* @__PURE__ */ jsxDEV(Icon, { size: 14 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 81,
+        columnNumber: 126
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("strong", { children: label }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 81,
+          columnNumber: 149
+        }, this),
+        /* @__PURE__ */ jsxDEV("small", { children: note }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 81,
+          columnNumber: 173
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 81,
+        columnNumber: 144
+      }, this),
+      /* @__PURE__ */ jsxDEV("b", { children: value }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 81,
+        columnNumber: 200
+      }, this)
+    ] }, label, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+      lineNumber: 81,
+      columnNumber: 69
+    }, this)) }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+      lineNumber: 80,
+      columnNumber: 5
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "intelligence-trace", children: [
+      /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Trace boundary" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 83,
+        columnNumber: 41
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "Source" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 83,
+          columnNumber: 91
+        }, this),
+        /* @__PURE__ */ jsxDEV("i", { children: "→" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 83,
+          columnNumber: 110
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: "Passage" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 83,
+          columnNumber: 118
+        }, this),
+        /* @__PURE__ */ jsxDEV("i", { children: "→" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 83,
+          columnNumber: 138
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: "Claim" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 83,
+          columnNumber: 146
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 83,
+        columnNumber: 88
+      }, this),
+      /* @__PURE__ */ jsxDEV("small", { children: "Only relationships returned by the backend are shown." }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 83,
+        columnNumber: 168
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+      lineNumber: 83,
+      columnNumber: 5
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+    lineNumber: 77,
+    columnNumber: 10
+  }, this);
+}
+_c2 = IntelligenceSidebar;
+export function ResearchWorkspace({ userId }) {
+  _s();
+  const [query, setQuery] = useState("");
+  const [domain, setDomain] = useState("Philosophy & Empirical Epistemology");
+  const [evidenceQuery, setEvidenceQuery] = useState("");
+  const [evidenceResults, setEvidenceResults] = useState([]);
+  const [evidenceError, setEvidenceError] = useState("");
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [dialogueInput, setDialogueInput] = useState("");
+  const [dialogueMode, setDialogueMode] = useState("socratic");
+  const [dialogueTurn, setDialogueTurn] = useState(null);
+  const [dialogueError, setDialogueError] = useState("");
+  const [dialogueLoading, setDialogueLoading] = useState(false);
+  const { state, run, cancel } = useResearchStream(userId);
+  const submit = async (event) => {
+    event.preventDefault();
+    const normalized = query.trim();
+    if (normalized.length < 3 || !userId) return;
+    await run(normalized, domain);
+  };
+  const isRunning = state.status === "streaming";
+  const isCancelled = state.status === "cancelled";
+  const canSubmit = query.trim().length >= 3 && Boolean(userId) && !isRunning;
+  const searchEvidence = async (event) => {
+    event.preventDefault();
+    const normalized = evidenceQuery.trim();
+    if (normalized.length < 2) return;
+    setEvidenceLoading(true);
+    setEvidenceError("");
+    try {
+      const response = await searchPassages(normalized);
+      setEvidenceResults(response.results);
+    } catch (error) {
+      setEvidenceResults([]);
+      setEvidenceError(error instanceof Error ? error.message : "Evidence search failed.");
+    } finally {
+      setEvidenceLoading(false);
+    }
+  };
+  const submitDialogue = async (event) => {
+    event.preventDefault();
+    const normalized = dialogueInput.trim();
+    if (!normalized) return;
+    setDialogueLoading(true);
+    setDialogueError("");
+    try {
+      setDialogueTurn(await executeDialogue(normalized, dialogueMode));
+      setDialogueInput("");
+    } catch (error) {
+      setDialogueError(error instanceof Error ? error.message : "Dialogue response failed.");
+    } finally {
+      setDialogueLoading(false);
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("div", { className: "research-page", children: [
+    /* @__PURE__ */ jsxDEV("section", { className: "research-intro", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "eyebrow", children: "Inquiry / Research mode" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 148,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("h1", { children: "What are you investigating?" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 149,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { children: "Ask a question that deserves sources, arguments, and uncertainty made visible." }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 150,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+      lineNumber: 147,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "research-cockpit", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "research-core", children: [
+        /* @__PURE__ */ jsxDEV("form", { className: "inquiry-form", onSubmit: submit, children: [
+          /* @__PURE__ */ jsxDEV("label", { htmlFor: "research-question", className: "eyebrow", children: "Research question" }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 157,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "textarea",
+            {
+              id: "research-question",
+              value: query,
+              onChange: (event) => setQuery(event.target.value),
+              placeholder: "Ask a question, investigate a claim, or examine an unresolved problem...",
+              rows: 4,
+              maxLength: 1e4,
+              disabled: isRunning
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 158,
+              columnNumber: 9
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV("div", { className: "inquiry-controls", children: [
+            /* @__PURE__ */ jsxDEV("label", { className: "domain-control", htmlFor: "research-domain", children: [
+              /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Domain" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 169,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("select", { id: "research-domain", value: domain, onChange: (event) => setDomain(event.target.value), disabled: isRunning, children: [
+                /* @__PURE__ */ jsxDEV("option", { children: "Philosophy & Empirical Epistemology" }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 171,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { children: "Epistemology" }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 172,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("option", { children: "Neuroscience and Cognition" }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 173,
+                  columnNumber: 15
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 170,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 168,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { className: "inquiry-actions", children: [
+              !userId && /* @__PURE__ */ jsxDEV("span", { className: "configuration-note", children: "Configure a valid backend user ID in Settings." }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 177,
+                columnNumber: 25
+              }, this),
+              isRunning ? /* @__PURE__ */ jsxDEV("button", { className: "button button-critical", type: "button", onClick: cancel, children: [
+                /* @__PURE__ */ jsxDEV(Square, { size: 14 }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 179,
+                  columnNumber: 91
+                }, this),
+                " Stop run"
+              ] }, void 0, true, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 179,
+                columnNumber: 17
+              }, this) : /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "submit", disabled: !canSubmit, children: [
+                /* @__PURE__ */ jsxDEV(Search, { size: 15 }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 181,
+                  columnNumber: 95
+                }, this),
+                " Begin investigation"
+              ] }, void 0, true, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 181,
+                columnNumber: 17
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 176,
+              columnNumber: 11
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 167,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 156,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV(ResearchWorkflow, { state }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 187,
+          columnNumber: 7
+        }, this),
+        state.status === "idle" && /* @__PURE__ */ jsxDEV("section", { className: "workspace-empty", "aria-label": "Research guidance", children: [
+          /* @__PURE__ */ jsxDEV("div", { className: "empty-symbol", children: /* @__PURE__ */ jsxDEV(CircleDot, { size: 23 }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 191,
+            columnNumber: 41
+          }, this) }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 191,
+            columnNumber: 11
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("h2", { children: "Nothing is being investigated" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 192,
+              columnNumber: 16
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { children: "The workspace will show only activity and results returned by the research engine." }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 192,
+              columnNumber: 54
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 192,
+            columnNumber: 11
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 190,
+          columnNumber: 11
+        }, this),
+        state.status !== "idle" && /* @__PURE__ */ jsxDEV("section", { className: "run-layout", "aria-live": "polite", children: [
+          /* @__PURE__ */ jsxDEV("div", { className: "activity-panel panel", children: [
+            /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+              /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Research activity" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 199,
+                columnNumber: 44
+              }, this),
+              isRunning && /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 16, "aria-label": "Research active" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 199,
+                columnNumber: 108
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 199,
+              columnNumber: 13
+            }, this),
+            /* @__PURE__ */ jsxDEV("ol", { className: "activity-list", children: [
+              state.activity.map(
+                (item) => /* @__PURE__ */ jsxDEV("li", { className: item.event === "research_completed" ? "complete" : "", children: [
+                  /* @__PURE__ */ jsxDEV("span", { className: "activity-icon", children: item.event === "research_completed" ? /* @__PURE__ */ jsxDEV(Check, { size: 14 }, void 0, false, {
+                    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                    lineNumber: 203,
+                    columnNumber: 90
+                  }, this) : /* @__PURE__ */ jsxDEV(Terminal, { size: 13 }, void 0, false, {
+                    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                    lineNumber: 203,
+                    columnNumber: 112
+                  }, this) }, void 0, false, {
+                    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                    lineNumber: 203,
+                    columnNumber: 19
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("span", { children: [
+                    /* @__PURE__ */ jsxDEV("strong", { children: stageLabels[item.node ?? ""] ?? item.event.replace(/_/g, " ") }, void 0, false, {
+                      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                      lineNumber: 204,
+                      columnNumber: 25
+                    }, this),
+                    /* @__PURE__ */ jsxDEV("small", { children: item.summary }, void 0, false, {
+                      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                      lineNumber: 204,
+                      columnNumber: 105
+                    }, this)
+                  ] }, void 0, true, {
+                    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                    lineNumber: 204,
+                    columnNumber: 19
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("em", { children: item.status }, void 0, false, {
+                    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                    lineNumber: 205,
+                    columnNumber: 19
+                  }, this)
+                ] }, item.key, true, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 202,
+                  columnNumber: 17
+                }, this)
+              ),
+              isRunning && /* @__PURE__ */ jsxDEV("li", { className: "activity-pending", children: [
+                /* @__PURE__ */ jsxDEV("span", { className: "activity-icon", children: /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 14 }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 208,
+                  columnNumber: 94
+                }, this) }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 208,
+                  columnNumber: 62
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { children: [
+                  /* @__PURE__ */ jsxDEV("strong", { children: "Waiting for next backend event" }, void 0, false, {
+                    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                    lineNumber: 208,
+                    columnNumber: 150
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("small", { children: "No progress is simulated." }, void 0, false, {
+                    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                    lineNumber: 208,
+                    columnNumber: 197
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 208,
+                  columnNumber: 144
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 208,
+                columnNumber: 29
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 200,
+              columnNumber: 13
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 198,
+            columnNumber: 11
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: "result-panel panel", children: [
+            /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+              /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Research output" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 213,
+                columnNumber: 44
+              }, this),
+              state.validationStatus && /* @__PURE__ */ jsxDEV("span", { className: "status-label", children: state.validationStatus }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 213,
+                columnNumber: 119
+              }, this),
+              isCancelled && /* @__PURE__ */ jsxDEV("span", { className: "status-label", children: "CANCELLED" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 213,
+                columnNumber: 198
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 213,
+              columnNumber: 13
+            }, this),
+            state.finalResponse ? /* @__PURE__ */ jsxDEV("article", { className: "synthesis", children: [
+              /* @__PURE__ */ jsxDEV("div", { className: "eyebrow", children: "Validated workflow output" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 215,
+                columnNumber: 46
+              }, this),
+              /* @__PURE__ */ jsxDEV("p", { children: state.finalResponse }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 215,
+                columnNumber: 102
+              }, this),
+              state.validatedClaimsCount !== void 0 && /* @__PURE__ */ jsxDEV("div", { className: "result-meta", children: [
+                state.validatedClaimsCount,
+                " validated claim",
+                state.validatedClaimsCount === 1 ? "" : "s"
+              ] }, void 0, true, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 215,
+                columnNumber: 175
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 215,
+              columnNumber: 15
+            }, this) : /* @__PURE__ */ jsxDEV("div", { className: "result-waiting", children: [
+              /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 18 }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 217,
+                columnNumber: 47
+              }, this),
+              /* @__PURE__ */ jsxDEV("p", { children: [
+                "The final synthesis will appear when the backend emits ",
+                /* @__PURE__ */ jsxDEV("code", { children: "research_completed" }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 217,
+                  columnNumber: 148
+                }, this),
+                "."
+              ] }, void 0, true, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 217,
+                columnNumber: 90
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 217,
+              columnNumber: 15
+            }, this),
+            state.result && state.runId && /* @__PURE__ */ jsxDEV("button", { className: "button button-primary result-detail-link", type: "button", onClick: () => navigate(`/research/runs/${encodeURIComponent(state.runId || "")}`), children: "Open complete research record" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 219,
+              columnNumber: 45
+            }, this),
+            isCancelled && /* @__PURE__ */ jsxDEV("div", { className: "cancelled-callout", role: "status", children: [
+              /* @__PURE__ */ jsxDEV(Square, { size: 15 }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 220,
+                columnNumber: 78
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { children: "Research was cancelled before the backend emitted a final result. Start a new investigation when ready." }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 220,
+                columnNumber: 98
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 220,
+              columnNumber: 29
+            }, this),
+            state.error && /* @__PURE__ */ jsxDEV("div", { className: "error-callout", role: "alert", children: [
+              /* @__PURE__ */ jsxDEV(AlertTriangle, { size: 16 }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 221,
+                columnNumber: 73
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { children: state.error }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 221,
+                columnNumber: 100
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 221,
+              columnNumber: 29
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 212,
+            columnNumber: 11
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 197,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("section", { className: "evidence-explorer panel", children: [
+          /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Evidence lookup" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 227,
+              columnNumber: 40
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { className: "muted-copy", children: "Hybrid search returned by backend" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 227,
+              columnNumber: 88
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 227,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("form", { className: "evidence-search", onSubmit: searchEvidence, children: [
+            /* @__PURE__ */ jsxDEV("label", { htmlFor: "evidence-query", className: "sr-only", children: "Search indexed evidence" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 229,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("input", { id: "evidence-query", value: evidenceQuery, onChange: (event) => setEvidenceQuery(event.target.value), placeholder: "Search indexed passages..." }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 230,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "submit", disabled: evidenceLoading || evidenceQuery.trim().length < 2, children: [
+              evidenceLoading ? /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 14 }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 231,
+                columnNumber: 148
+              }, this) : /* @__PURE__ */ jsxDEV(Search, { size: 14 }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 231,
+                columnNumber: 194
+              }, this),
+              " Search evidence"
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 231,
+              columnNumber: 11
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 228,
+            columnNumber: 9
+          }, this),
+          evidenceError && /* @__PURE__ */ jsxDEV("div", { className: "error-callout", role: "alert", children: [
+            /* @__PURE__ */ jsxDEV(AlertTriangle, { size: 16 }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 233,
+              columnNumber: 71
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { children: evidenceError }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 233,
+              columnNumber: 98
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 233,
+            columnNumber: 27
+          }, this),
+          !evidenceError && !evidenceLoading && evidenceQuery && evidenceResults.length === 0 && /* @__PURE__ */ jsxDEV("p", { className: "evidence-empty muted-copy", children: "No passages returned for this query." }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 234,
+            columnNumber: 97
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { className: "evidence-results", children: evidenceResults.map(
+            (result) => /* @__PURE__ */ jsxDEV("article", { className: "evidence-card", children: [
+              /* @__PURE__ */ jsxDEV("div", { className: "evidence-card-heading", children: [
+                /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: [
+                  "Passage / ",
+                  result.source_title
+                ] }, void 0, true, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 238,
+                  columnNumber: 54
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { className: "evidence-score", children: result.relevance_score.toFixed(3) }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 238,
+                  columnNumber: 118
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 238,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("p", { children: result.content }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 239,
+                columnNumber: 15
+              }, this),
+              /* @__PURE__ */ jsxDEV("footer", { children: [
+                /* @__PURE__ */ jsxDEV("span", { children: result.page_number ? "Page " + result.page_number : "Page not reported" }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 240,
+                  columnNumber: 23
+                }, this),
+                /* @__PURE__ */ jsxDEV("span", { children: result.citation_string }, void 0, false, {
+                  fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                  lineNumber: 240,
+                  columnNumber: 109
+                }, this)
+              ] }, void 0, true, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 240,
+                columnNumber: 15
+              }, this)
+            ] }, result.passage_id, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 237,
+              columnNumber: 15
+            }, this)
+          ) }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 235,
+            columnNumber: 9
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 226,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV("section", { className: "dialogue-panel panel", children: [
+          /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Reflective dialogue" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 247,
+              columnNumber: 40
+            }, this),
+            /* @__PURE__ */ jsxDEV(MessageCircle, { size: 16 }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 247,
+              columnNumber: 92
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 247,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { className: "panel-intro", children: "Continue examining a question through the backend dialogue engine. This is a separate turn, not a fabricated extension of the research stream." }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 248,
+            columnNumber: 9
+          }, this),
+          /* @__PURE__ */ jsxDEV("form", { className: "dialogue-form", onSubmit: submitDialogue, children: [
+            /* @__PURE__ */ jsxDEV("label", { htmlFor: "dialogue-mode", className: "sr-only", children: "Dialogue mode" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 250,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("select", { id: "dialogue-mode", value: dialogueMode, onChange: (event) => setDialogueMode(event.target.value), disabled: dialogueLoading, children: [
+              /* @__PURE__ */ jsxDEV("option", { value: "socratic", children: "Socratic" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 252,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { value: "challenge", children: "Challenge" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 253,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { value: "explanation", children: "Explanation" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 254,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { value: "counterexample", children: "Counterexample" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 255,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { value: "debate", children: "Debate" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 256,
+                columnNumber: 13
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { value: "reflective", children: "Reflective" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 257,
+                columnNumber: 13
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 251,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("label", { htmlFor: "dialogue-input", className: "sr-only", children: "Dialogue prompt" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 259,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("input", { id: "dialogue-input", value: dialogueInput, onChange: (event) => setDialogueInput(event.target.value), placeholder: "Ask for a challenge, clarification, or counterexample...", disabled: dialogueLoading }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 260,
+              columnNumber: 11
+            }, this),
+            /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "submit", disabled: dialogueLoading || !dialogueInput.trim(), children: [
+              dialogueLoading ? /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 14 }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 261,
+                columnNumber: 138
+              }, this) : /* @__PURE__ */ jsxDEV(MessageCircle, { size: 14 }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 261,
+                columnNumber: 184
+              }, this),
+              " Send"
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 261,
+              columnNumber: 11
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 249,
+            columnNumber: 9
+          }, this),
+          dialogueError && /* @__PURE__ */ jsxDEV("div", { className: "error-callout", role: "alert", children: [
+            /* @__PURE__ */ jsxDEV(AlertTriangle, { size: 16 }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 263,
+              columnNumber: 71
+            }, this),
+            /* @__PURE__ */ jsxDEV("span", { children: dialogueError }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 263,
+              columnNumber: 98
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 263,
+            columnNumber: 27
+          }, this),
+          dialogueTurn && /* @__PURE__ */ jsxDEV("article", { className: "dialogue-response", children: [
+            /* @__PURE__ */ jsxDEV("div", { className: "eyebrow", children: [
+              dialogueTurn.dialogue_mode,
+              " response",
+              dialogueTurn.source_title ? " · " + dialogueTurn.source_title : ""
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 264,
+              columnNumber: 65
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { children: dialogueTurn.response_text }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 264,
+              columnNumber: 201
+            }, this),
+            /* @__PURE__ */ jsxDEV("div", { className: "dialogue-flags", children: [
+              /* @__PURE__ */ jsxDEV("span", { children: dialogueTurn.evidence_linked ? "Evidence linked" : "No evidence linked" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 264,
+                columnNumber: 268
+              }, this),
+              /* @__PURE__ */ jsxDEV("span", { children: dialogueTurn.preserves_uncertainty ? "Uncertainty preserved" : "Uncertainty not reported" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 264,
+                columnNumber: 354
+              }, this),
+              dialogueTurn.disagrees_with_user && /* @__PURE__ */ jsxDEV("span", { children: "Challenges the premise" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+                lineNumber: 264,
+                columnNumber: 495
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+              lineNumber: 264,
+              columnNumber: 236
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+            lineNumber: 264,
+            columnNumber: 26
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+          lineNumber: 246,
+          columnNumber: 7
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 154,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV(IntelligenceSidebar, { state, evidenceResults }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+        lineNumber: 267,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+      lineNumber: 153,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx",
+    lineNumber: 146,
+    columnNumber: 5
+  }, this);
+}
+_s(ResearchWorkspace, "wkLiNTNPyZpRDi8VBRUbRRw7C68=", false, function() {
+  return [useResearchStream];
+});
+_c3 = ResearchWorkspace;
+var _c, _c2, _c3;
+$RefreshReg$(_c, "ResearchWorkflow");
+$RefreshReg$(_c2, "IntelligenceSidebar");
+$RefreshReg$(_c3, "ResearchWorkspace");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/anvikshiki/frontend/src/components/research/ResearchWorkspace.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUFBLE1BWmxDdUQ7QUFBaUIsSUFBQTVCLElBQUEyQixLQUFBZ0U7QUFBQSxhQUFBM0YsSUFBQTtBQUFBLGFBQUEyQixLQUFBO0FBQUEsYUFBQWdFLEtBQUEiLCJuYW1lcyI6WyJ1c2VTdGF0ZSIsIkFsZXJ0VHJpYW5nbGUiLCJCb29rT3BlbiIsIkNoZWNrIiwiQ2hlY2tDaXJjbGUyIiwiQ2lyY2xlRG90IiwiRGF0YWJhc2UiLCJHaXRCcmFuY2giLCJMYXllcnMzIiwiTG9hZGVyQ2lyY2xlIiwiTWVzc2FnZUNpcmNsZSIsIlNlYXJjaCIsIlNoaWVsZENoZWNrIiwiU3F1YXJlIiwiVGVybWluYWwiLCJ1c2VSZXNlYXJjaFN0cmVhbSIsImV4ZWN1dGVEaWFsb2d1ZSIsInNlYXJjaFBhc3NhZ2VzIiwibmF2aWdhdGUiLCJzdGFnZUxhYmVscyIsImNvb3JkaW5hdG9yIiwicmV0cmlldmFsIiwic3BlY2lhbGlzdF9hbmFseXNpcyIsImNoYWxsZW5nZXIiLCJ2YWxpZGF0b3IiLCJ3b3JrZmxvd1N0YWdlcyIsImxhYmVsIiwibm9kZSIsIlJlc2VhcmNoV29ya2Zsb3ciLCJzdGF0ZSIsImxhc3ROb2RlIiwiYWN0aXZpdHkiLCJyZXZlcnNlIiwiZmluZCIsIml0ZW0iLCJtYXAiLCJzdGFnZSIsInByZXNlbnQiLCJzb21lIiwiYWN0aXZlIiwic3RhdHVzIiwiY29tcGxldGUiLCJfYyIsIkludGVsbGlnZW5jZVNpZGViYXIiLCJldmlkZW5jZVJlc3VsdHMiLCJyZXN1bHQiLCJwYXNzYWdlcyIsInJldHJpZXZlZF9wYXNzYWdlcyIsInNvdXJjZUNvdW50IiwiU2V0IiwicGFzc2FnZSIsInNvdXJjZV9pZCIsInNvdXJjZV90aXRsZSIsInNpemUiLCJjbGFpbUNvdW50IiwiY2xhaW1zIiwibGVuZ3RoIiwiYW5hbHlzaXNDb3VudCIsIk9iamVjdCIsInZhbHVlcyIsInJlZHVjZSIsInRvdGFsIiwiZ3JvdXAiLCJjYXRlZ29yaWVzIiwidmFsdWUiLCJub3RlIiwiaWNvbiIsInRvbmUiLCJJY29uIiwiX2MyIiwiUmVzZWFyY2hXb3Jrc3BhY2UiLCJ1c2VySWQiLCJfcyIsInF1ZXJ5Iiwic2V0UXVlcnkiLCJkb21haW4iLCJzZXREb21haW4iLCJldmlkZW5jZVF1ZXJ5Iiwic2V0RXZpZGVuY2VRdWVyeSIsInNldEV2aWRlbmNlUmVzdWx0cyIsImV2aWRlbmNlRXJyb3IiLCJzZXRFdmlkZW5jZUVycm9yIiwiZXZpZGVuY2VMb2FkaW5nIiwic2V0RXZpZGVuY2VMb2FkaW5nIiwiZGlhbG9ndWVJbnB1dCIsInNldERpYWxvZ3VlSW5wdXQiLCJkaWFsb2d1ZU1vZGUiLCJzZXREaWFsb2d1ZU1vZGUiLCJkaWFsb2d1ZVR1cm4iLCJzZXREaWFsb2d1ZVR1cm4iLCJkaWFsb2d1ZUVycm9yIiwic2V0RGlhbG9ndWVFcnJvciIsImRpYWxvZ3VlTG9hZGluZyIsInNldERpYWxvZ3VlTG9hZGluZyIsInJ1biIsImNhbmNlbCIsInN1Ym1pdCIsImV2ZW50IiwicHJldmVudERlZmF1bHQiLCJub3JtYWxpemVkIiwidHJpbSIsImlzUnVubmluZyIsImlzQ2FuY2VsbGVkIiwiY2FuU3VibWl0IiwiQm9vbGVhbiIsInNlYXJjaEV2aWRlbmNlIiwicmVzcG9uc2UiLCJyZXN1bHRzIiwiZXJyb3IiLCJFcnJvciIsIm1lc3NhZ2UiLCJzdWJtaXREaWFsb2d1ZSIsInRhcmdldCIsInJlcGxhY2UiLCJzdW1tYXJ5Iiwia2V5IiwidmFsaWRhdGlvblN0YXR1cyIsImZpbmFsUmVzcG9uc2UiLCJ2YWxpZGF0ZWRDbGFpbXNDb3VudCIsInVuZGVmaW5lZCIsInJ1bklkIiwiZW5jb2RlVVJJQ29tcG9uZW50IiwicmVsZXZhbmNlX3Njb3JlIiwidG9GaXhlZCIsImNvbnRlbnQiLCJwYWdlX251bWJlciIsImNpdGF0aW9uX3N0cmluZyIsInBhc3NhZ2VfaWQiLCJkaWFsb2d1ZV9tb2RlIiwicmVzcG9uc2VfdGV4dCIsImV2aWRlbmNlX2xpbmtlZCIsInByZXNlcnZlc191bmNlcnRhaW50eSIsImRpc2FncmVlc193aXRoX3VzZXIiLCJfYzMiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiUmVzZWFyY2hXb3Jrc3BhY2UudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IHVzZVN0YXRlLCB0eXBlIEZvcm1FdmVudCB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCB7IEFsZXJ0VHJpYW5nbGUsIEJvb2tPcGVuLCBDaGVjaywgQ2hlY2tDaXJjbGUyLCBDaXJjbGVEb3QsIERhdGFiYXNlLCBHaXRCcmFuY2gsIExheWVyczMsIExvYWRlckNpcmNsZSwgTWVzc2FnZUNpcmNsZSwgU2VhcmNoLCBTaGllbGRDaGVjaywgU3F1YXJlLCBUZXJtaW5hbCB9IGZyb20gJ2x1Y2lkZS1yZWFjdCc7XG5pbXBvcnQgeyB1c2VSZXNlYXJjaFN0cmVhbSwgdHlwZSBSZXNlYXJjaFN0cmVhbVN0YXRlIH0gZnJvbSAnLi4vLi4vaG9va3MvdXNlUmVzZWFyY2hTdHJlYW0nO1xuaW1wb3J0IHsgZXhlY3V0ZURpYWxvZ3VlLCBzZWFyY2hQYXNzYWdlcyB9IGZyb20gJy4uLy4uL2FwaS9zZXJ2aWNlcyc7XG5pbXBvcnQgeyBuYXZpZ2F0ZSB9IGZyb20gJy4uLy4uL3JvdXRpbmcnO1xuaW1wb3J0IHR5cGUgeyBEaWFsb2d1ZVR1cm5EVE8sIFNlYXJjaFJlc3VsdERUTyB9IGZyb20gJy4uLy4uL3R5cGVzJztcbmltcG9ydCAnLi9SZXNlYXJjaFdvcmtzcGFjZS5jc3MnO1xuXG5pbnRlcmZhY2UgUHJvcHMgeyB1c2VySWQ6IHN0cmluZzsgfVxuXG5jb25zdCBzdGFnZUxhYmVsczogUmVjb3JkPHN0cmluZywgc3RyaW5nPiA9IHtcbiAgY29vcmRpbmF0b3I6ICdRdWVzdGlvbiB1bmRlcnN0b29kJyxcbiAgcmV0cmlldmFsOiAnUmV0cmlldmluZyBpbmRleGVkIGV2aWRlbmNlJyxcbiAgc3BlY2lhbGlzdF9hbmFseXNpczogJ1J1bm5pbmcgc3BlY2lhbGlzdCBhbmFseXNpcycsXG4gIGNoYWxsZW5nZXI6ICdFeGFtaW5pbmcgY2hhbGxlbmdlcycsXG4gIHZhbGlkYXRvcjogJ1ZhbGlkYXRpbmcgc3ludGhlc2lzJyxcbn07XG5cbmNvbnN0IHdvcmtmbG93U3RhZ2VzID0gW1xuICB7IGxhYmVsOiAnUXVlc3Rpb24nLCBub2RlOiAnY29vcmRpbmF0b3InIH0sXG4gIHsgbGFiZWw6ICdSZXRyaWV2YWwnLCBub2RlOiAncmV0cmlldmFsJyB9LFxuICB7IGxhYmVsOiAnU3BlY2lhbGlzdCBhbmFseXNpcycsIG5vZGU6ICdzcGVjaWFsaXN0X2FuYWx5c2lzJyB9LFxuICB7IGxhYmVsOiAnQ2hhbGxlbmdlJywgbm9kZTogJ2NoYWxsZW5nZXInIH0sXG4gIHsgbGFiZWw6ICdWYWxpZGF0aW9uJywgbm9kZTogJ3ZhbGlkYXRvcicgfSxcbiAgeyBsYWJlbDogJ1N5bnRoZXNpcycsIG5vZGU6ICdzeW50aGVzaXMnIH0sXG5dO1xuXG5mdW5jdGlvbiBSZXNlYXJjaFdvcmtmbG93KHsgc3RhdGUgfTogeyBzdGF0ZTogUmVzZWFyY2hTdHJlYW1TdGF0ZSB9KSB7XG4gIGNvbnN0IGxhc3ROb2RlID0gWy4uLnN0YXRlLmFjdGl2aXR5XS5yZXZlcnNlKCkuZmluZCgoaXRlbSkgPT4gaXRlbS5ub2RlKT8ubm9kZTtcbiAgcmV0dXJuIDxzZWN0aW9uIGNsYXNzTmFtZT1cIndvcmtmbG93LXBhbmVsXCIgYXJpYS1sYWJlbD1cIlJlc2VhcmNoIHdvcmtmbG93XCI+XG4gICAgPGRpdiBjbGFzc05hbWU9XCJ3b3JrZmxvdy1oZWFkaW5nXCI+PHNwYW4gY2xhc3NOYW1lPVwiZXllYnJvd1wiPkludmVzdGlnYXRpb24gcGF0aDwvc3Bhbj48c3BhbiBjbGFzc05hbWU9XCJtdXRlZC1jb3B5XCI+UXVlc3Rpb24g4oaSIHN5bnRoZXNpczwvc3Bhbj48L2Rpdj5cbiAgICA8b2wgY2xhc3NOYW1lPVwid29ya2Zsb3ctc3RyaXBcIj5cbiAgICAgIHt3b3JrZmxvd1N0YWdlcy5tYXAoKHN0YWdlKSA9PiB7XG4gICAgICAgIGNvbnN0IHByZXNlbnQgPSBzdGF0ZS5hY3Rpdml0eS5zb21lKChpdGVtKSA9PiBpdGVtLm5vZGUgPT09IHN0YWdlLm5vZGUpO1xuICAgICAgICBjb25zdCBhY3RpdmUgPSBzdGF0ZS5zdGF0dXMgPT09ICdzdHJlYW1pbmcnICYmIGxhc3ROb2RlID09PSBzdGFnZS5ub2RlO1xuICAgICAgICBjb25zdCBjb21wbGV0ZSA9IHByZXNlbnQgJiYgIWFjdGl2ZTtcbiAgICAgICAgcmV0dXJuIDxsaSBjbGFzc05hbWU9e2Ake3ByZXNlbnQgPyAncHJlc2VudCAnIDogJyd9JHthY3RpdmUgPyAnYWN0aXZlICcgOiAnJ30ke2NvbXBsZXRlID8gJ2NvbXBsZXRlJyA6ICcnfWB9IGtleT17c3RhZ2UubGFiZWx9PjxzcGFuIGNsYXNzTmFtZT1cIndvcmtmbG93LW1hcmtlclwiPntjb21wbGV0ZSA/IDxDaGVjayBzaXplPXsxMn0gLz4gOiA8c3BhbiAvPn08L3NwYW4+PHN0cm9uZz57c3RhZ2UubGFiZWx9PC9zdHJvbmc+PC9saT47XG4gICAgICB9KX1cbiAgICA8L29sPlxuICA8L3NlY3Rpb24+O1xufVxuXG5mdW5jdGlvbiBJbnRlbGxpZ2VuY2VTaWRlYmFyKHsgc3RhdGUsIGV2aWRlbmNlUmVzdWx0cyB9OiB7IHN0YXRlOiBSZXNlYXJjaFN0cmVhbVN0YXRlOyBldmlkZW5jZVJlc3VsdHM6IFNlYXJjaFJlc3VsdERUT1tdIH0pIHtcbiAgY29uc3QgcmVzdWx0ID0gc3RhdGUucmVzdWx0O1xuICBjb25zdCBwYXNzYWdlcyA9IHJlc3VsdD8ucmV0cmlldmVkX3Bhc3NhZ2VzID8/IFtdO1xuICBjb25zdCBzb3VyY2VDb3VudCA9IG5ldyBTZXQocGFzc2FnZXMubWFwKChwYXNzYWdlKSA9PiBwYXNzYWdlLnNvdXJjZV9pZCB8fCBwYXNzYWdlLnNvdXJjZV90aXRsZSkpLnNpemU7XG4gIGNvbnN0IGNsYWltQ291bnQgPSByZXN1bHQ/LmNsYWltcy5sZW5ndGggPz8gMDtcbiAgY29uc3QgYW5hbHlzaXNDb3VudCA9IHJlc3VsdCA/IE9iamVjdC52YWx1ZXMocmVzdWx0LnNwZWNpYWxpc3RfYW5hbHlzaXMpLnJlZHVjZSgodG90YWwsIGdyb3VwKSA9PiB0b3RhbCArIGdyb3VwLmxlbmd0aCwgMCkgOiAwO1xuICBjb25zdCBjYXRlZ29yaWVzID0gW1xuICAgIHsgbGFiZWw6ICdFVklERU5DRScsIHZhbHVlOiBwYXNzYWdlcy5sZW5ndGggfHwgZXZpZGVuY2VSZXN1bHRzLmxlbmd0aCwgbm90ZTogcGFzc2FnZXMubGVuZ3RoID8gJ3JldHJpZXZlZCBwYXNzYWdlcycgOiBldmlkZW5jZVJlc3VsdHMubGVuZ3RoID8gJ2xvb2t1cCBwYXNzYWdlcycgOiAnbm90IHJlcG9ydGVkJywgaWNvbjogQm9va09wZW4sIHRvbmU6ICdldmlkZW5jZScgfSxcbiAgICB7IGxhYmVsOiAnU09VUkNFUycsIHZhbHVlOiBzb3VyY2VDb3VudCB8fCAn4oCUJywgbm90ZTogc291cmNlQ291bnQgPyAncmVwcmVzZW50ZWQgaW4gcmVzdWx0JyA6ICdub3QgcmVwb3J0ZWQnLCBpY29uOiBEYXRhYmFzZSwgdG9uZTogJ2FyY2hpdmFsJyB9LFxuICAgIHsgbGFiZWw6ICdDTEFJTVMnLCB2YWx1ZTogY2xhaW1Db3VudCB8fCAn4oCUJywgbm90ZTogY2xhaW1Db3VudCA/ICdyZXR1cm5lZCBjbGFpbXMnIDogJ25vdCByZXBvcnRlZCcsIGljb246IENoZWNrQ2lyY2xlMiwgdG9uZTogJ2ludGVycHJldGF0aW9uJyB9LFxuICAgIHsgbGFiZWw6ICdBUkdVTUVOVFMnLCB2YWx1ZTogYW5hbHlzaXNDb3VudCB8fCAn4oCUJywgbm90ZTogYW5hbHlzaXNDb3VudCA/ICdzcGVjaWFsaXN0IGZpZWxkcycgOiAnbm90IHJlcG9ydGVkJywgaWNvbjogR2l0QnJhbmNoLCB0b25lOiAnc2NpZW50aWZpYycgfSxcbiAgICB7IGxhYmVsOiAnQ09OQ0VQVFMnLCB2YWx1ZTogJ+KAlCcsIG5vdGU6ICdub3QgZXhwb3NlZCBieSBjdXJyZW50IHJ1bicsIGljb246IExheWVyczMsIHRvbmU6ICdoeXBvdGhlc2lzJyB9LFxuICAgIHsgbGFiZWw6ICdNRU1PUlknLCB2YWx1ZTogJ+KAlCcsIG5vdGU6ICdub3QgZXhwb3NlZCBieSBjdXJyZW50IHJ1bicsIGljb246IFNoaWVsZENoZWNrLCB0b25lOiAnbWVtb3J5JyB9LFxuICAgIHsgbGFiZWw6ICdBQ1RJVklUWScsIHZhbHVlOiBzdGF0ZS5hY3Rpdml0eS5sZW5ndGgsIG5vdGU6IHN0YXRlLnN0YXR1cyA9PT0gJ2lkbGUnID8gJ2F3YWl0aW5nIHJlc2VhcmNoJyA6IHN0YXRlLnN0YXR1cywgaWNvbjogVGVybWluYWwsIHRvbmU6IHN0YXRlLnN0YXR1cyA9PT0gJ2ZhaWxlZCcgPyAnY29udHJhZGljdGlvbicgOiAnYWN0aXZpdHknIH0sXG4gIF07XG4gIHJldHVybiA8YXNpZGUgY2xhc3NOYW1lPVwiaW50ZWxsaWdlbmNlLXNpZGViYXJcIiBhcmlhLWxhYmVsPVwiUmVzZWFyY2ggaW50ZWxsaWdlbmNlXCI+XG4gICAgPGRpdiBjbGFzc05hbWU9XCJpbnRlbGxpZ2VuY2UtdG9wXCI+PGRpdj48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+SW50ZWxsaWdlbmNlPC9zcGFuPjxoMj5SZXNlYXJjaCBzaWduYWxzPC9oMj48L2Rpdj48c3BhbiBjbGFzc05hbWU9XCJpbnRlbGxpZ2VuY2UtcGlwXCIgYXJpYS1oaWRkZW49XCJ0cnVlXCIgLz48L2Rpdj5cbiAgICA8cCBjbGFzc05hbWU9XCJpbnRlbGxpZ2VuY2UtaW50cm9cIj5BIGNvbXBhY3QgdmlldyBvZiByZWxhdGlvbnNoaXBzIHJldHVybmVkIGJ5IHRoZSBjdXJyZW50IGludmVzdGlnYXRpb24uPC9wPlxuICAgIDxkaXYgY2xhc3NOYW1lPVwiaW50ZWxsaWdlbmNlLWxpc3RcIj5cbiAgICAgIHtjYXRlZ29yaWVzLm1hcCgoeyBsYWJlbCwgdmFsdWUsIG5vdGUsIGljb246IEljb24sIHRvbmUgfSkgPT4gPGRpdiBjbGFzc05hbWU9e2BpbnRlbGxpZ2VuY2UtaXRlbSAke3RvbmV9YH0ga2V5PXtsYWJlbH0+PEljb24gc2l6ZT17MTR9IC8+PGRpdj48c3Ryb25nPntsYWJlbH08L3N0cm9uZz48c21hbGw+e25vdGV9PC9zbWFsbD48L2Rpdj48Yj57dmFsdWV9PC9iPjwvZGl2Pil9XG4gICAgPC9kaXY+XG4gICAgPGRpdiBjbGFzc05hbWU9XCJpbnRlbGxpZ2VuY2UtdHJhY2VcIj48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+VHJhY2UgYm91bmRhcnk8L3NwYW4+PHA+PHNwYW4+U291cmNlPC9zcGFuPjxpPuKGkjwvaT48c3Bhbj5QYXNzYWdlPC9zcGFuPjxpPuKGkjwvaT48c3Bhbj5DbGFpbTwvc3Bhbj48L3A+PHNtYWxsPk9ubHkgcmVsYXRpb25zaGlwcyByZXR1cm5lZCBieSB0aGUgYmFja2VuZCBhcmUgc2hvd24uPC9zbWFsbD48L2Rpdj5cbiAgPC9hc2lkZT47XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBSZXNlYXJjaFdvcmtzcGFjZSh7IHVzZXJJZCB9OiBQcm9wcykge1xuICBjb25zdCBbcXVlcnksIHNldFF1ZXJ5XSA9IHVzZVN0YXRlKCcnKTtcbiAgY29uc3QgW2RvbWFpbiwgc2V0RG9tYWluXSA9IHVzZVN0YXRlKCdQaGlsb3NvcGh5ICYgRW1waXJpY2FsIEVwaXN0ZW1vbG9neScpO1xuICBjb25zdCBbZXZpZGVuY2VRdWVyeSwgc2V0RXZpZGVuY2VRdWVyeV0gPSB1c2VTdGF0ZSgnJyk7XG4gIGNvbnN0IFtldmlkZW5jZVJlc3VsdHMsIHNldEV2aWRlbmNlUmVzdWx0c10gPSB1c2VTdGF0ZTxTZWFyY2hSZXN1bHREVE9bXT4oW10pO1xuICBjb25zdCBbZXZpZGVuY2VFcnJvciwgc2V0RXZpZGVuY2VFcnJvcl0gPSB1c2VTdGF0ZSgnJyk7XG4gIGNvbnN0IFtldmlkZW5jZUxvYWRpbmcsIHNldEV2aWRlbmNlTG9hZGluZ10gPSB1c2VTdGF0ZShmYWxzZSk7XG4gIGNvbnN0IFtkaWFsb2d1ZUlucHV0LCBzZXREaWFsb2d1ZUlucHV0XSA9IHVzZVN0YXRlKCcnKTtcbiAgY29uc3QgW2RpYWxvZ3VlTW9kZSwgc2V0RGlhbG9ndWVNb2RlXSA9IHVzZVN0YXRlKCdzb2NyYXRpYycpO1xuICBjb25zdCBbZGlhbG9ndWVUdXJuLCBzZXREaWFsb2d1ZVR1cm5dID0gdXNlU3RhdGU8RGlhbG9ndWVUdXJuRFRPIHwgbnVsbD4obnVsbCk7XG4gIGNvbnN0IFtkaWFsb2d1ZUVycm9yLCBzZXREaWFsb2d1ZUVycm9yXSA9IHVzZVN0YXRlKCcnKTtcbiAgY29uc3QgW2RpYWxvZ3VlTG9hZGluZywgc2V0RGlhbG9ndWVMb2FkaW5nXSA9IHVzZVN0YXRlKGZhbHNlKTtcbiAgY29uc3QgeyBzdGF0ZSwgcnVuLCBjYW5jZWwgfSA9IHVzZVJlc2VhcmNoU3RyZWFtKHVzZXJJZCk7XG5cbiAgY29uc3Qgc3VibWl0ID0gYXN5bmMgKGV2ZW50OiBGb3JtRXZlbnQ8SFRNTEZvcm1FbGVtZW50PikgPT4ge1xuICAgIGV2ZW50LnByZXZlbnREZWZhdWx0KCk7XG4gICAgY29uc3Qgbm9ybWFsaXplZCA9IHF1ZXJ5LnRyaW0oKTtcbiAgICBpZiAobm9ybWFsaXplZC5sZW5ndGggPCAzIHx8ICF1c2VySWQpIHJldHVybjtcbiAgICBhd2FpdCBydW4obm9ybWFsaXplZCwgZG9tYWluKTtcbiAgfTtcblxuICBjb25zdCBpc1J1bm5pbmcgPSBzdGF0ZS5zdGF0dXMgPT09ICdzdHJlYW1pbmcnO1xuICBjb25zdCBpc0NhbmNlbGxlZCA9IHN0YXRlLnN0YXR1cyA9PT0gJ2NhbmNlbGxlZCc7XG4gIGNvbnN0IGNhblN1Ym1pdCA9IHF1ZXJ5LnRyaW0oKS5sZW5ndGggPj0gMyAmJiBCb29sZWFuKHVzZXJJZCkgJiYgIWlzUnVubmluZztcblxuICBjb25zdCBzZWFyY2hFdmlkZW5jZSA9IGFzeW5jIChldmVudDogRm9ybUV2ZW50PEhUTUxGb3JtRWxlbWVudD4pID0+IHtcbiAgICBldmVudC5wcmV2ZW50RGVmYXVsdCgpO1xuICAgIGNvbnN0IG5vcm1hbGl6ZWQgPSBldmlkZW5jZVF1ZXJ5LnRyaW0oKTtcbiAgICBpZiAobm9ybWFsaXplZC5sZW5ndGggPCAyKSByZXR1cm47XG4gICAgc2V0RXZpZGVuY2VMb2FkaW5nKHRydWUpO1xuICAgIHNldEV2aWRlbmNlRXJyb3IoJycpO1xuICAgIHRyeSB7XG4gICAgICBjb25zdCByZXNwb25zZSA9IGF3YWl0IHNlYXJjaFBhc3NhZ2VzKG5vcm1hbGl6ZWQpO1xuICAgICAgc2V0RXZpZGVuY2VSZXN1bHRzKHJlc3BvbnNlLnJlc3VsdHMpO1xuICAgIH0gY2F0Y2ggKGVycm9yKSB7XG4gICAgICBzZXRFdmlkZW5jZVJlc3VsdHMoW10pO1xuICAgICAgc2V0RXZpZGVuY2VFcnJvcihlcnJvciBpbnN0YW5jZW9mIEVycm9yID8gZXJyb3IubWVzc2FnZSA6ICdFdmlkZW5jZSBzZWFyY2ggZmFpbGVkLicpO1xuICAgIH0gZmluYWxseSB7XG4gICAgICBzZXRFdmlkZW5jZUxvYWRpbmcoZmFsc2UpO1xuICAgIH1cbiAgfTtcblxuICBjb25zdCBzdWJtaXREaWFsb2d1ZSA9IGFzeW5jIChldmVudDogRm9ybUV2ZW50PEhUTUxGb3JtRWxlbWVudD4pID0+IHtcbiAgICBldmVudC5wcmV2ZW50RGVmYXVsdCgpO1xuICAgIGNvbnN0IG5vcm1hbGl6ZWQgPSBkaWFsb2d1ZUlucHV0LnRyaW0oKTtcbiAgICBpZiAoIW5vcm1hbGl6ZWQpIHJldHVybjtcbiAgICBzZXREaWFsb2d1ZUxvYWRpbmcodHJ1ZSk7XG4gICAgc2V0RGlhbG9ndWVFcnJvcignJyk7XG4gICAgdHJ5IHtcbiAgICAgIHNldERpYWxvZ3VlVHVybihhd2FpdCBleGVjdXRlRGlhbG9ndWUobm9ybWFsaXplZCwgZGlhbG9ndWVNb2RlKSk7XG4gICAgICBzZXREaWFsb2d1ZUlucHV0KCcnKTtcbiAgICB9IGNhdGNoIChlcnJvcikge1xuICAgICAgc2V0RGlhbG9ndWVFcnJvcihlcnJvciBpbnN0YW5jZW9mIEVycm9yID8gZXJyb3IubWVzc2FnZSA6ICdEaWFsb2d1ZSByZXNwb25zZSBmYWlsZWQuJyk7XG4gICAgfSBmaW5hbGx5IHtcbiAgICAgIHNldERpYWxvZ3VlTG9hZGluZyhmYWxzZSk7XG4gICAgfVxuICB9O1xuXG4gIHJldHVybiAoXG4gICAgPGRpdiBjbGFzc05hbWU9XCJyZXNlYXJjaC1wYWdlXCI+XG4gICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJyZXNlYXJjaC1pbnRyb1wiPlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImV5ZWJyb3dcIj5JbnF1aXJ5IC8gUmVzZWFyY2ggbW9kZTwvZGl2PlxuICAgICAgICA8aDE+V2hhdCBhcmUgeW91IGludmVzdGlnYXRpbmc/PC9oMT5cbiAgICAgICAgPHA+QXNrIGEgcXVlc3Rpb24gdGhhdCBkZXNlcnZlcyBzb3VyY2VzLCBhcmd1bWVudHMsIGFuZCB1bmNlcnRhaW50eSBtYWRlIHZpc2libGUuPC9wPlxuICAgICAgPC9zZWN0aW9uPlxuXG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cInJlc2VhcmNoLWNvY2twaXRcIj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJyZXNlYXJjaC1jb3JlXCI+XG5cbiAgICAgIDxmb3JtIGNsYXNzTmFtZT1cImlucXVpcnktZm9ybVwiIG9uU3VibWl0PXtzdWJtaXR9PlxuICAgICAgICA8bGFiZWwgaHRtbEZvcj1cInJlc2VhcmNoLXF1ZXN0aW9uXCIgY2xhc3NOYW1lPVwiZXllYnJvd1wiPlJlc2VhcmNoIHF1ZXN0aW9uPC9sYWJlbD5cbiAgICAgICAgPHRleHRhcmVhXG4gICAgICAgICAgaWQ9XCJyZXNlYXJjaC1xdWVzdGlvblwiXG4gICAgICAgICAgdmFsdWU9e3F1ZXJ5fVxuICAgICAgICAgIG9uQ2hhbmdlPXsoZXZlbnQpID0+IHNldFF1ZXJ5KGV2ZW50LnRhcmdldC52YWx1ZSl9XG4gICAgICAgICAgcGxhY2Vob2xkZXI9XCJBc2sgYSBxdWVzdGlvbiwgaW52ZXN0aWdhdGUgYSBjbGFpbSwgb3IgZXhhbWluZSBhbiB1bnJlc29sdmVkIHByb2JsZW0uLi5cIlxuICAgICAgICAgIHJvd3M9ezR9XG4gICAgICAgICAgbWF4TGVuZ3RoPXsxMDAwMH1cbiAgICAgICAgICBkaXNhYmxlZD17aXNSdW5uaW5nfVxuICAgICAgICAvPlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImlucXVpcnktY29udHJvbHNcIj5cbiAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiZG9tYWluLWNvbnRyb2xcIiBodG1sRm9yPVwicmVzZWFyY2gtZG9tYWluXCI+XG4gICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+RG9tYWluPC9zcGFuPlxuICAgICAgICAgICAgPHNlbGVjdCBpZD1cInJlc2VhcmNoLWRvbWFpblwiIHZhbHVlPXtkb21haW59IG9uQ2hhbmdlPXsoZXZlbnQpID0+IHNldERvbWFpbihldmVudC50YXJnZXQudmFsdWUpfSBkaXNhYmxlZD17aXNSdW5uaW5nfT5cbiAgICAgICAgICAgICAgPG9wdGlvbj5QaGlsb3NvcGh5ICZhbXA7IEVtcGlyaWNhbCBFcGlzdGVtb2xvZ3k8L29wdGlvbj5cbiAgICAgICAgICAgICAgPG9wdGlvbj5FcGlzdGVtb2xvZ3k8L29wdGlvbj5cbiAgICAgICAgICAgICAgPG9wdGlvbj5OZXVyb3NjaWVuY2UgYW5kIENvZ25pdGlvbjwvb3B0aW9uPlxuICAgICAgICAgICAgPC9zZWxlY3Q+XG4gICAgICAgICAgPC9sYWJlbD5cbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImlucXVpcnktYWN0aW9uc1wiPlxuICAgICAgICAgICAgeyF1c2VySWQgJiYgPHNwYW4gY2xhc3NOYW1lPVwiY29uZmlndXJhdGlvbi1ub3RlXCI+Q29uZmlndXJlIGEgdmFsaWQgYmFja2VuZCB1c2VyIElEIGluIFNldHRpbmdzLjwvc3Bhbj59XG4gICAgICAgICAgICB7aXNSdW5uaW5nID8gKFxuICAgICAgICAgICAgICA8YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvbiBidXR0b24tY3JpdGljYWxcIiB0eXBlPVwiYnV0dG9uXCIgb25DbGljaz17Y2FuY2VsfT48U3F1YXJlIHNpemU9ezE0fSAvPiBTdG9wIHJ1bjwvYnV0dG9uPlxuICAgICAgICAgICAgKSA6IChcbiAgICAgICAgICAgICAgPGJ1dHRvbiBjbGFzc05hbWU9XCJidXR0b24gYnV0dG9uLXByaW1hcnlcIiB0eXBlPVwic3VibWl0XCIgZGlzYWJsZWQ9eyFjYW5TdWJtaXR9PjxTZWFyY2ggc2l6ZT17MTV9IC8+IEJlZ2luIGludmVzdGlnYXRpb248L2J1dHRvbj5cbiAgICAgICAgICAgICl9XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgIDwvZGl2PlxuICAgICAgPC9mb3JtPlxuXG4gICAgICA8UmVzZWFyY2hXb3JrZmxvdyBzdGF0ZT17c3RhdGV9IC8+XG5cbiAgICAgIHtzdGF0ZS5zdGF0dXMgPT09ICdpZGxlJyAmJiAoXG4gICAgICAgIDxzZWN0aW9uIGNsYXNzTmFtZT1cIndvcmtzcGFjZS1lbXB0eVwiIGFyaWEtbGFiZWw9XCJSZXNlYXJjaCBndWlkYW5jZVwiPlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZW1wdHktc3ltYm9sXCI+PENpcmNsZURvdCBzaXplPXsyM30gLz48L2Rpdj5cbiAgICAgICAgICA8ZGl2PjxoMj5Ob3RoaW5nIGlzIGJlaW5nIGludmVzdGlnYXRlZDwvaDI+PHA+VGhlIHdvcmtzcGFjZSB3aWxsIHNob3cgb25seSBhY3Rpdml0eSBhbmQgcmVzdWx0cyByZXR1cm5lZCBieSB0aGUgcmVzZWFyY2ggZW5naW5lLjwvcD48L2Rpdj5cbiAgICAgICAgPC9zZWN0aW9uPlxuICAgICAgKX1cblxuICAgICAge3N0YXRlLnN0YXR1cyAhPT0gJ2lkbGUnICYmIChcbiAgICAgICAgPHNlY3Rpb24gY2xhc3NOYW1lPVwicnVuLWxheW91dFwiIGFyaWEtbGl2ZT1cInBvbGl0ZVwiPlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiYWN0aXZpdHktcGFuZWwgcGFuZWxcIj5cbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicGFuZWwtaGVhZGluZ1wiPjxzcGFuIGNsYXNzTmFtZT1cImV5ZWJyb3dcIj5SZXNlYXJjaCBhY3Rpdml0eTwvc3Bhbj57aXNSdW5uaW5nICYmIDxMb2FkZXJDaXJjbGUgY2xhc3NOYW1lPVwic3BpblwiIHNpemU9ezE2fSBhcmlhLWxhYmVsPVwiUmVzZWFyY2ggYWN0aXZlXCIgLz59PC9kaXY+XG4gICAgICAgICAgICA8b2wgY2xhc3NOYW1lPVwiYWN0aXZpdHktbGlzdFwiPlxuICAgICAgICAgICAgICB7c3RhdGUuYWN0aXZpdHkubWFwKChpdGVtKSA9PiAoXG4gICAgICAgICAgICAgICAgPGxpIGtleT17aXRlbS5rZXl9IGNsYXNzTmFtZT17aXRlbS5ldmVudCA9PT0gJ3Jlc2VhcmNoX2NvbXBsZXRlZCcgPyAnY29tcGxldGUnIDogJyd9PlxuICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiYWN0aXZpdHktaWNvblwiPntpdGVtLmV2ZW50ID09PSAncmVzZWFyY2hfY29tcGxldGVkJyA/IDxDaGVjayBzaXplPXsxNH0gLz4gOiA8VGVybWluYWwgc2l6ZT17MTN9IC8+fTwvc3Bhbj5cbiAgICAgICAgICAgICAgICAgIDxzcGFuPjxzdHJvbmc+e3N0YWdlTGFiZWxzW2l0ZW0ubm9kZSA/PyAnJ10gPz8gaXRlbS5ldmVudC5yZXBsYWNlKC9fL2csICcgJyl9PC9zdHJvbmc+PHNtYWxsPntpdGVtLnN1bW1hcnl9PC9zbWFsbD48L3NwYW4+XG4gICAgICAgICAgICAgICAgICA8ZW0+e2l0ZW0uc3RhdHVzfTwvZW0+XG4gICAgICAgICAgICAgICAgPC9saT5cbiAgICAgICAgICAgICAgKSl9XG4gICAgICAgICAgICAgIHtpc1J1bm5pbmcgJiYgPGxpIGNsYXNzTmFtZT1cImFjdGl2aXR5LXBlbmRpbmdcIj48c3BhbiBjbGFzc05hbWU9XCJhY3Rpdml0eS1pY29uXCI+PExvYWRlckNpcmNsZSBjbGFzc05hbWU9XCJzcGluXCIgc2l6ZT17MTR9IC8+PC9zcGFuPjxzcGFuPjxzdHJvbmc+V2FpdGluZyBmb3IgbmV4dCBiYWNrZW5kIGV2ZW50PC9zdHJvbmc+PHNtYWxsPk5vIHByb2dyZXNzIGlzIHNpbXVsYXRlZC48L3NtYWxsPjwvc3Bhbj48L2xpPn1cbiAgICAgICAgICAgIDwvb2w+XG4gICAgICAgICAgPC9kaXY+XG5cbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInJlc3VsdC1wYW5lbCBwYW5lbFwiPlxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJwYW5lbC1oZWFkaW5nXCI+PHNwYW4gY2xhc3NOYW1lPVwiZXllYnJvd1wiPlJlc2VhcmNoIG91dHB1dDwvc3Bhbj57c3RhdGUudmFsaWRhdGlvblN0YXR1cyAmJiA8c3BhbiBjbGFzc05hbWU9XCJzdGF0dXMtbGFiZWxcIj57c3RhdGUudmFsaWRhdGlvblN0YXR1c308L3NwYW4+fXtpc0NhbmNlbGxlZCAmJiA8c3BhbiBjbGFzc05hbWU9XCJzdGF0dXMtbGFiZWxcIj5DQU5DRUxMRUQ8L3NwYW4+fTwvZGl2PlxuICAgICAgICAgICAge3N0YXRlLmZpbmFsUmVzcG9uc2UgPyAoXG4gICAgICAgICAgICAgIDxhcnRpY2xlIGNsYXNzTmFtZT1cInN5bnRoZXNpc1wiPjxkaXYgY2xhc3NOYW1lPVwiZXllYnJvd1wiPlZhbGlkYXRlZCB3b3JrZmxvdyBvdXRwdXQ8L2Rpdj48cD57c3RhdGUuZmluYWxSZXNwb25zZX08L3A+e3N0YXRlLnZhbGlkYXRlZENsYWltc0NvdW50ICE9PSB1bmRlZmluZWQgJiYgPGRpdiBjbGFzc05hbWU9XCJyZXN1bHQtbWV0YVwiPntzdGF0ZS52YWxpZGF0ZWRDbGFpbXNDb3VudH0gdmFsaWRhdGVkIGNsYWlte3N0YXRlLnZhbGlkYXRlZENsYWltc0NvdW50ID09PSAxID8gJycgOiAncyd9PC9kaXY+fTwvYXJ0aWNsZT5cbiAgICAgICAgICAgICkgOiAoXG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicmVzdWx0LXdhaXRpbmdcIj48TG9hZGVyQ2lyY2xlIGNsYXNzTmFtZT1cInNwaW5cIiBzaXplPXsxOH0gLz48cD5UaGUgZmluYWwgc3ludGhlc2lzIHdpbGwgYXBwZWFyIHdoZW4gdGhlIGJhY2tlbmQgZW1pdHMgPGNvZGU+cmVzZWFyY2hfY29tcGxldGVkPC9jb2RlPi48L3A+PC9kaXY+XG4gICAgICAgICAgICApfVxuICAgICAgICAgICAge3N0YXRlLnJlc3VsdCAmJiBzdGF0ZS5ydW5JZCAmJiA8YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvbiBidXR0b24tcHJpbWFyeSByZXN1bHQtZGV0YWlsLWxpbmtcIiB0eXBlPVwiYnV0dG9uXCIgb25DbGljaz17KCkgPT4gbmF2aWdhdGUoYC9yZXNlYXJjaC9ydW5zLyR7ZW5jb2RlVVJJQ29tcG9uZW50KHN0YXRlLnJ1bklkIHx8ICcnKX1gKX0+T3BlbiBjb21wbGV0ZSByZXNlYXJjaCByZWNvcmQ8L2J1dHRvbj59XG4gICAgICAgICAgICB7aXNDYW5jZWxsZWQgJiYgPGRpdiBjbGFzc05hbWU9XCJjYW5jZWxsZWQtY2FsbG91dFwiIHJvbGU9XCJzdGF0dXNcIj48U3F1YXJlIHNpemU9ezE1fSAvPjxzcGFuPlJlc2VhcmNoIHdhcyBjYW5jZWxsZWQgYmVmb3JlIHRoZSBiYWNrZW5kIGVtaXR0ZWQgYSBmaW5hbCByZXN1bHQuIFN0YXJ0IGEgbmV3IGludmVzdGlnYXRpb24gd2hlbiByZWFkeS48L3NwYW4+PC9kaXY+fVxuICAgICAgICAgICAge3N0YXRlLmVycm9yICYmIDxkaXYgY2xhc3NOYW1lPVwiZXJyb3ItY2FsbG91dFwiIHJvbGU9XCJhbGVydFwiPjxBbGVydFRyaWFuZ2xlIHNpemU9ezE2fSAvPjxzcGFuPntzdGF0ZS5lcnJvcn08L3NwYW4+PC9kaXY+fVxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICA8L3NlY3Rpb24+XG4gICAgICApfVxuXG4gICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJldmlkZW5jZS1leHBsb3JlciBwYW5lbFwiPlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInBhbmVsLWhlYWRpbmdcIj48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+RXZpZGVuY2UgbG9va3VwPC9zcGFuPjxzcGFuIGNsYXNzTmFtZT1cIm11dGVkLWNvcHlcIj5IeWJyaWQgc2VhcmNoIHJldHVybmVkIGJ5IGJhY2tlbmQ8L3NwYW4+PC9kaXY+XG4gICAgICAgIDxmb3JtIGNsYXNzTmFtZT1cImV2aWRlbmNlLXNlYXJjaFwiIG9uU3VibWl0PXtzZWFyY2hFdmlkZW5jZX0+XG4gICAgICAgICAgPGxhYmVsIGh0bWxGb3I9XCJldmlkZW5jZS1xdWVyeVwiIGNsYXNzTmFtZT1cInNyLW9ubHlcIj5TZWFyY2ggaW5kZXhlZCBldmlkZW5jZTwvbGFiZWw+XG4gICAgICAgICAgPGlucHV0IGlkPVwiZXZpZGVuY2UtcXVlcnlcIiB2YWx1ZT17ZXZpZGVuY2VRdWVyeX0gb25DaGFuZ2U9eyhldmVudCkgPT4gc2V0RXZpZGVuY2VRdWVyeShldmVudC50YXJnZXQudmFsdWUpfSBwbGFjZWhvbGRlcj1cIlNlYXJjaCBpbmRleGVkIHBhc3NhZ2VzLi4uXCIgLz5cbiAgICAgICAgICA8YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvbiBidXR0b24tcHJpbWFyeVwiIHR5cGU9XCJzdWJtaXRcIiBkaXNhYmxlZD17ZXZpZGVuY2VMb2FkaW5nIHx8IGV2aWRlbmNlUXVlcnkudHJpbSgpLmxlbmd0aCA8IDJ9PntldmlkZW5jZUxvYWRpbmcgPyA8TG9hZGVyQ2lyY2xlIGNsYXNzTmFtZT1cInNwaW5cIiBzaXplPXsxNH0gLz4gOiA8U2VhcmNoIHNpemU9ezE0fSAvPn0gU2VhcmNoIGV2aWRlbmNlPC9idXR0b24+XG4gICAgICAgIDwvZm9ybT5cbiAgICAgICAge2V2aWRlbmNlRXJyb3IgJiYgPGRpdiBjbGFzc05hbWU9XCJlcnJvci1jYWxsb3V0XCIgcm9sZT1cImFsZXJ0XCI+PEFsZXJ0VHJpYW5nbGUgc2l6ZT17MTZ9IC8+PHNwYW4+e2V2aWRlbmNlRXJyb3J9PC9zcGFuPjwvZGl2Pn1cbiAgICAgICAgeyFldmlkZW5jZUVycm9yICYmICFldmlkZW5jZUxvYWRpbmcgJiYgZXZpZGVuY2VRdWVyeSAmJiBldmlkZW5jZVJlc3VsdHMubGVuZ3RoID09PSAwICYmIDxwIGNsYXNzTmFtZT1cImV2aWRlbmNlLWVtcHR5IG11dGVkLWNvcHlcIj5ObyBwYXNzYWdlcyByZXR1cm5lZCBmb3IgdGhpcyBxdWVyeS48L3A+fVxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImV2aWRlbmNlLXJlc3VsdHNcIj5cbiAgICAgICAgICB7ZXZpZGVuY2VSZXN1bHRzLm1hcCgocmVzdWx0KSA9PiAoXG4gICAgICAgICAgICA8YXJ0aWNsZSBjbGFzc05hbWU9XCJldmlkZW5jZS1jYXJkXCIga2V5PXtyZXN1bHQucGFzc2FnZV9pZH0+XG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZXZpZGVuY2UtY2FyZC1oZWFkaW5nXCI+PHNwYW4gY2xhc3NOYW1lPVwiZXllYnJvd1wiPlBhc3NhZ2UgLyB7cmVzdWx0LnNvdXJjZV90aXRsZX08L3NwYW4+PHNwYW4gY2xhc3NOYW1lPVwiZXZpZGVuY2Utc2NvcmVcIj57cmVzdWx0LnJlbGV2YW5jZV9zY29yZS50b0ZpeGVkKDMpfTwvc3Bhbj48L2Rpdj5cbiAgICAgICAgICAgICAgPHA+e3Jlc3VsdC5jb250ZW50fTwvcD5cbiAgICAgICAgICAgICAgPGZvb3Rlcj48c3Bhbj57cmVzdWx0LnBhZ2VfbnVtYmVyID8gJ1BhZ2UgJyArIHJlc3VsdC5wYWdlX251bWJlciA6ICdQYWdlIG5vdCByZXBvcnRlZCd9PC9zcGFuPjxzcGFuPntyZXN1bHQuY2l0YXRpb25fc3RyaW5nfTwvc3Bhbj48L2Zvb3Rlcj5cbiAgICAgICAgICAgIDwvYXJ0aWNsZT5cbiAgICAgICAgICApKX1cbiAgICAgICAgPC9kaXY+XG4gICAgICA8L3NlY3Rpb24+XG5cbiAgICAgIDxzZWN0aW9uIGNsYXNzTmFtZT1cImRpYWxvZ3VlLXBhbmVsIHBhbmVsXCI+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicGFuZWwtaGVhZGluZ1wiPjxzcGFuIGNsYXNzTmFtZT1cImV5ZWJyb3dcIj5SZWZsZWN0aXZlIGRpYWxvZ3VlPC9zcGFuPjxNZXNzYWdlQ2lyY2xlIHNpemU9ezE2fSAvPjwvZGl2PlxuICAgICAgICA8cCBjbGFzc05hbWU9XCJwYW5lbC1pbnRyb1wiPkNvbnRpbnVlIGV4YW1pbmluZyBhIHF1ZXN0aW9uIHRocm91Z2ggdGhlIGJhY2tlbmQgZGlhbG9ndWUgZW5naW5lLiBUaGlzIGlzIGEgc2VwYXJhdGUgdHVybiwgbm90IGEgZmFicmljYXRlZCBleHRlbnNpb24gb2YgdGhlIHJlc2VhcmNoIHN0cmVhbS48L3A+XG4gICAgICAgIDxmb3JtIGNsYXNzTmFtZT1cImRpYWxvZ3VlLWZvcm1cIiBvblN1Ym1pdD17c3VibWl0RGlhbG9ndWV9PlxuICAgICAgICAgIDxsYWJlbCBodG1sRm9yPVwiZGlhbG9ndWUtbW9kZVwiIGNsYXNzTmFtZT1cInNyLW9ubHlcIj5EaWFsb2d1ZSBtb2RlPC9sYWJlbD5cbiAgICAgICAgICA8c2VsZWN0IGlkPVwiZGlhbG9ndWUtbW9kZVwiIHZhbHVlPXtkaWFsb2d1ZU1vZGV9IG9uQ2hhbmdlPXsoZXZlbnQpID0+IHNldERpYWxvZ3VlTW9kZShldmVudC50YXJnZXQudmFsdWUpfSBkaXNhYmxlZD17ZGlhbG9ndWVMb2FkaW5nfT5cbiAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJzb2NyYXRpY1wiPlNvY3JhdGljPC9vcHRpb24+XG4gICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiY2hhbGxlbmdlXCI+Q2hhbGxlbmdlPC9vcHRpb24+XG4gICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiZXhwbGFuYXRpb25cIj5FeHBsYW5hdGlvbjwvb3B0aW9uPlxuICAgICAgICAgICAgPG9wdGlvbiB2YWx1ZT1cImNvdW50ZXJleGFtcGxlXCI+Q291bnRlcmV4YW1wbGU8L29wdGlvbj5cbiAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJkZWJhdGVcIj5EZWJhdGU8L29wdGlvbj5cbiAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9XCJyZWZsZWN0aXZlXCI+UmVmbGVjdGl2ZTwvb3B0aW9uPlxuICAgICAgICAgIDwvc2VsZWN0PlxuICAgICAgICAgIDxsYWJlbCBodG1sRm9yPVwiZGlhbG9ndWUtaW5wdXRcIiBjbGFzc05hbWU9XCJzci1vbmx5XCI+RGlhbG9ndWUgcHJvbXB0PC9sYWJlbD5cbiAgICAgICAgICA8aW5wdXQgaWQ9XCJkaWFsb2d1ZS1pbnB1dFwiIHZhbHVlPXtkaWFsb2d1ZUlucHV0fSBvbkNoYW5nZT17KGV2ZW50KSA9PiBzZXREaWFsb2d1ZUlucHV0KGV2ZW50LnRhcmdldC52YWx1ZSl9IHBsYWNlaG9sZGVyPVwiQXNrIGZvciBhIGNoYWxsZW5nZSwgY2xhcmlmaWNhdGlvbiwgb3IgY291bnRlcmV4YW1wbGUuLi5cIiBkaXNhYmxlZD17ZGlhbG9ndWVMb2FkaW5nfSAvPlxuICAgICAgICAgIDxidXR0b24gY2xhc3NOYW1lPVwiYnV0dG9uIGJ1dHRvbi1wcmltYXJ5XCIgdHlwZT1cInN1Ym1pdFwiIGRpc2FibGVkPXtkaWFsb2d1ZUxvYWRpbmcgfHwgIWRpYWxvZ3VlSW5wdXQudHJpbSgpfT57ZGlhbG9ndWVMb2FkaW5nID8gPExvYWRlckNpcmNsZSBjbGFzc05hbWU9XCJzcGluXCIgc2l6ZT17MTR9IC8+IDogPE1lc3NhZ2VDaXJjbGUgc2l6ZT17MTR9IC8+fSBTZW5kPC9idXR0b24+XG4gICAgICAgIDwvZm9ybT5cbiAgICAgICAge2RpYWxvZ3VlRXJyb3IgJiYgPGRpdiBjbGFzc05hbWU9XCJlcnJvci1jYWxsb3V0XCIgcm9sZT1cImFsZXJ0XCI+PEFsZXJ0VHJpYW5nbGUgc2l6ZT17MTZ9IC8+PHNwYW4+e2RpYWxvZ3VlRXJyb3J9PC9zcGFuPjwvZGl2Pn1cbiAgICAgICAge2RpYWxvZ3VlVHVybiAmJiA8YXJ0aWNsZSBjbGFzc05hbWU9XCJkaWFsb2d1ZS1yZXNwb25zZVwiPjxkaXYgY2xhc3NOYW1lPVwiZXllYnJvd1wiPntkaWFsb2d1ZVR1cm4uZGlhbG9ndWVfbW9kZX0gcmVzcG9uc2V7ZGlhbG9ndWVUdXJuLnNvdXJjZV90aXRsZSA/ICcgwrcgJyArIGRpYWxvZ3VlVHVybi5zb3VyY2VfdGl0bGUgOiAnJ308L2Rpdj48cD57ZGlhbG9ndWVUdXJuLnJlc3BvbnNlX3RleHR9PC9wPjxkaXYgY2xhc3NOYW1lPVwiZGlhbG9ndWUtZmxhZ3NcIj48c3Bhbj57ZGlhbG9ndWVUdXJuLmV2aWRlbmNlX2xpbmtlZCA/ICdFdmlkZW5jZSBsaW5rZWQnIDogJ05vIGV2aWRlbmNlIGxpbmtlZCd9PC9zcGFuPjxzcGFuPntkaWFsb2d1ZVR1cm4ucHJlc2VydmVzX3VuY2VydGFpbnR5ID8gJ1VuY2VydGFpbnR5IHByZXNlcnZlZCcgOiAnVW5jZXJ0YWludHkgbm90IHJlcG9ydGVkJ308L3NwYW4+e2RpYWxvZ3VlVHVybi5kaXNhZ3JlZXNfd2l0aF91c2VyICYmIDxzcGFuPkNoYWxsZW5nZXMgdGhlIHByZW1pc2U8L3NwYW4+fTwvZGl2PjwvYXJ0aWNsZT59XG4gICAgICA8L3NlY3Rpb24+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8SW50ZWxsaWdlbmNlU2lkZWJhciBzdGF0ZT17c3RhdGV9IGV2aWRlbmNlUmVzdWx0cz17ZXZpZGVuY2VSZXN1bHRzfSAvPlxuICAgICAgPC9kaXY+XG4gICAgPC9kaXY+XG4gICk7XG59XG4iXSwiZmlsZSI6IkM6L2Fudmlrc2hpa2kvZnJvbnRlbmQvc3JjL2NvbXBvbmVudHMvcmVzZWFyY2gvUmVzZWFyY2hXb3Jrc3BhY2UudHN4In0=

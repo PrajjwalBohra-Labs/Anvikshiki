@@ -1,0 +1,512 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/notebook/NotebookPage.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=75bb4dba"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$(), _s2 = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=75bb4dba"; const useEffect = __vite__cjsImport3_react["useEffect"]; const useState = __vite__cjsImport3_react["useState"];
+import { ArrowLeft, BookOpen, Check, LoaderCircle, Plus, Save, Trash2 } from "/node_modules/.vite/deps/lucide-react.js?v=75bb4dba";
+import { ApiError } from "/src/api/client.ts";
+import { createNotebook, deleteNotebook, getNotebook, listNotebooks, updateNotebook } from "/src/api/services.ts";
+import { navigate } from "/src/routing.ts";
+import "/src/components/notebook/NotebookPage.css";
+const MAX_TITLE = 256;
+const MAX_CONTENT = 1e5;
+function safeError(error, fallback) {
+  if (error instanceof ApiError && (error.status === 401 || error.status === 403 || error.status === 404)) {
+    return "This notebook is unavailable to the current session.";
+  }
+  return fallback;
+}
+function formatDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString();
+}
+function LoadingState() {
+  return /* @__PURE__ */ jsxDEV("p", { className: "muted-copy notebook-status", role: "status", "aria-live": "polite", children: [
+    /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 15 }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 44,
+      columnNumber: 85
+    }, this),
+    " Loading notebook…"
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+    lineNumber: 44,
+    columnNumber: 10
+  }, this);
+}
+_c = LoadingState;
+function NotebookEditor({ notebookId }) {
+  _s();
+  const [notebook, setNotebook] = useState(null);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+    setSaveMessage("");
+    void getNotebook(notebookId).then((value) => {
+      if (!active) return;
+      setNotebook(value);
+      setTitle(value.title);
+      setContent(value.content);
+    }).catch((reason) => {
+      if (active) setError(safeError(reason, "Notebook could not be loaded."));
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [notebookId]);
+  const save = async (event) => {
+    event.preventDefault();
+    const cleanTitle = title.trim();
+    if (!cleanTitle || cleanTitle.length > MAX_TITLE || content.length > MAX_CONTENT) {
+      setError("Enter a title and keep the notebook within the supported length limits.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    setSaveMessage("");
+    try {
+      const value = await updateNotebook(notebookId, { title: cleanTitle, content });
+      setNotebook(value);
+      setTitle(value.title);
+      setContent(value.content);
+      setSaveMessage("Notebook saved.");
+    } catch (reason) {
+      setError(safeError(reason, "Notebook could not be saved."));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const remove = async () => {
+    if (!window.confirm("Delete this notebook?")) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteNotebook(notebookId);
+      navigate("/notebook");
+    } catch (reason) {
+      setError(safeError(reason, "Notebook could not be deleted."));
+      setDeleting(false);
+    }
+  };
+  if (loading) return /* @__PURE__ */ jsxDEV(LoadingState, {}, void 0, false, {
+    fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+    lineNumber: 90,
+    columnNumber: 23
+  }, this);
+  if (error && !notebook) return /* @__PURE__ */ jsxDEV("section", { className: "notebook-page", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "notebook-toolbar", children: /* @__PURE__ */ jsxDEV("button", { className: "button button-quiet", type: "button", onClick: () => navigate("/notebook"), children: [
+      /* @__PURE__ */ jsxDEV(ArrowLeft, { size: 15 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 91,
+        columnNumber: 195
+      }, this),
+      " Back"
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 91,
+      columnNumber: 103
+    }, this) }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 91,
+      columnNumber: 69
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "notebook-error", role: "alert", children: error }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 91,
+      columnNumber: 238
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+    lineNumber: 91,
+    columnNumber: 34
+  }, this);
+  if (!notebook) return null;
+  return /* @__PURE__ */ jsxDEV("section", { className: "notebook-page", "aria-labelledby": "notebook-editor-heading", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "notebook-toolbar", children: [
+      /* @__PURE__ */ jsxDEV("button", { className: "button button-quiet", type: "button", onClick: () => navigate("/notebook"), children: [
+        /* @__PURE__ */ jsxDEV(ArrowLeft, { size: 15 }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+          lineNumber: 94,
+          columnNumber: 131
+        }, this),
+        " Back to notebooks"
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 94,
+        columnNumber: 39
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Owned notebook" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 94,
+        columnNumber: 181
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { className: "button button-danger", type: "button", onClick: () => void remove(), disabled: deleting || saving, children: [
+        /* @__PURE__ */ jsxDEV(Trash2, { size: 14 }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+          lineNumber: 94,
+          columnNumber: 343
+        }, this),
+        " ",
+        deleting ? "Deleting…" : "Delete"
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 94,
+        columnNumber: 228
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 94,
+      columnNumber: 5
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "eyebrow", children: "Research notebook" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 95,
+      columnNumber: 5
+    }, this),
+    /* @__PURE__ */ jsxDEV("h1", { id: "notebook-editor-heading", children: "Edit notebook" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 95,
+      columnNumber: 53
+    }, this),
+    /* @__PURE__ */ jsxDEV("p", { className: "page-lede", children: "Plain text and Markdown are stored exactly as entered. Sources and provenance remain backend records." }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 95,
+      columnNumber: 104
+    }, this),
+    /* @__PURE__ */ jsxDEV("form", { className: "notebook-editor panel", onSubmit: save, children: [
+      /* @__PURE__ */ jsxDEV("label", { htmlFor: "notebook-title", children: "Title" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 97,
+        columnNumber: 7
+      }, this),
+      /* @__PURE__ */ jsxDEV("input", { id: "notebook-title", value: title, maxLength: MAX_TITLE, onChange: (event) => setTitle(event.target.value), disabled: saving || deleting }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 97,
+        columnNumber: 52
+      }, this),
+      /* @__PURE__ */ jsxDEV("label", { htmlFor: "notebook-content", children: "Notes" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 98,
+        columnNumber: 7
+      }, this),
+      /* @__PURE__ */ jsxDEV("textarea", { id: "notebook-content", value: content, maxLength: MAX_CONTENT, onChange: (event) => setContent(event.target.value), disabled: saving || deleting, rows: 18 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 98,
+        columnNumber: 54
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "notebook-editor-footer", children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "muted-copy", children: [
+          "Updated ",
+          formatDate(notebook.updated_at),
+          " · ",
+          content.length.toLocaleString(),
+          " / ",
+          MAX_CONTENT,
+          " characters"
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+          lineNumber: 99,
+          columnNumber: 47
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "submit", disabled: saving || deleting || !title.trim(), children: [
+          saving ? /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 14 }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+            lineNumber: 99,
+            columnNumber: 300
+          }, this) : /* @__PURE__ */ jsxDEV(Save, { size: 14 }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+            lineNumber: 99,
+            columnNumber: 346
+          }, this),
+          " ",
+          saving ? "Saving…" : "Save notebook"
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+          lineNumber: 99,
+          columnNumber: 187
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 99,
+        columnNumber: 7
+      }, this),
+      saveMessage && /* @__PURE__ */ jsxDEV("p", { className: "notebook-success", role: "status", children: [
+        /* @__PURE__ */ jsxDEV(Check, { size: 14 }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+          lineNumber: 100,
+          columnNumber: 69
+        }, this),
+        " ",
+        saveMessage
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 100,
+        columnNumber: 23
+      }, this),
+      error && /* @__PURE__ */ jsxDEV("div", { className: "notebook-error", role: "alert", children: error }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 101,
+        columnNumber: 17
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 96,
+      columnNumber: 5
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+    lineNumber: 93,
+    columnNumber: 10
+  }, this);
+}
+_s(NotebookEditor, "fDUD3DcXhXmcJdzSidjeYZWn00E=");
+_c2 = NotebookEditor;
+function NotebookIndex() {
+  _s2();
+  const [notebooks, setNotebooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const load = () => {
+    setLoading(true);
+    setError("");
+    void listNotebooks().then(setNotebooks).catch((reason) => setError(safeError(reason, "Notebooks could not be loaded."))).finally(() => setLoading(false));
+  };
+  useEffect(() => {
+    load();
+  }, []);
+  const create = async (event) => {
+    event.preventDefault();
+    const cleanTitle = title.trim();
+    if (!cleanTitle || cleanTitle.length > MAX_TITLE || content.length > MAX_CONTENT) {
+      setError("Enter a title and keep the notebook within the supported length limits.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const value = await createNotebook({ title: cleanTitle, content });
+      navigate(`/notebook/${encodeURIComponent(value.notebook_id)}`);
+    } catch (reason) {
+      setError(safeError(reason, "Notebook could not be created."));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("section", { className: "notebook-page", "aria-labelledby": "notebook-heading", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "eyebrow", children: "Workspace / Notes" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 129,
+      columnNumber: 5
+    }, this),
+    /* @__PURE__ */ jsxDEV("h1", { id: "notebook-heading", children: "Research notebooks" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 129,
+      columnNumber: 53
+    }, this),
+    /* @__PURE__ */ jsxDEV("p", { className: "page-lede", children: "Keep durable working notes beside your investigations. Notebook content is private to the authenticated session." }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 129,
+      columnNumber: 102
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "notebook-actions", children: /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "button", onClick: () => setCreating((value) => !value), "aria-expanded": creating, children: [
+      /* @__PURE__ */ jsxDEV(Plus, { size: 15 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 130,
+        columnNumber: 167
+      }, this),
+      " New notebook"
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 130,
+      columnNumber: 39
+    }, this) }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 130,
+      columnNumber: 5
+    }, this),
+    creating && /* @__PURE__ */ jsxDEV("form", { className: "notebook-create panel", onSubmit: create, children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "New notebook" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+          lineNumber: 131,
+          columnNumber: 107
+        }, this),
+        /* @__PURE__ */ jsxDEV(BookOpen, { size: 16 }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+          lineNumber: 131,
+          columnNumber: 152
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 131,
+        columnNumber: 76
+      }, this),
+      /* @__PURE__ */ jsxDEV("label", { htmlFor: "new-notebook-title", children: "Title" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 131,
+        columnNumber: 180
+      }, this),
+      /* @__PURE__ */ jsxDEV("input", { id: "new-notebook-title", value: title, maxLength: MAX_TITLE, onChange: (event) => setTitle(event.target.value), placeholder: "A question, theme, or line of inquiry", disabled: saving }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 131,
+        columnNumber: 229
+      }, this),
+      /* @__PURE__ */ jsxDEV("label", { htmlFor: "new-notebook-content", children: "Notes" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 131,
+        columnNumber: 419
+      }, this),
+      /* @__PURE__ */ jsxDEV("textarea", { id: "new-notebook-content", value: content, maxLength: MAX_CONTENT, onChange: (event) => setContent(event.target.value), placeholder: "Write a durable research note…", rows: 9, disabled: saving }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 131,
+        columnNumber: 470
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "submit", disabled: saving || !title.trim(), children: [
+        saving ? /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 14 }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+          lineNumber: 131,
+          columnNumber: 774
+        }, this) : /* @__PURE__ */ jsxDEV(Save, { size: 14 }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+          lineNumber: 131,
+          columnNumber: 820
+        }, this),
+        " ",
+        saving ? "Creating…" : "Create notebook"
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 131,
+        columnNumber: 673
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 131,
+      columnNumber: 18
+    }, this),
+    loading && /* @__PURE__ */ jsxDEV(LoadingState, {}, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 132,
+      columnNumber: 17
+    }, this),
+    error && /* @__PURE__ */ jsxDEV("div", { className: "notebook-error", role: "alert", children: error }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 132,
+      columnNumber: 44
+    }, this),
+    !loading && !error && notebooks.length === 0 && /* @__PURE__ */ jsxDEV("div", { className: "notebook-empty panel", children: [
+      /* @__PURE__ */ jsxDEV(BookOpen, { size: 20 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 133,
+        columnNumber: 92
+      }, this),
+      /* @__PURE__ */ jsxDEV("h2", { children: "No notebooks yet" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 133,
+        columnNumber: 114
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { className: "muted-copy", children: "Create a private place for durable research notes." }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 133,
+        columnNumber: 139
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 133,
+      columnNumber: 54
+    }, this),
+    !loading && notebooks.length > 0 && /* @__PURE__ */ jsxDEV("div", { className: "notebook-list", "aria-label": "Your notebooks", children: notebooks.map((item) => /* @__PURE__ */ jsxDEV("button", { className: "notebook-list-item panel", type: "button", onClick: () => navigate(`/notebook/${encodeURIComponent(item.notebook_id)}`), children: [
+      /* @__PURE__ */ jsxDEV("span", { className: "notebook-list-title", children: item.title }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 134,
+        columnNumber: 286
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { className: "notebook-list-preview", children: item.content || "Empty notebook" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 134,
+        columnNumber: 343
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { className: "notebook-list-date", children: [
+        "Updated ",
+        formatDate(item.updated_at)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+        lineNumber: 134,
+        columnNumber: 424
+      }, this)
+    ] }, item.notebook_id, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 134,
+      columnNumber: 126
+    }, this)) }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+      lineNumber: 134,
+      columnNumber: 42
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+    lineNumber: 128,
+    columnNumber: 10
+  }, this);
+}
+_s2(NotebookIndex, "62j4a6U4YxOYmd2CzkD192IhdX8=");
+_c3 = NotebookIndex;
+export function NotebookPage({ notebookId }) {
+  return notebookId ? /* @__PURE__ */ jsxDEV(NotebookEditor, { notebookId }, void 0, false, {
+    fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+    lineNumber: 138,
+    columnNumber: 91
+  }, this) : /* @__PURE__ */ jsxDEV(NotebookIndex, {}, void 0, false, {
+    fileName: "C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx",
+    lineNumber: 138,
+    columnNumber: 136
+  }, this);
+}
+_c4 = NotebookPage;
+var _c, _c2, _c3, _c4;
+$RefreshReg$(_c, "LoadingState");
+$RefreshReg$(_c2, "NotebookEditor");
+$RefreshReg$(_c3, "NotebookIndex");
+$RefreshReg$(_c4, "NotebookPage");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/anvikshiki/frontend/src/components/notebook/NotebookPage.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QTVDO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFBa0Q7QUFBQSxNQUFPLHVCQUFDLFVBQUssV0FBVSx5QkFBeUJ3QyxlQUFLdEMsV0FBVyxvQkFBekQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUEwRTtBQUFBLE1BQU8sdUJBQUMsVUFBSyxXQUFVLHNCQUFxQjtBQUFBO0FBQUEsUUFBU2pCLFdBQVd1RCxLQUFLWixVQUFVO0FBQUEsV0FBeEU7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUEwRTtBQUFBLFNBQWxVWSxLQUFLRixhQUF2RDtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBQTJYLENBQVMsS0FBeGQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQUEwZDtBQUFBLE9BTjFmO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0FPUDtBQUNGO0FBQUNSLElBOUJRRCxlQUFhO0FBQUEsTUFBYkE7QUFnQ0YsZ0JBQVNZLGFBQWEsRUFBRTdDLFdBQW9DLEdBQUc7QUFBRSxTQUFPQSxhQUFhLHVCQUFDLGtCQUFlLGNBQWhCO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0FBdUMsSUFBTSx1QkFBQyxtQkFBRDtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBQWM7QUFBSztBQUFDOEMsTUFBN0lEO0FBQVksSUFBQS9DLElBQUFpRCxLQUFBQyxLQUFBRjtBQUFBLGFBQUFoRCxJQUFBO0FBQUEsYUFBQWlELEtBQUE7QUFBQSxhQUFBQyxLQUFBO0FBQUEsYUFBQUYsS0FBQSIsIm5hbWVzIjpbInVzZUVmZmVjdCIsInVzZVN0YXRlIiwiQXJyb3dMZWZ0IiwiQm9va09wZW4iLCJDaGVjayIsIkxvYWRlckNpcmNsZSIsIlBsdXMiLCJTYXZlIiwiVHJhc2gyIiwiQXBpRXJyb3IiLCJjcmVhdGVOb3RlYm9vayIsImRlbGV0ZU5vdGVib29rIiwiZ2V0Tm90ZWJvb2siLCJsaXN0Tm90ZWJvb2tzIiwidXBkYXRlTm90ZWJvb2siLCJuYXZpZ2F0ZSIsIk1BWF9USVRMRSIsIk1BWF9DT05URU5UIiwic2FmZUVycm9yIiwiZXJyb3IiLCJmYWxsYmFjayIsInN0YXR1cyIsImZvcm1hdERhdGUiLCJ2YWx1ZSIsImRhdGUiLCJEYXRlIiwiTnVtYmVyIiwiaXNOYU4iLCJnZXRUaW1lIiwidG9Mb2NhbGVTdHJpbmciLCJMb2FkaW5nU3RhdGUiLCJfYyIsIk5vdGVib29rRWRpdG9yIiwibm90ZWJvb2tJZCIsIl9zIiwibm90ZWJvb2siLCJzZXROb3RlYm9vayIsInRpdGxlIiwic2V0VGl0bGUiLCJjb250ZW50Iiwic2V0Q29udGVudCIsImxvYWRpbmciLCJzZXRMb2FkaW5nIiwic2F2aW5nIiwic2V0U2F2aW5nIiwiZGVsZXRpbmciLCJzZXREZWxldGluZyIsInNldEVycm9yIiwic2F2ZU1lc3NhZ2UiLCJzZXRTYXZlTWVzc2FnZSIsImFjdGl2ZSIsInRoZW4iLCJjYXRjaCIsInJlYXNvbiIsImZpbmFsbHkiLCJzYXZlIiwiZXZlbnQiLCJwcmV2ZW50RGVmYXVsdCIsImNsZWFuVGl0bGUiLCJ0cmltIiwibGVuZ3RoIiwicmVtb3ZlIiwid2luZG93IiwiY29uZmlybSIsInRhcmdldCIsInVwZGF0ZWRfYXQiLCJOb3RlYm9va0luZGV4IiwiX3MyIiwibm90ZWJvb2tzIiwic2V0Tm90ZWJvb2tzIiwiY3JlYXRpbmciLCJzZXRDcmVhdGluZyIsImxvYWQiLCJjcmVhdGUiLCJlbmNvZGVVUklDb21wb25lbnQiLCJub3RlYm9va19pZCIsIm1hcCIsIml0ZW0iLCJOb3RlYm9va1BhZ2UiLCJfYzQiLCJfYzIiLCJfYzMiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiTm90ZWJvb2tQYWdlLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyB1c2VFZmZlY3QsIHVzZVN0YXRlLCB0eXBlIEZvcm1FdmVudCB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCB7IEFycm93TGVmdCwgQm9va09wZW4sIENoZWNrLCBMb2FkZXJDaXJjbGUsIFBsdXMsIFNhdmUsIFRyYXNoMiB9IGZyb20gJ2x1Y2lkZS1yZWFjdCc7XG5pbXBvcnQgeyBBcGlFcnJvciB9IGZyb20gJy4uLy4uL2FwaS9jbGllbnQnO1xuaW1wb3J0IHsgY3JlYXRlTm90ZWJvb2ssIGRlbGV0ZU5vdGVib29rLCBnZXROb3RlYm9vaywgbGlzdE5vdGVib29rcywgdXBkYXRlTm90ZWJvb2sgfSBmcm9tICcuLi8uLi9hcGkvc2VydmljZXMnO1xuaW1wb3J0IHR5cGUgeyBOb3RlYm9va0RUTyB9IGZyb20gJy4uLy4uL3R5cGVzJztcbmltcG9ydCB7IG5hdmlnYXRlIH0gZnJvbSAnLi4vLi4vcm91dGluZyc7XG5pbXBvcnQgJy4vTm90ZWJvb2tQYWdlLmNzcyc7XG5cbmNvbnN0IE1BWF9USVRMRSA9IDI1NjtcbmNvbnN0IE1BWF9DT05URU5UID0gMTAwXzAwMDtcblxuZnVuY3Rpb24gc2FmZUVycm9yKGVycm9yOiB1bmtub3duLCBmYWxsYmFjazogc3RyaW5nKTogc3RyaW5nIHtcbiAgaWYgKGVycm9yIGluc3RhbmNlb2YgQXBpRXJyb3IgJiYgKGVycm9yLnN0YXR1cyA9PT0gNDAxIHx8IGVycm9yLnN0YXR1cyA9PT0gNDAzIHx8IGVycm9yLnN0YXR1cyA9PT0gNDA0KSkge1xuICAgIHJldHVybiAnVGhpcyBub3RlYm9vayBpcyB1bmF2YWlsYWJsZSB0byB0aGUgY3VycmVudCBzZXNzaW9uLic7XG4gIH1cbiAgcmV0dXJuIGZhbGxiYWNrO1xufVxuXG5mdW5jdGlvbiBmb3JtYXREYXRlKHZhbHVlOiBzdHJpbmcpOiBzdHJpbmcge1xuICBjb25zdCBkYXRlID0gbmV3IERhdGUodmFsdWUpO1xuICByZXR1cm4gTnVtYmVyLmlzTmFOKGRhdGUuZ2V0VGltZSgpKSA/ICdEYXRlIHVuYXZhaWxhYmxlJyA6IGRhdGUudG9Mb2NhbGVTdHJpbmcoKTtcbn1cblxuZnVuY3Rpb24gTG9hZGluZ1N0YXRlKCkge1xuICByZXR1cm4gPHAgY2xhc3NOYW1lPVwibXV0ZWQtY29weSBub3RlYm9vay1zdGF0dXNcIiByb2xlPVwic3RhdHVzXCIgYXJpYS1saXZlPVwicG9saXRlXCI+PExvYWRlckNpcmNsZSBjbGFzc05hbWU9XCJzcGluXCIgc2l6ZT17MTV9IC8+IExvYWRpbmcgbm90ZWJvb2vigKY8L3A+O1xufVxuXG5mdW5jdGlvbiBOb3RlYm9va0VkaXRvcih7IG5vdGVib29rSWQgfTogeyBub3RlYm9va0lkOiBzdHJpbmcgfSkge1xuICBjb25zdCBbbm90ZWJvb2ssIHNldE5vdGVib29rXSA9IHVzZVN0YXRlPE5vdGVib29rRFRPIHwgbnVsbD4obnVsbCk7XG4gIGNvbnN0IFt0aXRsZSwgc2V0VGl0bGVdID0gdXNlU3RhdGUoJycpO1xuICBjb25zdCBbY29udGVudCwgc2V0Q29udGVudF0gPSB1c2VTdGF0ZSgnJyk7XG4gIGNvbnN0IFtsb2FkaW5nLCBzZXRMb2FkaW5nXSA9IHVzZVN0YXRlKHRydWUpO1xuICBjb25zdCBbc2F2aW5nLCBzZXRTYXZpbmddID0gdXNlU3RhdGUoZmFsc2UpO1xuICBjb25zdCBbZGVsZXRpbmcsIHNldERlbGV0aW5nXSA9IHVzZVN0YXRlKGZhbHNlKTtcbiAgY29uc3QgW2Vycm9yLCBzZXRFcnJvcl0gPSB1c2VTdGF0ZSgnJyk7XG4gIGNvbnN0IFtzYXZlTWVzc2FnZSwgc2V0U2F2ZU1lc3NhZ2VdID0gdXNlU3RhdGUoJycpO1xuXG4gIHVzZUVmZmVjdCgoKSA9PiB7XG4gICAgbGV0IGFjdGl2ZSA9IHRydWU7XG4gICAgc2V0TG9hZGluZyh0cnVlKTsgc2V0RXJyb3IoJycpOyBzZXRTYXZlTWVzc2FnZSgnJyk7XG4gICAgdm9pZCBnZXROb3RlYm9vayhub3RlYm9va0lkKS50aGVuKCh2YWx1ZSkgPT4ge1xuICAgICAgaWYgKCFhY3RpdmUpIHJldHVybjtcbiAgICAgIHNldE5vdGVib29rKHZhbHVlKTsgc2V0VGl0bGUodmFsdWUudGl0bGUpOyBzZXRDb250ZW50KHZhbHVlLmNvbnRlbnQpO1xuICAgIH0pLmNhdGNoKChyZWFzb246IHVua25vd24pID0+IHsgaWYgKGFjdGl2ZSkgc2V0RXJyb3Ioc2FmZUVycm9yKHJlYXNvbiwgJ05vdGVib29rIGNvdWxkIG5vdCBiZSBsb2FkZWQuJykpOyB9KVxuICAgICAgLmZpbmFsbHkoKCkgPT4geyBpZiAoYWN0aXZlKSBzZXRMb2FkaW5nKGZhbHNlKTsgfSk7XG4gICAgcmV0dXJuICgpID0+IHsgYWN0aXZlID0gZmFsc2U7IH07XG4gIH0sIFtub3RlYm9va0lkXSk7XG5cbiAgY29uc3Qgc2F2ZSA9IGFzeW5jIChldmVudDogRm9ybUV2ZW50PEhUTUxGb3JtRWxlbWVudD4pID0+IHtcbiAgICBldmVudC5wcmV2ZW50RGVmYXVsdCgpO1xuICAgIGNvbnN0IGNsZWFuVGl0bGUgPSB0aXRsZS50cmltKCk7XG4gICAgaWYgKCFjbGVhblRpdGxlIHx8IGNsZWFuVGl0bGUubGVuZ3RoID4gTUFYX1RJVExFIHx8IGNvbnRlbnQubGVuZ3RoID4gTUFYX0NPTlRFTlQpIHtcbiAgICAgIHNldEVycm9yKCdFbnRlciBhIHRpdGxlIGFuZCBrZWVwIHRoZSBub3RlYm9vayB3aXRoaW4gdGhlIHN1cHBvcnRlZCBsZW5ndGggbGltaXRzLicpO1xuICAgICAgcmV0dXJuO1xuICAgIH1cbiAgICBzZXRTYXZpbmcodHJ1ZSk7IHNldEVycm9yKCcnKTsgc2V0U2F2ZU1lc3NhZ2UoJycpO1xuICAgIHRyeSB7XG4gICAgICBjb25zdCB2YWx1ZSA9IGF3YWl0IHVwZGF0ZU5vdGVib29rKG5vdGVib29rSWQsIHsgdGl0bGU6IGNsZWFuVGl0bGUsIGNvbnRlbnQgfSk7XG4gICAgICBzZXROb3RlYm9vayh2YWx1ZSk7IHNldFRpdGxlKHZhbHVlLnRpdGxlKTsgc2V0Q29udGVudCh2YWx1ZS5jb250ZW50KTsgc2V0U2F2ZU1lc3NhZ2UoJ05vdGVib29rIHNhdmVkLicpO1xuICAgIH0gY2F0Y2ggKHJlYXNvbikgeyBzZXRFcnJvcihzYWZlRXJyb3IocmVhc29uLCAnTm90ZWJvb2sgY291bGQgbm90IGJlIHNhdmVkLicpKTsgfVxuICAgIGZpbmFsbHkgeyBzZXRTYXZpbmcoZmFsc2UpOyB9XG4gIH07XG5cbiAgY29uc3QgcmVtb3ZlID0gYXN5bmMgKCkgPT4ge1xuICAgIGlmICghd2luZG93LmNvbmZpcm0oJ0RlbGV0ZSB0aGlzIG5vdGVib29rPycpKSByZXR1cm47XG4gICAgc2V0RGVsZXRpbmcodHJ1ZSk7IHNldEVycm9yKCcnKTtcbiAgICB0cnkgeyBhd2FpdCBkZWxldGVOb3RlYm9vayhub3RlYm9va0lkKTsgbmF2aWdhdGUoJy9ub3RlYm9vaycpOyB9XG4gICAgY2F0Y2ggKHJlYXNvbikgeyBzZXRFcnJvcihzYWZlRXJyb3IocmVhc29uLCAnTm90ZWJvb2sgY291bGQgbm90IGJlIGRlbGV0ZWQuJykpOyBzZXREZWxldGluZyhmYWxzZSk7IH1cbiAgfTtcblxuICBpZiAobG9hZGluZykgcmV0dXJuIDxMb2FkaW5nU3RhdGUgLz47XG4gIGlmIChlcnJvciAmJiAhbm90ZWJvb2spIHJldHVybiA8c2VjdGlvbiBjbGFzc05hbWU9XCJub3RlYm9vay1wYWdlXCI+PGRpdiBjbGFzc05hbWU9XCJub3RlYm9vay10b29sYmFyXCI+PGJ1dHRvbiBjbGFzc05hbWU9XCJidXR0b24gYnV0dG9uLXF1aWV0XCIgdHlwZT1cImJ1dHRvblwiIG9uQ2xpY2s9eygpID0+IG5hdmlnYXRlKCcvbm90ZWJvb2snKX0+PEFycm93TGVmdCBzaXplPXsxNX0gLz4gQmFjazwvYnV0dG9uPjwvZGl2PjxkaXYgY2xhc3NOYW1lPVwibm90ZWJvb2stZXJyb3JcIiByb2xlPVwiYWxlcnRcIj57ZXJyb3J9PC9kaXY+PC9zZWN0aW9uPjtcbiAgaWYgKCFub3RlYm9vaykgcmV0dXJuIG51bGw7XG4gIHJldHVybiA8c2VjdGlvbiBjbGFzc05hbWU9XCJub3RlYm9vay1wYWdlXCIgYXJpYS1sYWJlbGxlZGJ5PVwibm90ZWJvb2stZWRpdG9yLWhlYWRpbmdcIj5cbiAgICA8ZGl2IGNsYXNzTmFtZT1cIm5vdGVib29rLXRvb2xiYXJcIj48YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvbiBidXR0b24tcXVpZXRcIiB0eXBlPVwiYnV0dG9uXCIgb25DbGljaz17KCkgPT4gbmF2aWdhdGUoJy9ub3RlYm9vaycpfT48QXJyb3dMZWZ0IHNpemU9ezE1fSAvPiBCYWNrIHRvIG5vdGVib29rczwvYnV0dG9uPjxzcGFuIGNsYXNzTmFtZT1cImV5ZWJyb3dcIj5Pd25lZCBub3RlYm9vazwvc3Bhbj48YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvbiBidXR0b24tZGFuZ2VyXCIgdHlwZT1cImJ1dHRvblwiIG9uQ2xpY2s9eygpID0+IHZvaWQgcmVtb3ZlKCl9IGRpc2FibGVkPXtkZWxldGluZyB8fCBzYXZpbmd9PjxUcmFzaDIgc2l6ZT17MTR9IC8+IHtkZWxldGluZyA/ICdEZWxldGluZ+KApicgOiAnRGVsZXRlJ308L2J1dHRvbj48L2Rpdj5cbiAgICA8ZGl2IGNsYXNzTmFtZT1cImV5ZWJyb3dcIj5SZXNlYXJjaCBub3RlYm9vazwvZGl2PjxoMSBpZD1cIm5vdGVib29rLWVkaXRvci1oZWFkaW5nXCI+RWRpdCBub3RlYm9vazwvaDE+PHAgY2xhc3NOYW1lPVwicGFnZS1sZWRlXCI+UGxhaW4gdGV4dCBhbmQgTWFya2Rvd24gYXJlIHN0b3JlZCBleGFjdGx5IGFzIGVudGVyZWQuIFNvdXJjZXMgYW5kIHByb3ZlbmFuY2UgcmVtYWluIGJhY2tlbmQgcmVjb3Jkcy48L3A+XG4gICAgPGZvcm0gY2xhc3NOYW1lPVwibm90ZWJvb2stZWRpdG9yIHBhbmVsXCIgb25TdWJtaXQ9e3NhdmV9PlxuICAgICAgPGxhYmVsIGh0bWxGb3I9XCJub3RlYm9vay10aXRsZVwiPlRpdGxlPC9sYWJlbD48aW5wdXQgaWQ9XCJub3RlYm9vay10aXRsZVwiIHZhbHVlPXt0aXRsZX0gbWF4TGVuZ3RoPXtNQVhfVElUTEV9IG9uQ2hhbmdlPXsoZXZlbnQpID0+IHNldFRpdGxlKGV2ZW50LnRhcmdldC52YWx1ZSl9IGRpc2FibGVkPXtzYXZpbmcgfHwgZGVsZXRpbmd9IC8+XG4gICAgICA8bGFiZWwgaHRtbEZvcj1cIm5vdGVib29rLWNvbnRlbnRcIj5Ob3RlczwvbGFiZWw+PHRleHRhcmVhIGlkPVwibm90ZWJvb2stY29udGVudFwiIHZhbHVlPXtjb250ZW50fSBtYXhMZW5ndGg9e01BWF9DT05URU5UfSBvbkNoYW5nZT17KGV2ZW50KSA9PiBzZXRDb250ZW50KGV2ZW50LnRhcmdldC52YWx1ZSl9IGRpc2FibGVkPXtzYXZpbmcgfHwgZGVsZXRpbmd9IHJvd3M9ezE4fSAvPlxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJub3RlYm9vay1lZGl0b3ItZm9vdGVyXCI+PHNwYW4gY2xhc3NOYW1lPVwibXV0ZWQtY29weVwiPlVwZGF0ZWQge2Zvcm1hdERhdGUobm90ZWJvb2sudXBkYXRlZF9hdCl9IMK3IHtjb250ZW50Lmxlbmd0aC50b0xvY2FsZVN0cmluZygpfSAvIHtNQVhfQ09OVEVOVH0gY2hhcmFjdGVyczwvc3Bhbj48YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvbiBidXR0b24tcHJpbWFyeVwiIHR5cGU9XCJzdWJtaXRcIiBkaXNhYmxlZD17c2F2aW5nIHx8IGRlbGV0aW5nIHx8ICF0aXRsZS50cmltKCl9PntzYXZpbmcgPyA8TG9hZGVyQ2lyY2xlIGNsYXNzTmFtZT1cInNwaW5cIiBzaXplPXsxNH0gLz4gOiA8U2F2ZSBzaXplPXsxNH0gLz59IHtzYXZpbmcgPyAnU2F2aW5n4oCmJyA6ICdTYXZlIG5vdGVib29rJ308L2J1dHRvbj48L2Rpdj5cbiAgICAgIHtzYXZlTWVzc2FnZSAmJiA8cCBjbGFzc05hbWU9XCJub3RlYm9vay1zdWNjZXNzXCIgcm9sZT1cInN0YXR1c1wiPjxDaGVjayBzaXplPXsxNH0gLz4ge3NhdmVNZXNzYWdlfTwvcD59XG4gICAgICB7ZXJyb3IgJiYgPGRpdiBjbGFzc05hbWU9XCJub3RlYm9vay1lcnJvclwiIHJvbGU9XCJhbGVydFwiPntlcnJvcn08L2Rpdj59XG4gICAgPC9mb3JtPlxuICA8L3NlY3Rpb24+O1xufVxuXG5mdW5jdGlvbiBOb3RlYm9va0luZGV4KCkge1xuICBjb25zdCBbbm90ZWJvb2tzLCBzZXROb3RlYm9va3NdID0gdXNlU3RhdGU8Tm90ZWJvb2tEVE9bXT4oW10pO1xuICBjb25zdCBbbG9hZGluZywgc2V0TG9hZGluZ10gPSB1c2VTdGF0ZSh0cnVlKTtcbiAgY29uc3QgW2Vycm9yLCBzZXRFcnJvcl0gPSB1c2VTdGF0ZSgnJyk7XG4gIGNvbnN0IFtjcmVhdGluZywgc2V0Q3JlYXRpbmddID0gdXNlU3RhdGUoZmFsc2UpO1xuICBjb25zdCBbdGl0bGUsIHNldFRpdGxlXSA9IHVzZVN0YXRlKCcnKTtcbiAgY29uc3QgW2NvbnRlbnQsIHNldENvbnRlbnRdID0gdXNlU3RhdGUoJycpO1xuICBjb25zdCBbc2F2aW5nLCBzZXRTYXZpbmddID0gdXNlU3RhdGUoZmFsc2UpO1xuXG4gIGNvbnN0IGxvYWQgPSAoKSA9PiB7IHNldExvYWRpbmcodHJ1ZSk7IHNldEVycm9yKCcnKTsgdm9pZCBsaXN0Tm90ZWJvb2tzKCkudGhlbihzZXROb3RlYm9va3MpLmNhdGNoKChyZWFzb246IHVua25vd24pID0+IHNldEVycm9yKHNhZmVFcnJvcihyZWFzb24sICdOb3RlYm9va3MgY291bGQgbm90IGJlIGxvYWRlZC4nKSkpLmZpbmFsbHkoKCkgPT4gc2V0TG9hZGluZyhmYWxzZSkpOyB9O1xuICB1c2VFZmZlY3QoKCkgPT4geyBsb2FkKCk7IH0sIFtdKTtcblxuICBjb25zdCBjcmVhdGUgPSBhc3luYyAoZXZlbnQ6IEZvcm1FdmVudDxIVE1MRm9ybUVsZW1lbnQ+KSA9PiB7XG4gICAgZXZlbnQucHJldmVudERlZmF1bHQoKTtcbiAgICBjb25zdCBjbGVhblRpdGxlID0gdGl0bGUudHJpbSgpO1xuICAgIGlmICghY2xlYW5UaXRsZSB8fCBjbGVhblRpdGxlLmxlbmd0aCA+IE1BWF9USVRMRSB8fCBjb250ZW50Lmxlbmd0aCA+IE1BWF9DT05URU5UKSB7IHNldEVycm9yKCdFbnRlciBhIHRpdGxlIGFuZCBrZWVwIHRoZSBub3RlYm9vayB3aXRoaW4gdGhlIHN1cHBvcnRlZCBsZW5ndGggbGltaXRzLicpOyByZXR1cm47IH1cbiAgICBzZXRTYXZpbmcodHJ1ZSk7IHNldEVycm9yKCcnKTtcbiAgICB0cnkgeyBjb25zdCB2YWx1ZSA9IGF3YWl0IGNyZWF0ZU5vdGVib29rKHsgdGl0bGU6IGNsZWFuVGl0bGUsIGNvbnRlbnQgfSk7IG5hdmlnYXRlKGAvbm90ZWJvb2svJHtlbmNvZGVVUklDb21wb25lbnQodmFsdWUubm90ZWJvb2tfaWQpfWApOyB9XG4gICAgY2F0Y2ggKHJlYXNvbikgeyBzZXRFcnJvcihzYWZlRXJyb3IocmVhc29uLCAnTm90ZWJvb2sgY291bGQgbm90IGJlIGNyZWF0ZWQuJykpOyB9XG4gICAgZmluYWxseSB7IHNldFNhdmluZyhmYWxzZSk7IH1cbiAgfTtcblxuICByZXR1cm4gPHNlY3Rpb24gY2xhc3NOYW1lPVwibm90ZWJvb2stcGFnZVwiIGFyaWEtbGFiZWxsZWRieT1cIm5vdGVib29rLWhlYWRpbmdcIj5cbiAgICA8ZGl2IGNsYXNzTmFtZT1cImV5ZWJyb3dcIj5Xb3Jrc3BhY2UgLyBOb3RlczwvZGl2PjxoMSBpZD1cIm5vdGVib29rLWhlYWRpbmdcIj5SZXNlYXJjaCBub3RlYm9va3M8L2gxPjxwIGNsYXNzTmFtZT1cInBhZ2UtbGVkZVwiPktlZXAgZHVyYWJsZSB3b3JraW5nIG5vdGVzIGJlc2lkZSB5b3VyIGludmVzdGlnYXRpb25zLiBOb3RlYm9vayBjb250ZW50IGlzIHByaXZhdGUgdG8gdGhlIGF1dGhlbnRpY2F0ZWQgc2Vzc2lvbi48L3A+XG4gICAgPGRpdiBjbGFzc05hbWU9XCJub3RlYm9vay1hY3Rpb25zXCI+PGJ1dHRvbiBjbGFzc05hbWU9XCJidXR0b24gYnV0dG9uLXByaW1hcnlcIiB0eXBlPVwiYnV0dG9uXCIgb25DbGljaz17KCkgPT4gc2V0Q3JlYXRpbmcoKHZhbHVlKSA9PiAhdmFsdWUpfSBhcmlhLWV4cGFuZGVkPXtjcmVhdGluZ30+PFBsdXMgc2l6ZT17MTV9IC8+IE5ldyBub3RlYm9vazwvYnV0dG9uPjwvZGl2PlxuICAgIHtjcmVhdGluZyAmJiA8Zm9ybSBjbGFzc05hbWU9XCJub3RlYm9vay1jcmVhdGUgcGFuZWxcIiBvblN1Ym1pdD17Y3JlYXRlfT48ZGl2IGNsYXNzTmFtZT1cInBhbmVsLWhlYWRpbmdcIj48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+TmV3IG5vdGVib29rPC9zcGFuPjxCb29rT3BlbiBzaXplPXsxNn0gLz48L2Rpdj48bGFiZWwgaHRtbEZvcj1cIm5ldy1ub3RlYm9vay10aXRsZVwiPlRpdGxlPC9sYWJlbD48aW5wdXQgaWQ9XCJuZXctbm90ZWJvb2stdGl0bGVcIiB2YWx1ZT17dGl0bGV9IG1heExlbmd0aD17TUFYX1RJVExFfSBvbkNoYW5nZT17KGV2ZW50KSA9PiBzZXRUaXRsZShldmVudC50YXJnZXQudmFsdWUpfSBwbGFjZWhvbGRlcj1cIkEgcXVlc3Rpb24sIHRoZW1lLCBvciBsaW5lIG9mIGlucXVpcnlcIiBkaXNhYmxlZD17c2F2aW5nfSAvPjxsYWJlbCBodG1sRm9yPVwibmV3LW5vdGVib29rLWNvbnRlbnRcIj5Ob3RlczwvbGFiZWw+PHRleHRhcmVhIGlkPVwibmV3LW5vdGVib29rLWNvbnRlbnRcIiB2YWx1ZT17Y29udGVudH0gbWF4TGVuZ3RoPXtNQVhfQ09OVEVOVH0gb25DaGFuZ2U9eyhldmVudCkgPT4gc2V0Q29udGVudChldmVudC50YXJnZXQudmFsdWUpfSBwbGFjZWhvbGRlcj1cIldyaXRlIGEgZHVyYWJsZSByZXNlYXJjaCBub3Rl4oCmXCIgcm93cz17OX0gZGlzYWJsZWQ9e3NhdmluZ30gLz48YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvbiBidXR0b24tcHJpbWFyeVwiIHR5cGU9XCJzdWJtaXRcIiBkaXNhYmxlZD17c2F2aW5nIHx8ICF0aXRsZS50cmltKCl9PntzYXZpbmcgPyA8TG9hZGVyQ2lyY2xlIGNsYXNzTmFtZT1cInNwaW5cIiBzaXplPXsxNH0gLz4gOiA8U2F2ZSBzaXplPXsxNH0gLz59IHtzYXZpbmcgPyAnQ3JlYXRpbmfigKYnIDogJ0NyZWF0ZSBub3RlYm9vayd9PC9idXR0b24+PC9mb3JtPn1cbiAgICB7bG9hZGluZyAmJiA8TG9hZGluZ1N0YXRlIC8+fXtlcnJvciAmJiA8ZGl2IGNsYXNzTmFtZT1cIm5vdGVib29rLWVycm9yXCIgcm9sZT1cImFsZXJ0XCI+e2Vycm9yfTwvZGl2Pn1cbiAgICB7IWxvYWRpbmcgJiYgIWVycm9yICYmIG5vdGVib29rcy5sZW5ndGggPT09IDAgJiYgPGRpdiBjbGFzc05hbWU9XCJub3RlYm9vay1lbXB0eSBwYW5lbFwiPjxCb29rT3BlbiBzaXplPXsyMH0gLz48aDI+Tm8gbm90ZWJvb2tzIHlldDwvaDI+PHAgY2xhc3NOYW1lPVwibXV0ZWQtY29weVwiPkNyZWF0ZSBhIHByaXZhdGUgcGxhY2UgZm9yIGR1cmFibGUgcmVzZWFyY2ggbm90ZXMuPC9wPjwvZGl2Pn1cbiAgICB7IWxvYWRpbmcgJiYgbm90ZWJvb2tzLmxlbmd0aCA+IDAgJiYgPGRpdiBjbGFzc05hbWU9XCJub3RlYm9vay1saXN0XCIgYXJpYS1sYWJlbD1cIllvdXIgbm90ZWJvb2tzXCI+e25vdGVib29rcy5tYXAoKGl0ZW0pID0+IDxidXR0b24gY2xhc3NOYW1lPVwibm90ZWJvb2stbGlzdC1pdGVtIHBhbmVsXCIga2V5PXtpdGVtLm5vdGVib29rX2lkfSB0eXBlPVwiYnV0dG9uXCIgb25DbGljaz17KCkgPT4gbmF2aWdhdGUoYC9ub3RlYm9vay8ke2VuY29kZVVSSUNvbXBvbmVudChpdGVtLm5vdGVib29rX2lkKX1gKX0+PHNwYW4gY2xhc3NOYW1lPVwibm90ZWJvb2stbGlzdC10aXRsZVwiPntpdGVtLnRpdGxlfTwvc3Bhbj48c3BhbiBjbGFzc05hbWU9XCJub3RlYm9vay1saXN0LXByZXZpZXdcIj57aXRlbS5jb250ZW50IHx8ICdFbXB0eSBub3RlYm9vayd9PC9zcGFuPjxzcGFuIGNsYXNzTmFtZT1cIm5vdGVib29rLWxpc3QtZGF0ZVwiPlVwZGF0ZWQge2Zvcm1hdERhdGUoaXRlbS51cGRhdGVkX2F0KX08L3NwYW4+PC9idXR0b24+KX08L2Rpdj59XG4gIDwvc2VjdGlvbj47XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBOb3RlYm9va1BhZ2UoeyBub3RlYm9va0lkIH06IHsgbm90ZWJvb2tJZD86IHN0cmluZyB9KSB7IHJldHVybiBub3RlYm9va0lkID8gPE5vdGVib29rRWRpdG9yIG5vdGVib29rSWQ9e25vdGVib29rSWR9IC8+IDogPE5vdGVib29rSW5kZXggLz47IH1cbiJdLCJmaWxlIjoiQzovYW52aWtzaGlraS9mcm9udGVuZC9zcmMvY29tcG9uZW50cy9ub3RlYm9vay9Ob3RlYm9va1BhZ2UudHN4In0=

@@ -1,0 +1,990 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/library/LibraryPages.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=75bb4dba"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$(), _s2 = $RefreshSig$(), _s3 = $RefreshSig$(), _s4 = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=75bb4dba"; const useEffect = __vite__cjsImport3_react["useEffect"]; const useState = __vite__cjsImport3_react["useState"];
+import { AlertTriangle, ExternalLink, FileText, FolderOpen, LoaderCircle, Upload } from "/node_modules/.vite/deps/lucide-react.js?v=75bb4dba";
+import { acquireWebSource, createSource, downloadDocument, getDocument, getDocumentPassages, listDocuments, listSources, uploadDocument } from "/src/api/services.ts";
+import { navigate } from "/src/routing.ts";
+function Loading({ label }) {
+  return /* @__PURE__ */ jsxDEV("p", { className: "muted-copy loading-message", role: "status", children: [
+    /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 14 }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 26,
+      columnNumber: 111
+    }, this),
+    " ",
+    label
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+    lineNumber: 26,
+    columnNumber: 55
+  }, this);
+}
+_c = Loading;
+function Failure({ message }) {
+  return /* @__PURE__ */ jsxDEV("div", { className: "inline-error", role: "alert", children: [
+    /* @__PURE__ */ jsxDEV(AlertTriangle, { size: 15 }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 27,
+      columnNumber: 102
+    }, this),
+    message
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+    lineNumber: 27,
+    columnNumber: 59
+  }, this);
+}
+_c2 = Failure;
+function safeExternalUrl(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+export function SourcesPage() {
+  _s();
+  const [sources, setSources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [sourceType, setSourceType] = useState("UNVERIFIED");
+  const [referenceUrl, setReferenceUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [selectedSource, setSelectedSource] = useState("");
+  const [file, setFile] = useState(null);
+  const [uploaded, setUploaded] = useState(null);
+  const [passages, setPassages] = useState([]);
+  const refresh = () => {
+    setLoading(true);
+    void listSources().then((value) => {
+      setSources(value);
+      if (!selectedSource && value[0]) setSelectedSource(value[0].id);
+    }).catch((reason) => setError(reason instanceof Error ? reason.message : "Sources could not be loaded.")).finally(() => setLoading(false));
+  };
+  useEffect(refresh, []);
+  const register = async (event) => {
+    event.preventDefault();
+    if (!title.trim()) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const source = await createSource({ title: title.trim(), author: author.trim() || null, source_type: sourceType, reference_url: referenceUrl.trim() || null });
+      setTitle("");
+      setAuthor("");
+      setReferenceUrl("");
+      setSelectedSource(source.id);
+      setMessage("Source registered.");
+      refresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Source could not be registered.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const ingest = async (event) => {
+    event.preventDefault();
+    if (!selectedSource || !file) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await uploadDocument(selectedSource, file);
+      setUploaded(result);
+      setPassages(await getDocumentPassages(result.document_id));
+      setFile(null);
+      setMessage("Document ingested by the backend.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Document could not be ingested.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("section", { className: "secondary-page", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "eyebrow", children: "Library / Sources" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 46
+    }, this),
+    /* @__PURE__ */ jsxDEV("h1", { children: "Source library" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 94
+    }, this),
+    /* @__PURE__ */ jsxDEV("p", { className: "page-lede", children: "Sources and ingestion remain backed by the authenticated research service." }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 117
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "page-actions", children: [
+      /* @__PURE__ */ jsxDEV("button", { className: "button", type: "button", onClick: refresh, children: "Refresh sources" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 250
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "button", onClick: () => navigate("/library/documents"), children: "Browse documents" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 333
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 220
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "library-actions", children: [
+      /* @__PURE__ */ jsxDEV("form", { className: "library-card", onSubmit: register, children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+          /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Register source" }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 582
+          }, this),
+          /* @__PURE__ */ jsxDEV(FileText, { size: 16 }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 630
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 551
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "library-form-grid", children: [
+          /* @__PURE__ */ jsxDEV("label", { children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Title" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 700
+            }, this),
+            /* @__PURE__ */ jsxDEV("input", { value: title, onChange: (event) => setTitle(event.target.value), required: true }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 738
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 693
+          }, this),
+          /* @__PURE__ */ jsxDEV("label", { children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Author" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 836
+            }, this),
+            /* @__PURE__ */ jsxDEV("input", { value: author, onChange: (event) => setAuthor(event.target.value) }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 875
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 829
+          }, this),
+          /* @__PURE__ */ jsxDEV("label", { children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Source type" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 966
+            }, this),
+            /* @__PURE__ */ jsxDEV("select", { value: sourceType, onChange: (event) => setSourceType(event.target.value), children: [
+              /* @__PURE__ */ jsxDEV("option", { children: "PRIMARY" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+                lineNumber: 38,
+                columnNumber: 1107
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { children: "SECONDARY" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+                lineNumber: 38,
+                columnNumber: 1131
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { children: "TRANSLATION" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+                lineNumber: 38,
+                columnNumber: 1157
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { children: "COMMENTARY" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+                lineNumber: 38,
+                columnNumber: 1185
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { children: "DISCOVERY_ONLY" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+                lineNumber: 38,
+                columnNumber: 1212
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { children: "UNVERIFIED" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+                lineNumber: 38,
+                columnNumber: 1243
+              }, this)
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 1010
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 959
+          }, this),
+          /* @__PURE__ */ jsxDEV("label", { children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Reference URL" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 1294
+            }, this),
+            /* @__PURE__ */ jsxDEV("input", { type: "url", value: referenceUrl, onChange: (event) => setReferenceUrl(event.target.value), placeholder: "https://..." }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 1340
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 1287
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 658
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "submit", disabled: busy || !title.trim(), children: "Register source" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 1479
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 500
+      }, this),
+      /* @__PURE__ */ jsxDEV("form", { className: "library-card", onSubmit: ingest, children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+          /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Ingest document" }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 1679
+          }, this),
+          /* @__PURE__ */ jsxDEV(Upload, { size: 16 }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 1727
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 1648
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "library-form-grid upload-grid", children: [
+          /* @__PURE__ */ jsxDEV("label", { children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Existing source" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 1807
+            }, this),
+            /* @__PURE__ */ jsxDEV("select", { value: selectedSource, onChange: (event) => setSelectedSource(event.target.value), children: [
+              /* @__PURE__ */ jsxDEV("option", { value: "", children: "Select a source" }, void 0, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+                lineNumber: 38,
+                columnNumber: 1946
+              }, this),
+              sources.map((source) => /* @__PURE__ */ jsxDEV("option", { value: source.id, children: source.title }, source.id, false, {
+                fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+                lineNumber: 38,
+                columnNumber: 2012
+              }, this))
+            ] }, void 0, true, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 1855
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 1800
+          }, this),
+          /* @__PURE__ */ jsxDEV("label", { children: [
+            /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "File" }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 2103
+            }, this),
+            /* @__PURE__ */ jsxDEV("input", { type: "file", accept: ".pdf,.txt,.md,.markdown", onChange: (event) => setFile(event.target.files?.[0] ?? null) }, void 0, false, {
+              fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+              lineNumber: 38,
+              columnNumber: 2140
+            }, this)
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 2096
+          }, this)
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 1753
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "submit", disabled: busy || !selectedSource || !file, children: [
+          busy ? /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 14 }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 2379
+          }, this) : /* @__PURE__ */ jsxDEV(Upload, { size: 14 }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 2425
+          }, this),
+          " Ingest document"
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 2271
+        }, this),
+        /* @__PURE__ */ jsxDEV("small", { className: "muted-copy", children: "Parsing and provenance are performed server-side." }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 2471
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 1599
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 467
+    }, this),
+    message && /* @__PURE__ */ jsxDEV("div", { className: "success-callout", role: "status", children: message }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 2583
+    }, this),
+    loading && /* @__PURE__ */ jsxDEV(Loading, { label: "Loading sources..." }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 2658
+    }, this),
+    error && /* @__PURE__ */ jsxDEV(Failure, { message: error }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 2707
+    }, this),
+    !loading && !error && sources.length === 0 && /* @__PURE__ */ jsxDEV("div", { className: "empty-card", children: [
+      /* @__PURE__ */ jsxDEV(FileText, { size: 18 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 2810
+      }, this),
+      "No sources are currently returned."
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 2782
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "source-list", children: sources.map((source) => /* @__PURE__ */ jsxDEV("article", { className: "source-card", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: source.source_type }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 2981
+        }, this),
+        /* @__PURE__ */ jsxDEV("h2", { children: source.title }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3034
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: [
+          source.author || "Author not provided",
+          source.original_language ? ` · ${source.original_language}` : ""
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3057
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 2976
+      }, this),
+      safeExternalUrl(source.reference_url) && /* @__PURE__ */ jsxDEV("a", { href: safeExternalUrl(source.reference_url) ?? void 0, target: "_blank", rel: "noreferrer", "aria-label": `Open ${source.title}`, children: /* @__PURE__ */ jsxDEV(ExternalLink, { size: 15 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 3348
+      }, this) }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 3218
+      }, this)
+    ] }, source.id, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 2927
+    }, this)) }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 2873
+    }, this),
+    uploaded && /* @__PURE__ */ jsxDEV("section", { className: "uploaded-document panel", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Latest ingestion" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3486
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { className: "muted-copy", children: uploaded.mime_type }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3535
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 3455
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "upload-summary", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: [
+          "Document ",
+          uploaded.document_id.slice(0, 8),
+          "…"
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3629
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: [
+          uploaded.passages_count,
+          " passages"
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3686
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: uploaded.total_pages ? `${uploaded.total_pages} pages` : "Pages not reported" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3733
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 3597
+      }, this),
+      passages.length > 0 && /* @__PURE__ */ jsxDEV("details", { children: [
+        /* @__PURE__ */ jsxDEV("summary", { children: "Inspect extracted passages" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3864
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "passage-list", children: passages.slice(0, 20).map((passage) => /* @__PURE__ */ jsxDEV("article", { children: [
+          /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: [
+            passage.page_number ? `Page ${passage.page_number}` : "Page not reported",
+            " · ",
+            passage.language
+          ] }, void 0, true, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 4005
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: passage.content }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 4134
+          }, this),
+          passage.extraction_uncertainty && /* @__PURE__ */ jsxDEV("small", { className: "uncertainty-note", children: "Extraction uncertainty reported by backend." }, void 0, false, {
+            fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+            lineNumber: 38,
+            columnNumber: 4193
+          }, this)
+        ] }, passage.id, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3979
+        }, this)) }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 38,
+          columnNumber: 3909
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 38,
+        columnNumber: 3855
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 38,
+      columnNumber: 3410
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+    lineNumber: 38,
+    columnNumber: 10
+  }, this);
+}
+_s(SourcesPage, "WMSTwUBRRVqX7mxbboTXHmNbJMQ=");
+_c3 = SourcesPage;
+export function DocumentsPage() {
+  _s2();
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const load = () => {
+    setLoading(true);
+    void listDocuments().then(setDocuments).catch((reason) => setError(reason instanceof Error ? reason.message : "Documents could not be loaded.")).finally(() => setLoading(false));
+  };
+  useEffect(load, []);
+  return /* @__PURE__ */ jsxDEV("section", { className: "secondary-page", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "eyebrow", children: "Library / Documents" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 45,
+      columnNumber: 46
+    }, this),
+    /* @__PURE__ */ jsxDEV("h1", { children: "Documents" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 45,
+      columnNumber: 96
+    }, this),
+    /* @__PURE__ */ jsxDEV("p", { className: "page-lede", children: "Stored documents and their extracted passage counts. Metadata is never inferred in the client." }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 45,
+      columnNumber: 114
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "page-actions", children: [
+      /* @__PURE__ */ jsxDEV("button", { className: "button", type: "button", onClick: load, children: "Refresh documents" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 45,
+        columnNumber: 267
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "button", onClick: () => navigate("/library/sources"), children: "Manage sources" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 45,
+        columnNumber: 349
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 45,
+      columnNumber: 237
+    }, this),
+    loading && /* @__PURE__ */ jsxDEV(Loading, { label: "Loading documents..." }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 45,
+      columnNumber: 491
+    }, this),
+    error && /* @__PURE__ */ jsxDEV(Failure, { message: error }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 45,
+      columnNumber: 542
+    }, this),
+    !loading && !error && documents.length === 0 && /* @__PURE__ */ jsxDEV("div", { className: "empty-card", children: [
+      /* @__PURE__ */ jsxDEV(FolderOpen, { size: 18 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 45,
+        columnNumber: 647
+      }, this),
+      "No documents are currently returned."
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 45,
+      columnNumber: 619
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "record-list", children: documents.map((document) => /* @__PURE__ */ jsxDEV("button", { type: "button", className: "record-card", onClick: () => navigate(`/library/documents/${encodeURIComponent(document.document_id)}`), children: [
+      /* @__PURE__ */ jsxDEV("span", { className: "record-icon", children: /* @__PURE__ */ jsxDEV(FileText, { size: 17 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 45,
+        columnNumber: 966
+      }, this) }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 45,
+        columnNumber: 936
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { className: "record-main", children: [
+        /* @__PURE__ */ jsxDEV("strong", { children: document.original_filename || document.document_id }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 45,
+          columnNumber: 1025
+        }, this),
+        /* @__PURE__ */ jsxDEV("small", { children: [
+          document.mime_type,
+          " · ",
+          document.passages_count,
+          " passages · ",
+          document.total_pages ? `${document.total_pages} pages` : "Pages not reported"
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 45,
+          columnNumber: 1094
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 45,
+        columnNumber: 995
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { className: "muted-copy", children: "Open" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 45,
+        columnNumber: 1255
+      }, this)
+    ] }, document.document_id, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 45,
+      columnNumber: 772
+    }, this)) }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 45,
+      columnNumber: 714
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+    lineNumber: 45,
+    columnNumber: 10
+  }, this);
+}
+_s2(DocumentsPage, "6Uiun1cYYA8/ErwITfJTUjxnomI=");
+_c4 = DocumentsPage;
+export function DocumentDetailPage({ documentId }) {
+  _s3();
+  const [document, setDocument] = useState(null);
+  const [passages, setPassages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [downloadBusy, setDownloadBusy] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void Promise.all([getDocument(documentId), getDocumentPassages(documentId)]).then(([detail, extracted]) => {
+      if (active) {
+        setDocument(detail);
+        setPassages(extracted);
+      }
+    }).catch((reason) => {
+      if (active) setError(reason instanceof Error ? reason.message : "Document detail could not be loaded.");
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [documentId]);
+  const openFile = async () => {
+    setDownloadBusy(true);
+    setError("");
+    try {
+      const blob = await downloadDocument(documentId);
+      const url = URL.createObjectURL(blob);
+      const anchor = window.document.createElement("a");
+      anchor.href = url;
+      anchor.download = document?.original_filename || documentId;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Document file could not be retrieved.");
+    } finally {
+      setDownloadBusy(false);
+    }
+  };
+  if (loading) return /* @__PURE__ */ jsxDEV("section", { className: "secondary-page", children: /* @__PURE__ */ jsxDEV(Loading, { label: "Loading document..." }, void 0, false, {
+    fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+    lineNumber: 52,
+    columnNumber: 59
+  }, this) }, void 0, false, {
+    fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+    lineNumber: 52,
+    columnNumber: 23
+  }, this);
+  if (error || !document) return /* @__PURE__ */ jsxDEV("section", { className: "secondary-page", children: [
+    /* @__PURE__ */ jsxDEV(Failure, { message: error || "Document not found." }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 53,
+      columnNumber: 70
+    }, this),
+    /* @__PURE__ */ jsxDEV("button", { className: "button", type: "button", onClick: () => navigate("/library/documents"), children: "Back to documents" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 53,
+      columnNumber: 122
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+    lineNumber: 53,
+    columnNumber: 34
+  }, this);
+  return /* @__PURE__ */ jsxDEV("section", { className: "secondary-page", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "eyebrow", children: "Library / Document" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 54,
+      columnNumber: 46
+    }, this),
+    /* @__PURE__ */ jsxDEV("button", { className: "text-button", type: "button", onClick: () => navigate("/library/documents"), children: "← Back to documents" }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 54,
+      columnNumber: 95
+    }, this),
+    /* @__PURE__ */ jsxDEV("h1", { children: document.original_filename || document.document_id }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 54,
+      columnNumber: 216
+    }, this),
+    /* @__PURE__ */ jsxDEV("p", { className: "page-lede", children: [
+      document.mime_type,
+      " · ",
+      document.passages_count,
+      " extracted passages · ",
+      document.total_pages ? `${document.total_pages} pages` : "Pages not reported"
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 54,
+      columnNumber: 277
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "page-actions", children: /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "button", onClick: openFile, disabled: downloadBusy, children: [
+      downloadBusy ? /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 14 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 54,
+        columnNumber: 600
+      }, this) : /* @__PURE__ */ jsxDEV(FolderOpen, { size: 14 }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 54,
+        columnNumber: 646
+      }, this),
+      " Retrieve document file"
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 54,
+      columnNumber: 485
+    }, this) }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 54,
+      columnNumber: 455
+    }, this),
+    error && /* @__PURE__ */ jsxDEV(Failure, { message: error }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 54,
+      columnNumber: 719
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "record-section", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Extracted passages" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 54,
+          columnNumber: 814
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { className: "muted-copy", children: [
+          passages.length,
+          " returned"
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 54,
+          columnNumber: 865
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 54,
+        columnNumber: 783
+      }, this),
+      passages.length === 0 ? /* @__PURE__ */ jsxDEV("p", { className: "muted-copy section-pad", children: "No passages were returned for this document." }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 54,
+        columnNumber: 958
+      }, this) : /* @__PURE__ */ jsxDEV("div", { className: "passage-list", children: passages.map((passage) => /* @__PURE__ */ jsxDEV("article", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: [
+          passage.page_number ? `Page ${passage.page_number}` : "Page not reported",
+          " · ",
+          passage.language
+        ] }, void 0, true, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 54,
+          columnNumber: 1130
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: passage.content }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 54,
+          columnNumber: 1259
+        }, this),
+        passage.extraction_uncertainty && /* @__PURE__ */ jsxDEV("small", { className: "uncertainty-note", children: "Extraction uncertainty reported by backend." }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 54,
+          columnNumber: 1318
+        }, this)
+      ] }, passage.id, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 54,
+        columnNumber: 1104
+      }, this)) }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 54,
+        columnNumber: 1047
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 54,
+      columnNumber: 747
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+    lineNumber: 54,
+    columnNumber: 10
+  }, this);
+}
+_s3(DocumentDetailPage, "Fv7iIlul6Uuwe+WRZz3qgdpJCYw=");
+_c5 = DocumentDetailPage;
+export function WebAcquisitionPanel() {
+  _s4();
+  const [url, setUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!url.trim()) return;
+    setBusy(true);
+    setError("");
+    setResult(null);
+    try {
+      setResult(await acquireWebSource(url.trim(), title.trim() || void 0));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Web acquisition failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("section", { className: "panel web-acquisition", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "panel-heading", children: [
+      /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Web acquisition" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 60,
+        columnNumber: 84
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { className: "muted-copy", children: "Backend fetch with SSRF protections" }, void 0, false, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 60,
+        columnNumber: 132
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 60,
+      columnNumber: 53
+    }, this),
+    /* @__PURE__ */ jsxDEV("form", { className: "library-form-grid web-form", onSubmit: submit, children: [
+      /* @__PURE__ */ jsxDEV("label", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "URL" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 60,
+          columnNumber: 279
+        }, this),
+        /* @__PURE__ */ jsxDEV("input", { type: "url", value: url, onChange: (event) => setUrl(event.target.value), required: true, placeholder: "https://..." }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 60,
+          columnNumber: 315
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 60,
+        columnNumber: 272
+      }, this),
+      /* @__PURE__ */ jsxDEV("label", { children: [
+        /* @__PURE__ */ jsxDEV("span", { className: "eyebrow", children: "Source title (optional)" }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 60,
+          columnNumber: 446
+        }, this),
+        /* @__PURE__ */ jsxDEV("input", { value: title, onChange: (event) => setTitle(event.target.value) }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 60,
+          columnNumber: 502
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 60,
+        columnNumber: 439
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { className: "button button-primary", type: "submit", disabled: busy || !url.trim(), children: [
+        busy ? /* @__PURE__ */ jsxDEV(LoaderCircle, { className: "spin", size: 14 }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 60,
+          columnNumber: 679
+        }, this) : /* @__PURE__ */ jsxDEV(ExternalLink, { size: 14 }, void 0, false, {
+          fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+          lineNumber: 60,
+          columnNumber: 725
+        }, this),
+        " Acquire source"
+      ] }, void 0, true, {
+        fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+        lineNumber: 60,
+        columnNumber: 584
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 60,
+      columnNumber: 209
+    }, this),
+    error && /* @__PURE__ */ jsxDEV(Failure, { message: error }, void 0, false, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 60,
+      columnNumber: 793
+    }, this),
+    result && /* @__PURE__ */ jsxDEV("div", { className: "success-callout", role: "status", children: [
+      "Acquired “",
+      result.source.title,
+      "” as ",
+      result.document.mime_type,
+      "; ",
+      result.document.passages_count,
+      " passages are available in the document library."
+    ] }, void 0, true, {
+      fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+      lineNumber: 60,
+      columnNumber: 832
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx",
+    lineNumber: 60,
+    columnNumber: 10
+  }, this);
+}
+_s4(WebAcquisitionPanel, "Q4ViCqPNDYH8PrnCXiRICnS6q0c=");
+_c6 = WebAcquisitionPanel;
+var _c, _c2, _c3, _c4, _c5, _c6;
+$RefreshReg$(_c, "Loading");
+$RefreshReg$(_c2, "Failure");
+$RefreshReg$(_c3, "SourcesPage");
+$RefreshReg$(_c4, "DocumentsPage");
+$RefreshReg$(_c5, "DocumentDetailPage");
+$RefreshReg$(_c6, "WebAcquisitionPanel");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/anvikshiki/frontend/src/components/library/LibraryPages.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUEsV0FBeEs7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUF1TDtBQUFBLFNBQTlpQjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBQXVqQjtBQUFBLElBQVFWLFNBQVMsdUJBQUMsV0FBUSxTQUFTQSxTQUFsQjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBQXdCO0FBQUEsSUFBS29DLFVBQVUsdUJBQUMsU0FBSSxXQUFVLG1CQUFrQixNQUFLLFVBQVM7QUFBQTtBQUFBLE1BQVdBLE9BQU9KLE9BQU85QjtBQUFBQSxNQUFNO0FBQUEsTUFBTWtDLE9BQU9zQixTQUFTZDtBQUFBQSxNQUFVO0FBQUEsTUFBR1IsT0FBT3NCLFNBQVNaO0FBQUFBLE1BQWU7QUFBQSxTQUFoSjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBQWdNO0FBQUEsT0FBdC9CO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0FBNi9CO0FBQ3RnQztBQUFDcUMsSUFKZUQscUJBQW1CO0FBQUEsTUFBbkJBO0FBQW1CLElBQUFsRyxJQUFBRyxLQUFBb0csS0FBQUMsS0FBQUMsS0FBQUM7QUFBQSxhQUFBMUcsSUFBQTtBQUFBLGFBQUFHLEtBQUE7QUFBQSxhQUFBb0csS0FBQTtBQUFBLGFBQUFDLEtBQUE7QUFBQSxhQUFBQyxLQUFBO0FBQUEsYUFBQUMsS0FBQSIsIm5hbWVzIjpbInVzZUVmZmVjdCIsInVzZVN0YXRlIiwiQWxlcnRUcmlhbmdsZSIsIkV4dGVybmFsTGluayIsIkZpbGVUZXh0IiwiRm9sZGVyT3BlbiIsIkxvYWRlckNpcmNsZSIsIlVwbG9hZCIsImFjcXVpcmVXZWJTb3VyY2UiLCJjcmVhdGVTb3VyY2UiLCJkb3dubG9hZERvY3VtZW50IiwiZ2V0RG9jdW1lbnQiLCJnZXREb2N1bWVudFBhc3NhZ2VzIiwibGlzdERvY3VtZW50cyIsImxpc3RTb3VyY2VzIiwidXBsb2FkRG9jdW1lbnQiLCJuYXZpZ2F0ZSIsIkxvYWRpbmciLCJsYWJlbCIsIl9jIiwiRmFpbHVyZSIsIm1lc3NhZ2UiLCJfYzIiLCJzYWZlRXh0ZXJuYWxVcmwiLCJ2YWx1ZSIsInVybCIsIlVSTCIsInByb3RvY29sIiwidG9TdHJpbmciLCJTb3VyY2VzUGFnZSIsIl9zIiwic291cmNlcyIsInNldFNvdXJjZXMiLCJsb2FkaW5nIiwic2V0TG9hZGluZyIsImVycm9yIiwic2V0RXJyb3IiLCJ0aXRsZSIsInNldFRpdGxlIiwiYXV0aG9yIiwic2V0QXV0aG9yIiwic291cmNlVHlwZSIsInNldFNvdXJjZVR5cGUiLCJyZWZlcmVuY2VVcmwiLCJzZXRSZWZlcmVuY2VVcmwiLCJidXN5Iiwic2V0QnVzeSIsInNldE1lc3NhZ2UiLCJzZWxlY3RlZFNvdXJjZSIsInNldFNlbGVjdGVkU291cmNlIiwiZmlsZSIsInNldEZpbGUiLCJ1cGxvYWRlZCIsInNldFVwbG9hZGVkIiwicGFzc2FnZXMiLCJzZXRQYXNzYWdlcyIsInJlZnJlc2giLCJ0aGVuIiwiaWQiLCJjYXRjaCIsInJlYXNvbiIsIkVycm9yIiwiZmluYWxseSIsInJlZ2lzdGVyIiwiZXZlbnQiLCJwcmV2ZW50RGVmYXVsdCIsInRyaW0iLCJzb3VyY2UiLCJzb3VyY2VfdHlwZSIsInJlZmVyZW5jZV91cmwiLCJpbmdlc3QiLCJyZXN1bHQiLCJkb2N1bWVudF9pZCIsInRhcmdldCIsIm1hcCIsImZpbGVzIiwibGVuZ3RoIiwib3JpZ2luYWxfbGFuZ3VhZ2UiLCJ1bmRlZmluZWQiLCJtaW1lX3R5cGUiLCJzbGljZSIsInBhc3NhZ2VzX2NvdW50IiwidG90YWxfcGFnZXMiLCJwYXNzYWdlIiwicGFnZV9udW1iZXIiLCJsYW5ndWFnZSIsImNvbnRlbnQiLCJleHRyYWN0aW9uX3VuY2VydGFpbnR5IiwiRG9jdW1lbnRzUGFnZSIsIl9zMiIsImRvY3VtZW50cyIsInNldERvY3VtZW50cyIsImxvYWQiLCJkb2N1bWVudCIsImVuY29kZVVSSUNvbXBvbmVudCIsIm9yaWdpbmFsX2ZpbGVuYW1lIiwiRG9jdW1lbnREZXRhaWxQYWdlIiwiZG9jdW1lbnRJZCIsIl9zMyIsInNldERvY3VtZW50IiwiZG93bmxvYWRCdXN5Iiwic2V0RG93bmxvYWRCdXN5IiwiYWN0aXZlIiwiUHJvbWlzZSIsImFsbCIsImRldGFpbCIsImV4dHJhY3RlZCIsIm9wZW5GaWxlIiwiYmxvYiIsImNyZWF0ZU9iamVjdFVSTCIsImFuY2hvciIsIndpbmRvdyIsImNyZWF0ZUVsZW1lbnQiLCJocmVmIiwiZG93bmxvYWQiLCJjbGljayIsInJldm9rZU9iamVjdFVSTCIsIldlYkFjcXVpc2l0aW9uUGFuZWwiLCJfczQiLCJzZXRVcmwiLCJzZXRSZXN1bHQiLCJzdWJtaXQiLCJfYzMiLCJfYzQiLCJfYzUiLCJfYzYiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiTGlicmFyeVBhZ2VzLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyB1c2VFZmZlY3QsIHVzZVN0YXRlLCB0eXBlIEZvcm1FdmVudCB9IGZyb20gJ3JlYWN0JztcbmltcG9ydCB7IEFsZXJ0VHJpYW5nbGUsIEV4dGVybmFsTGluaywgRmlsZVRleHQsIEZvbGRlck9wZW4sIExvYWRlckNpcmNsZSwgVXBsb2FkIH0gZnJvbSAnbHVjaWRlLXJlYWN0JztcbmltcG9ydCB7IGFjcXVpcmVXZWJTb3VyY2UsIGNyZWF0ZVNvdXJjZSwgZG93bmxvYWREb2N1bWVudCwgZ2V0RG9jdW1lbnQsIGdldERvY3VtZW50UGFzc2FnZXMsIGxpc3REb2N1bWVudHMsIGxpc3RTb3VyY2VzLCB1cGxvYWREb2N1bWVudCB9IGZyb20gJy4uLy4uL2FwaS9zZXJ2aWNlcyc7XG5pbXBvcnQgeyBuYXZpZ2F0ZSB9IGZyb20gJy4uLy4uL3JvdXRpbmcnO1xuaW1wb3J0IHR5cGUgeyBEb2N1bWVudERUTywgRG9jdW1lbnRVcGxvYWRSZXNwb25zZURUTywgUGFzc2FnZURUTywgU291cmNlRFRPLCBTb3VyY2VUeXBlLCBXZWJBY3F1aXNpdGlvblJlc3BvbnNlRFRPIH0gZnJvbSAnLi4vLi4vdHlwZXMnO1xuXG5mdW5jdGlvbiBMb2FkaW5nKHsgbGFiZWwgfTogeyBsYWJlbDogc3RyaW5nIH0pIHsgcmV0dXJuIDxwIGNsYXNzTmFtZT1cIm11dGVkLWNvcHkgbG9hZGluZy1tZXNzYWdlXCIgcm9sZT1cInN0YXR1c1wiPjxMb2FkZXJDaXJjbGUgY2xhc3NOYW1lPVwic3BpblwiIHNpemU9ezE0fSAvPiB7bGFiZWx9PC9wPjsgfVxuZnVuY3Rpb24gRmFpbHVyZSh7IG1lc3NhZ2UgfTogeyBtZXNzYWdlOiBzdHJpbmcgfSkgeyByZXR1cm4gPGRpdiBjbGFzc05hbWU9XCJpbmxpbmUtZXJyb3JcIiByb2xlPVwiYWxlcnRcIj48QWxlcnRUcmlhbmdsZSBzaXplPXsxNX0gLz57bWVzc2FnZX08L2Rpdj47IH1cbmZ1bmN0aW9uIHNhZmVFeHRlcm5hbFVybCh2YWx1ZT86IHN0cmluZyB8IG51bGwpOiBzdHJpbmcgfCBudWxsIHsgaWYgKCF2YWx1ZSkgcmV0dXJuIG51bGw7IHRyeSB7IGNvbnN0IHVybCA9IG5ldyBVUkwodmFsdWUpOyByZXR1cm4gdXJsLnByb3RvY29sID09PSAnaHR0cDonIHx8IHVybC5wcm90b2NvbCA9PT0gJ2h0dHBzOicgPyB1cmwudG9TdHJpbmcoKSA6IG51bGw7IH0gY2F0Y2ggeyByZXR1cm4gbnVsbDsgfSB9XG5cbmV4cG9ydCBmdW5jdGlvbiBTb3VyY2VzUGFnZSgpIHtcbiAgY29uc3QgW3NvdXJjZXMsIHNldFNvdXJjZXNdID0gdXNlU3RhdGU8U291cmNlRFRPW10+KFtdKTsgY29uc3QgW2xvYWRpbmcsIHNldExvYWRpbmddID0gdXNlU3RhdGUodHJ1ZSk7IGNvbnN0IFtlcnJvciwgc2V0RXJyb3JdID0gdXNlU3RhdGUoJycpO1xuICBjb25zdCBbdGl0bGUsIHNldFRpdGxlXSA9IHVzZVN0YXRlKCcnKTsgY29uc3QgW2F1dGhvciwgc2V0QXV0aG9yXSA9IHVzZVN0YXRlKCcnKTsgY29uc3QgW3NvdXJjZVR5cGUsIHNldFNvdXJjZVR5cGVdID0gdXNlU3RhdGU8U291cmNlVHlwZT4oJ1VOVkVSSUZJRUQnKTsgY29uc3QgW3JlZmVyZW5jZVVybCwgc2V0UmVmZXJlbmNlVXJsXSA9IHVzZVN0YXRlKCcnKTsgY29uc3QgW2J1c3ksIHNldEJ1c3ldID0gdXNlU3RhdGUoZmFsc2UpOyBjb25zdCBbbWVzc2FnZSwgc2V0TWVzc2FnZV0gPSB1c2VTdGF0ZSgnJyk7XG4gIGNvbnN0IFtzZWxlY3RlZFNvdXJjZSwgc2V0U2VsZWN0ZWRTb3VyY2VdID0gdXNlU3RhdGUoJycpOyBjb25zdCBbZmlsZSwgc2V0RmlsZV0gPSB1c2VTdGF0ZTxGaWxlIHwgbnVsbD4obnVsbCk7IGNvbnN0IFt1cGxvYWRlZCwgc2V0VXBsb2FkZWRdID0gdXNlU3RhdGU8RG9jdW1lbnRVcGxvYWRSZXNwb25zZURUTyB8IG51bGw+KG51bGwpOyBjb25zdCBbcGFzc2FnZXMsIHNldFBhc3NhZ2VzXSA9IHVzZVN0YXRlPFBhc3NhZ2VEVE9bXT4oW10pO1xuICBjb25zdCByZWZyZXNoID0gKCkgPT4geyBzZXRMb2FkaW5nKHRydWUpOyB2b2lkIGxpc3RTb3VyY2VzKCkudGhlbigodmFsdWUpID0+IHsgc2V0U291cmNlcyh2YWx1ZSk7IGlmICghc2VsZWN0ZWRTb3VyY2UgJiYgdmFsdWVbMF0pIHNldFNlbGVjdGVkU291cmNlKHZhbHVlWzBdLmlkKTsgfSkuY2F0Y2goKHJlYXNvbjogdW5rbm93bikgPT4gc2V0RXJyb3IocmVhc29uIGluc3RhbmNlb2YgRXJyb3IgPyByZWFzb24ubWVzc2FnZSA6ICdTb3VyY2VzIGNvdWxkIG5vdCBiZSBsb2FkZWQuJykpLmZpbmFsbHkoKCkgPT4gc2V0TG9hZGluZyhmYWxzZSkpOyB9O1xuICB1c2VFZmZlY3QocmVmcmVzaCwgW10pO1xuICBjb25zdCByZWdpc3RlciA9IGFzeW5jIChldmVudDogRm9ybUV2ZW50PEhUTUxGb3JtRWxlbWVudD4pID0+IHsgZXZlbnQucHJldmVudERlZmF1bHQoKTsgaWYgKCF0aXRsZS50cmltKCkpIHJldHVybjsgc2V0QnVzeSh0cnVlKTsgc2V0RXJyb3IoJycpOyBzZXRNZXNzYWdlKCcnKTsgdHJ5IHsgY29uc3Qgc291cmNlID0gYXdhaXQgY3JlYXRlU291cmNlKHsgdGl0bGU6IHRpdGxlLnRyaW0oKSwgYXV0aG9yOiBhdXRob3IudHJpbSgpIHx8IG51bGwsIHNvdXJjZV90eXBlOiBzb3VyY2VUeXBlLCByZWZlcmVuY2VfdXJsOiByZWZlcmVuY2VVcmwudHJpbSgpIHx8IG51bGwgfSk7IHNldFRpdGxlKCcnKTsgc2V0QXV0aG9yKCcnKTsgc2V0UmVmZXJlbmNlVXJsKCcnKTsgc2V0U2VsZWN0ZWRTb3VyY2Uoc291cmNlLmlkKTsgc2V0TWVzc2FnZSgnU291cmNlIHJlZ2lzdGVyZWQuJyk7IHJlZnJlc2goKTsgfSBjYXRjaCAocmVhc29uKSB7IHNldEVycm9yKHJlYXNvbiBpbnN0YW5jZW9mIEVycm9yID8gcmVhc29uLm1lc3NhZ2UgOiAnU291cmNlIGNvdWxkIG5vdCBiZSByZWdpc3RlcmVkLicpOyB9IGZpbmFsbHkgeyBzZXRCdXN5KGZhbHNlKTsgfSB9O1xuICBjb25zdCBpbmdlc3QgPSBhc3luYyAoZXZlbnQ6IEZvcm1FdmVudDxIVE1MRm9ybUVsZW1lbnQ+KSA9PiB7IGV2ZW50LnByZXZlbnREZWZhdWx0KCk7IGlmICghc2VsZWN0ZWRTb3VyY2UgfHwgIWZpbGUpIHJldHVybjsgc2V0QnVzeSh0cnVlKTsgc2V0RXJyb3IoJycpOyBzZXRNZXNzYWdlKCcnKTsgdHJ5IHsgY29uc3QgcmVzdWx0ID0gYXdhaXQgdXBsb2FkRG9jdW1lbnQoc2VsZWN0ZWRTb3VyY2UsIGZpbGUpOyBzZXRVcGxvYWRlZChyZXN1bHQpOyBzZXRQYXNzYWdlcyhhd2FpdCBnZXREb2N1bWVudFBhc3NhZ2VzKHJlc3VsdC5kb2N1bWVudF9pZCkpOyBzZXRGaWxlKG51bGwpOyBzZXRNZXNzYWdlKCdEb2N1bWVudCBpbmdlc3RlZCBieSB0aGUgYmFja2VuZC4nKTsgfSBjYXRjaCAocmVhc29uKSB7IHNldEVycm9yKHJlYXNvbiBpbnN0YW5jZW9mIEVycm9yID8gcmVhc29uLm1lc3NhZ2UgOiAnRG9jdW1lbnQgY291bGQgbm90IGJlIGluZ2VzdGVkLicpOyB9IGZpbmFsbHkgeyBzZXRCdXN5KGZhbHNlKTsgfSB9O1xuICByZXR1cm4gPHNlY3Rpb24gY2xhc3NOYW1lPVwic2Vjb25kYXJ5LXBhZ2VcIj48ZGl2IGNsYXNzTmFtZT1cImV5ZWJyb3dcIj5MaWJyYXJ5IC8gU291cmNlczwvZGl2PjxoMT5Tb3VyY2UgbGlicmFyeTwvaDE+PHAgY2xhc3NOYW1lPVwicGFnZS1sZWRlXCI+U291cmNlcyBhbmQgaW5nZXN0aW9uIHJlbWFpbiBiYWNrZWQgYnkgdGhlIGF1dGhlbnRpY2F0ZWQgcmVzZWFyY2ggc2VydmljZS48L3A+PGRpdiBjbGFzc05hbWU9XCJwYWdlLWFjdGlvbnNcIj48YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvblwiIHR5cGU9XCJidXR0b25cIiBvbkNsaWNrPXtyZWZyZXNofT5SZWZyZXNoIHNvdXJjZXM8L2J1dHRvbj48YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvbiBidXR0b24tcHJpbWFyeVwiIHR5cGU9XCJidXR0b25cIiBvbkNsaWNrPXsoKSA9PiBuYXZpZ2F0ZSgnL2xpYnJhcnkvZG9jdW1lbnRzJyl9PkJyb3dzZSBkb2N1bWVudHM8L2J1dHRvbj48L2Rpdj48ZGl2IGNsYXNzTmFtZT1cImxpYnJhcnktYWN0aW9uc1wiPjxmb3JtIGNsYXNzTmFtZT1cImxpYnJhcnktY2FyZFwiIG9uU3VibWl0PXtyZWdpc3Rlcn0+PGRpdiBjbGFzc05hbWU9XCJwYW5lbC1oZWFkaW5nXCI+PHNwYW4gY2xhc3NOYW1lPVwiZXllYnJvd1wiPlJlZ2lzdGVyIHNvdXJjZTwvc3Bhbj48RmlsZVRleHQgc2l6ZT17MTZ9IC8+PC9kaXY+PGRpdiBjbGFzc05hbWU9XCJsaWJyYXJ5LWZvcm0tZ3JpZFwiPjxsYWJlbD48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+VGl0bGU8L3NwYW4+PGlucHV0IHZhbHVlPXt0aXRsZX0gb25DaGFuZ2U9eyhldmVudCkgPT4gc2V0VGl0bGUoZXZlbnQudGFyZ2V0LnZhbHVlKX0gcmVxdWlyZWQgLz48L2xhYmVsPjxsYWJlbD48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+QXV0aG9yPC9zcGFuPjxpbnB1dCB2YWx1ZT17YXV0aG9yfSBvbkNoYW5nZT17KGV2ZW50KSA9PiBzZXRBdXRob3IoZXZlbnQudGFyZ2V0LnZhbHVlKX0gLz48L2xhYmVsPjxsYWJlbD48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+U291cmNlIHR5cGU8L3NwYW4+PHNlbGVjdCB2YWx1ZT17c291cmNlVHlwZX0gb25DaGFuZ2U9eyhldmVudCkgPT4gc2V0U291cmNlVHlwZShldmVudC50YXJnZXQudmFsdWUgYXMgU291cmNlVHlwZSl9PjxvcHRpb24+UFJJTUFSWTwvb3B0aW9uPjxvcHRpb24+U0VDT05EQVJZPC9vcHRpb24+PG9wdGlvbj5UUkFOU0xBVElPTjwvb3B0aW9uPjxvcHRpb24+Q09NTUVOVEFSWTwvb3B0aW9uPjxvcHRpb24+RElTQ09WRVJZX09OTFk8L29wdGlvbj48b3B0aW9uPlVOVkVSSUZJRUQ8L29wdGlvbj48L3NlbGVjdD48L2xhYmVsPjxsYWJlbD48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+UmVmZXJlbmNlIFVSTDwvc3Bhbj48aW5wdXQgdHlwZT1cInVybFwiIHZhbHVlPXtyZWZlcmVuY2VVcmx9IG9uQ2hhbmdlPXsoZXZlbnQpID0+IHNldFJlZmVyZW5jZVVybChldmVudC50YXJnZXQudmFsdWUpfSBwbGFjZWhvbGRlcj1cImh0dHBzOi8vLi4uXCIgLz48L2xhYmVsPjwvZGl2PjxidXR0b24gY2xhc3NOYW1lPVwiYnV0dG9uIGJ1dHRvbi1wcmltYXJ5XCIgdHlwZT1cInN1Ym1pdFwiIGRpc2FibGVkPXtidXN5IHx8ICF0aXRsZS50cmltKCl9PlJlZ2lzdGVyIHNvdXJjZTwvYnV0dG9uPjwvZm9ybT48Zm9ybSBjbGFzc05hbWU9XCJsaWJyYXJ5LWNhcmRcIiBvblN1Ym1pdD17aW5nZXN0fT48ZGl2IGNsYXNzTmFtZT1cInBhbmVsLWhlYWRpbmdcIj48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+SW5nZXN0IGRvY3VtZW50PC9zcGFuPjxVcGxvYWQgc2l6ZT17MTZ9IC8+PC9kaXY+PGRpdiBjbGFzc05hbWU9XCJsaWJyYXJ5LWZvcm0tZ3JpZCB1cGxvYWQtZ3JpZFwiPjxsYWJlbD48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+RXhpc3Rpbmcgc291cmNlPC9zcGFuPjxzZWxlY3QgdmFsdWU9e3NlbGVjdGVkU291cmNlfSBvbkNoYW5nZT17KGV2ZW50KSA9PiBzZXRTZWxlY3RlZFNvdXJjZShldmVudC50YXJnZXQudmFsdWUpfT48b3B0aW9uIHZhbHVlPVwiXCI+U2VsZWN0IGEgc291cmNlPC9vcHRpb24+e3NvdXJjZXMubWFwKChzb3VyY2UpID0+IDxvcHRpb24ga2V5PXtzb3VyY2UuaWR9IHZhbHVlPXtzb3VyY2UuaWR9Pntzb3VyY2UudGl0bGV9PC9vcHRpb24+KX08L3NlbGVjdD48L2xhYmVsPjxsYWJlbD48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+RmlsZTwvc3Bhbj48aW5wdXQgdHlwZT1cImZpbGVcIiBhY2NlcHQ9XCIucGRmLC50eHQsLm1kLC5tYXJrZG93blwiIG9uQ2hhbmdlPXsoZXZlbnQpID0+IHNldEZpbGUoZXZlbnQudGFyZ2V0LmZpbGVzPy5bMF0gPz8gbnVsbCl9IC8+PC9sYWJlbD48L2Rpdj48YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvbiBidXR0b24tcHJpbWFyeVwiIHR5cGU9XCJzdWJtaXRcIiBkaXNhYmxlZD17YnVzeSB8fCAhc2VsZWN0ZWRTb3VyY2UgfHwgIWZpbGV9PntidXN5ID8gPExvYWRlckNpcmNsZSBjbGFzc05hbWU9XCJzcGluXCIgc2l6ZT17MTR9IC8+IDogPFVwbG9hZCBzaXplPXsxNH0gLz59IEluZ2VzdCBkb2N1bWVudDwvYnV0dG9uPjxzbWFsbCBjbGFzc05hbWU9XCJtdXRlZC1jb3B5XCI+UGFyc2luZyBhbmQgcHJvdmVuYW5jZSBhcmUgcGVyZm9ybWVkIHNlcnZlci1zaWRlLjwvc21hbGw+PC9mb3JtPjwvZGl2PnttZXNzYWdlICYmIDxkaXYgY2xhc3NOYW1lPVwic3VjY2Vzcy1jYWxsb3V0XCIgcm9sZT1cInN0YXR1c1wiPnttZXNzYWdlfTwvZGl2Pn17bG9hZGluZyAmJiA8TG9hZGluZyBsYWJlbD1cIkxvYWRpbmcgc291cmNlcy4uLlwiIC8+fXtlcnJvciAmJiA8RmFpbHVyZSBtZXNzYWdlPXtlcnJvcn0gLz59eyFsb2FkaW5nICYmICFlcnJvciAmJiBzb3VyY2VzLmxlbmd0aCA9PT0gMCAmJiA8ZGl2IGNsYXNzTmFtZT1cImVtcHR5LWNhcmRcIj48RmlsZVRleHQgc2l6ZT17MTh9IC8+Tm8gc291cmNlcyBhcmUgY3VycmVudGx5IHJldHVybmVkLjwvZGl2Pn08ZGl2IGNsYXNzTmFtZT1cInNvdXJjZS1saXN0XCI+e3NvdXJjZXMubWFwKChzb3VyY2UpID0+IDxhcnRpY2xlIGNsYXNzTmFtZT1cInNvdXJjZS1jYXJkXCIga2V5PXtzb3VyY2UuaWR9PjxkaXY+PHNwYW4gY2xhc3NOYW1lPVwiZXllYnJvd1wiPntzb3VyY2Uuc291cmNlX3R5cGV9PC9zcGFuPjxoMj57c291cmNlLnRpdGxlfTwvaDI+PHA+e3NvdXJjZS5hdXRob3IgfHwgJ0F1dGhvciBub3QgcHJvdmlkZWQnfXtzb3VyY2Uub3JpZ2luYWxfbGFuZ3VhZ2UgPyBgIMK3ICR7c291cmNlLm9yaWdpbmFsX2xhbmd1YWdlfWAgOiAnJ308L3A+PC9kaXY+e3NhZmVFeHRlcm5hbFVybChzb3VyY2UucmVmZXJlbmNlX3VybCkgJiYgPGEgaHJlZj17c2FmZUV4dGVybmFsVXJsKHNvdXJjZS5yZWZlcmVuY2VfdXJsKSA/PyB1bmRlZmluZWR9IHRhcmdldD1cIl9ibGFua1wiIHJlbD1cIm5vcmVmZXJyZXJcIiBhcmlhLWxhYmVsPXtgT3BlbiAke3NvdXJjZS50aXRsZX1gfT48RXh0ZXJuYWxMaW5rIHNpemU9ezE1fSAvPjwvYT59PC9hcnRpY2xlPil9PC9kaXY+e3VwbG9hZGVkICYmIDxzZWN0aW9uIGNsYXNzTmFtZT1cInVwbG9hZGVkLWRvY3VtZW50IHBhbmVsXCI+PGRpdiBjbGFzc05hbWU9XCJwYW5lbC1oZWFkaW5nXCI+PHNwYW4gY2xhc3NOYW1lPVwiZXllYnJvd1wiPkxhdGVzdCBpbmdlc3Rpb248L3NwYW4+PHNwYW4gY2xhc3NOYW1lPVwibXV0ZWQtY29weVwiPnt1cGxvYWRlZC5taW1lX3R5cGV9PC9zcGFuPjwvZGl2PjxkaXYgY2xhc3NOYW1lPVwidXBsb2FkLXN1bW1hcnlcIj48c3Bhbj5Eb2N1bWVudCB7dXBsb2FkZWQuZG9jdW1lbnRfaWQuc2xpY2UoMCwgOCl94oCmPC9zcGFuPjxzcGFuPnt1cGxvYWRlZC5wYXNzYWdlc19jb3VudH0gcGFzc2FnZXM8L3NwYW4+PHNwYW4+e3VwbG9hZGVkLnRvdGFsX3BhZ2VzID8gYCR7dXBsb2FkZWQudG90YWxfcGFnZXN9IHBhZ2VzYCA6ICdQYWdlcyBub3QgcmVwb3J0ZWQnfTwvc3Bhbj48L2Rpdj57cGFzc2FnZXMubGVuZ3RoID4gMCAmJiA8ZGV0YWlscz48c3VtbWFyeT5JbnNwZWN0IGV4dHJhY3RlZCBwYXNzYWdlczwvc3VtbWFyeT48ZGl2IGNsYXNzTmFtZT1cInBhc3NhZ2UtbGlzdFwiPntwYXNzYWdlcy5zbGljZSgwLCAyMCkubWFwKChwYXNzYWdlKSA9PiA8YXJ0aWNsZSBrZXk9e3Bhc3NhZ2UuaWR9PjxzcGFuIGNsYXNzTmFtZT1cImV5ZWJyb3dcIj57cGFzc2FnZS5wYWdlX251bWJlciA/IGBQYWdlICR7cGFzc2FnZS5wYWdlX251bWJlcn1gIDogJ1BhZ2Ugbm90IHJlcG9ydGVkJ30gwrcge3Bhc3NhZ2UubGFuZ3VhZ2V9PC9zcGFuPjxwPntwYXNzYWdlLmNvbnRlbnR9PC9wPntwYXNzYWdlLmV4dHJhY3Rpb25fdW5jZXJ0YWludHkgJiYgPHNtYWxsIGNsYXNzTmFtZT1cInVuY2VydGFpbnR5LW5vdGVcIj5FeHRyYWN0aW9uIHVuY2VydGFpbnR5IHJlcG9ydGVkIGJ5IGJhY2tlbmQuPC9zbWFsbD59PC9hcnRpY2xlPil9PC9kaXY+PC9kZXRhaWxzPn08L3NlY3Rpb24+fTwvc2VjdGlvbj47XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBEb2N1bWVudHNQYWdlKCkge1xuICBjb25zdCBbZG9jdW1lbnRzLCBzZXREb2N1bWVudHNdID0gdXNlU3RhdGU8RG9jdW1lbnREVE9bXT4oW10pOyBjb25zdCBbbG9hZGluZywgc2V0TG9hZGluZ10gPSB1c2VTdGF0ZSh0cnVlKTsgY29uc3QgW2Vycm9yLCBzZXRFcnJvcl0gPSB1c2VTdGF0ZSgnJyk7XG4gIGNvbnN0IGxvYWQgPSAoKSA9PiB7IHNldExvYWRpbmcodHJ1ZSk7IHZvaWQgbGlzdERvY3VtZW50cygpLnRoZW4oc2V0RG9jdW1lbnRzKS5jYXRjaCgocmVhc29uOiB1bmtub3duKSA9PiBzZXRFcnJvcihyZWFzb24gaW5zdGFuY2VvZiBFcnJvciA/IHJlYXNvbi5tZXNzYWdlIDogJ0RvY3VtZW50cyBjb3VsZCBub3QgYmUgbG9hZGVkLicpKS5maW5hbGx5KCgpID0+IHNldExvYWRpbmcoZmFsc2UpKTsgfTtcbiAgdXNlRWZmZWN0KGxvYWQsIFtdKTtcbiAgcmV0dXJuIDxzZWN0aW9uIGNsYXNzTmFtZT1cInNlY29uZGFyeS1wYWdlXCI+PGRpdiBjbGFzc05hbWU9XCJleWVicm93XCI+TGlicmFyeSAvIERvY3VtZW50czwvZGl2PjxoMT5Eb2N1bWVudHM8L2gxPjxwIGNsYXNzTmFtZT1cInBhZ2UtbGVkZVwiPlN0b3JlZCBkb2N1bWVudHMgYW5kIHRoZWlyIGV4dHJhY3RlZCBwYXNzYWdlIGNvdW50cy4gTWV0YWRhdGEgaXMgbmV2ZXIgaW5mZXJyZWQgaW4gdGhlIGNsaWVudC48L3A+PGRpdiBjbGFzc05hbWU9XCJwYWdlLWFjdGlvbnNcIj48YnV0dG9uIGNsYXNzTmFtZT1cImJ1dHRvblwiIHR5cGU9XCJidXR0b25cIiBvbkNsaWNrPXtsb2FkfT5SZWZyZXNoIGRvY3VtZW50czwvYnV0dG9uPjxidXR0b24gY2xhc3NOYW1lPVwiYnV0dG9uIGJ1dHRvbi1wcmltYXJ5XCIgdHlwZT1cImJ1dHRvblwiIG9uQ2xpY2s9eygpID0+IG5hdmlnYXRlKCcvbGlicmFyeS9zb3VyY2VzJyl9Pk1hbmFnZSBzb3VyY2VzPC9idXR0b24+PC9kaXY+e2xvYWRpbmcgJiYgPExvYWRpbmcgbGFiZWw9XCJMb2FkaW5nIGRvY3VtZW50cy4uLlwiIC8+fXtlcnJvciAmJiA8RmFpbHVyZSBtZXNzYWdlPXtlcnJvcn0gLz59eyFsb2FkaW5nICYmICFlcnJvciAmJiBkb2N1bWVudHMubGVuZ3RoID09PSAwICYmIDxkaXYgY2xhc3NOYW1lPVwiZW1wdHktY2FyZFwiPjxGb2xkZXJPcGVuIHNpemU9ezE4fSAvPk5vIGRvY3VtZW50cyBhcmUgY3VycmVudGx5IHJldHVybmVkLjwvZGl2Pn08ZGl2IGNsYXNzTmFtZT1cInJlY29yZC1saXN0XCI+e2RvY3VtZW50cy5tYXAoKGRvY3VtZW50KSA9PiA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBjbGFzc05hbWU9XCJyZWNvcmQtY2FyZFwiIGtleT17ZG9jdW1lbnQuZG9jdW1lbnRfaWR9IG9uQ2xpY2s9eygpID0+IG5hdmlnYXRlKGAvbGlicmFyeS9kb2N1bWVudHMvJHtlbmNvZGVVUklDb21wb25lbnQoZG9jdW1lbnQuZG9jdW1lbnRfaWQpfWApfT48c3BhbiBjbGFzc05hbWU9XCJyZWNvcmQtaWNvblwiPjxGaWxlVGV4dCBzaXplPXsxN30gLz48L3NwYW4+PHNwYW4gY2xhc3NOYW1lPVwicmVjb3JkLW1haW5cIj48c3Ryb25nPntkb2N1bWVudC5vcmlnaW5hbF9maWxlbmFtZSB8fCBkb2N1bWVudC5kb2N1bWVudF9pZH08L3N0cm9uZz48c21hbGw+e2RvY3VtZW50Lm1pbWVfdHlwZX0gwrcge2RvY3VtZW50LnBhc3NhZ2VzX2NvdW50fSBwYXNzYWdlcyDCtyB7ZG9jdW1lbnQudG90YWxfcGFnZXMgPyBgJHtkb2N1bWVudC50b3RhbF9wYWdlc30gcGFnZXNgIDogJ1BhZ2VzIG5vdCByZXBvcnRlZCd9PC9zbWFsbD48L3NwYW4+PHNwYW4gY2xhc3NOYW1lPVwibXV0ZWQtY29weVwiPk9wZW48L3NwYW4+PC9idXR0b24+KX08L2Rpdj48L3NlY3Rpb24+O1xufVxuXG5leHBvcnQgZnVuY3Rpb24gRG9jdW1lbnREZXRhaWxQYWdlKHsgZG9jdW1lbnRJZCB9OiB7IGRvY3VtZW50SWQ6IHN0cmluZyB9KSB7XG4gIGNvbnN0IFtkb2N1bWVudCwgc2V0RG9jdW1lbnRdID0gdXNlU3RhdGU8RG9jdW1lbnREVE8gfCBudWxsPihudWxsKTsgY29uc3QgW3Bhc3NhZ2VzLCBzZXRQYXNzYWdlc10gPSB1c2VTdGF0ZTxQYXNzYWdlRFRPW10+KFtdKTsgY29uc3QgW2xvYWRpbmcsIHNldExvYWRpbmddID0gdXNlU3RhdGUodHJ1ZSk7IGNvbnN0IFtlcnJvciwgc2V0RXJyb3JdID0gdXNlU3RhdGUoJycpOyBjb25zdCBbZG93bmxvYWRCdXN5LCBzZXREb3dubG9hZEJ1c3ldID0gdXNlU3RhdGUoZmFsc2UpO1xuICB1c2VFZmZlY3QoKCkgPT4geyBsZXQgYWN0aXZlID0gdHJ1ZTsgdm9pZCBQcm9taXNlLmFsbChbZ2V0RG9jdW1lbnQoZG9jdW1lbnRJZCksIGdldERvY3VtZW50UGFzc2FnZXMoZG9jdW1lbnRJZCldKS50aGVuKChbZGV0YWlsLCBleHRyYWN0ZWRdKSA9PiB7IGlmIChhY3RpdmUpIHsgc2V0RG9jdW1lbnQoZGV0YWlsKTsgc2V0UGFzc2FnZXMoZXh0cmFjdGVkKTsgfSB9KS5jYXRjaCgocmVhc29uOiB1bmtub3duKSA9PiB7IGlmIChhY3RpdmUpIHNldEVycm9yKHJlYXNvbiBpbnN0YW5jZW9mIEVycm9yID8gcmVhc29uLm1lc3NhZ2UgOiAnRG9jdW1lbnQgZGV0YWlsIGNvdWxkIG5vdCBiZSBsb2FkZWQuJyk7IH0pLmZpbmFsbHkoKCkgPT4geyBpZiAoYWN0aXZlKSBzZXRMb2FkaW5nKGZhbHNlKTsgfSk7IHJldHVybiAoKSA9PiB7IGFjdGl2ZSA9IGZhbHNlOyB9OyB9LCBbZG9jdW1lbnRJZF0pO1xuICBjb25zdCBvcGVuRmlsZSA9IGFzeW5jICgpID0+IHsgc2V0RG93bmxvYWRCdXN5KHRydWUpOyBzZXRFcnJvcignJyk7IHRyeSB7IGNvbnN0IGJsb2IgPSBhd2FpdCBkb3dubG9hZERvY3VtZW50KGRvY3VtZW50SWQpOyBjb25zdCB1cmwgPSBVUkwuY3JlYXRlT2JqZWN0VVJMKGJsb2IpOyBjb25zdCBhbmNob3IgPSB3aW5kb3cuZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnYScpOyBhbmNob3IuaHJlZiA9IHVybDsgYW5jaG9yLmRvd25sb2FkID0gZG9jdW1lbnQ/Lm9yaWdpbmFsX2ZpbGVuYW1lIHx8IGRvY3VtZW50SWQ7IGFuY2hvci5jbGljaygpOyBVUkwucmV2b2tlT2JqZWN0VVJMKHVybCk7IH0gY2F0Y2ggKHJlYXNvbikgeyBzZXRFcnJvcihyZWFzb24gaW5zdGFuY2VvZiBFcnJvciA/IHJlYXNvbi5tZXNzYWdlIDogJ0RvY3VtZW50IGZpbGUgY291bGQgbm90IGJlIHJldHJpZXZlZC4nKTsgfSBmaW5hbGx5IHsgc2V0RG93bmxvYWRCdXN5KGZhbHNlKTsgfSB9O1xuICBpZiAobG9hZGluZykgcmV0dXJuIDxzZWN0aW9uIGNsYXNzTmFtZT1cInNlY29uZGFyeS1wYWdlXCI+PExvYWRpbmcgbGFiZWw9XCJMb2FkaW5nIGRvY3VtZW50Li4uXCIgLz48L3NlY3Rpb24+O1xuICBpZiAoZXJyb3IgfHwgIWRvY3VtZW50KSByZXR1cm4gPHNlY3Rpb24gY2xhc3NOYW1lPVwic2Vjb25kYXJ5LXBhZ2VcIj48RmFpbHVyZSBtZXNzYWdlPXtlcnJvciB8fCAnRG9jdW1lbnQgbm90IGZvdW5kLid9IC8+PGJ1dHRvbiBjbGFzc05hbWU9XCJidXR0b25cIiB0eXBlPVwiYnV0dG9uXCIgb25DbGljaz17KCkgPT4gbmF2aWdhdGUoJy9saWJyYXJ5L2RvY3VtZW50cycpfT5CYWNrIHRvIGRvY3VtZW50czwvYnV0dG9uPjwvc2VjdGlvbj47XG4gIHJldHVybiA8c2VjdGlvbiBjbGFzc05hbWU9XCJzZWNvbmRhcnktcGFnZVwiPjxkaXYgY2xhc3NOYW1lPVwiZXllYnJvd1wiPkxpYnJhcnkgLyBEb2N1bWVudDwvZGl2PjxidXR0b24gY2xhc3NOYW1lPVwidGV4dC1idXR0b25cIiB0eXBlPVwiYnV0dG9uXCIgb25DbGljaz17KCkgPT4gbmF2aWdhdGUoJy9saWJyYXJ5L2RvY3VtZW50cycpfT7ihpAgQmFjayB0byBkb2N1bWVudHM8L2J1dHRvbj48aDE+e2RvY3VtZW50Lm9yaWdpbmFsX2ZpbGVuYW1lIHx8IGRvY3VtZW50LmRvY3VtZW50X2lkfTwvaDE+PHAgY2xhc3NOYW1lPVwicGFnZS1sZWRlXCI+e2RvY3VtZW50Lm1pbWVfdHlwZX0gwrcge2RvY3VtZW50LnBhc3NhZ2VzX2NvdW50fSBleHRyYWN0ZWQgcGFzc2FnZXMgwrcge2RvY3VtZW50LnRvdGFsX3BhZ2VzID8gYCR7ZG9jdW1lbnQudG90YWxfcGFnZXN9IHBhZ2VzYCA6ICdQYWdlcyBub3QgcmVwb3J0ZWQnfTwvcD48ZGl2IGNsYXNzTmFtZT1cInBhZ2UtYWN0aW9uc1wiPjxidXR0b24gY2xhc3NOYW1lPVwiYnV0dG9uIGJ1dHRvbi1wcmltYXJ5XCIgdHlwZT1cImJ1dHRvblwiIG9uQ2xpY2s9e29wZW5GaWxlfSBkaXNhYmxlZD17ZG93bmxvYWRCdXN5fT57ZG93bmxvYWRCdXN5ID8gPExvYWRlckNpcmNsZSBjbGFzc05hbWU9XCJzcGluXCIgc2l6ZT17MTR9IC8+IDogPEZvbGRlck9wZW4gc2l6ZT17MTR9IC8+fSBSZXRyaWV2ZSBkb2N1bWVudCBmaWxlPC9idXR0b24+PC9kaXY+e2Vycm9yICYmIDxGYWlsdXJlIG1lc3NhZ2U9e2Vycm9yfSAvPn08c2VjdGlvbiBjbGFzc05hbWU9XCJyZWNvcmQtc2VjdGlvblwiPjxkaXYgY2xhc3NOYW1lPVwicGFuZWwtaGVhZGluZ1wiPjxzcGFuIGNsYXNzTmFtZT1cImV5ZWJyb3dcIj5FeHRyYWN0ZWQgcGFzc2FnZXM8L3NwYW4+PHNwYW4gY2xhc3NOYW1lPVwibXV0ZWQtY29weVwiPntwYXNzYWdlcy5sZW5ndGh9IHJldHVybmVkPC9zcGFuPjwvZGl2PntwYXNzYWdlcy5sZW5ndGggPT09IDAgPyA8cCBjbGFzc05hbWU9XCJtdXRlZC1jb3B5IHNlY3Rpb24tcGFkXCI+Tm8gcGFzc2FnZXMgd2VyZSByZXR1cm5lZCBmb3IgdGhpcyBkb2N1bWVudC48L3A+IDogPGRpdiBjbGFzc05hbWU9XCJwYXNzYWdlLWxpc3RcIj57cGFzc2FnZXMubWFwKChwYXNzYWdlKSA9PiA8YXJ0aWNsZSBrZXk9e3Bhc3NhZ2UuaWR9PjxzcGFuIGNsYXNzTmFtZT1cImV5ZWJyb3dcIj57cGFzc2FnZS5wYWdlX251bWJlciA/IGBQYWdlICR7cGFzc2FnZS5wYWdlX251bWJlcn1gIDogJ1BhZ2Ugbm90IHJlcG9ydGVkJ30gwrcge3Bhc3NhZ2UubGFuZ3VhZ2V9PC9zcGFuPjxwPntwYXNzYWdlLmNvbnRlbnR9PC9wPntwYXNzYWdlLmV4dHJhY3Rpb25fdW5jZXJ0YWludHkgJiYgPHNtYWxsIGNsYXNzTmFtZT1cInVuY2VydGFpbnR5LW5vdGVcIj5FeHRyYWN0aW9uIHVuY2VydGFpbnR5IHJlcG9ydGVkIGJ5IGJhY2tlbmQuPC9zbWFsbD59PC9hcnRpY2xlPil9PC9kaXY+fTwvc2VjdGlvbj48L3NlY3Rpb24+O1xufVxuXG5leHBvcnQgZnVuY3Rpb24gV2ViQWNxdWlzaXRpb25QYW5lbCgpIHtcbiAgY29uc3QgW3VybCwgc2V0VXJsXSA9IHVzZVN0YXRlKCcnKTsgY29uc3QgW3RpdGxlLCBzZXRUaXRsZV0gPSB1c2VTdGF0ZSgnJyk7IGNvbnN0IFtyZXN1bHQsIHNldFJlc3VsdF0gPSB1c2VTdGF0ZTxXZWJBY3F1aXNpdGlvblJlc3BvbnNlRFRPIHwgbnVsbD4obnVsbCk7IGNvbnN0IFtlcnJvciwgc2V0RXJyb3JdID0gdXNlU3RhdGUoJycpOyBjb25zdCBbYnVzeSwgc2V0QnVzeV0gPSB1c2VTdGF0ZShmYWxzZSk7XG4gIGNvbnN0IHN1Ym1pdCA9IGFzeW5jIChldmVudDogRm9ybUV2ZW50PEhUTUxGb3JtRWxlbWVudD4pID0+IHsgZXZlbnQucHJldmVudERlZmF1bHQoKTsgaWYgKCF1cmwudHJpbSgpKSByZXR1cm47IHNldEJ1c3kodHJ1ZSk7IHNldEVycm9yKCcnKTsgc2V0UmVzdWx0KG51bGwpOyB0cnkgeyBzZXRSZXN1bHQoYXdhaXQgYWNxdWlyZVdlYlNvdXJjZSh1cmwudHJpbSgpLCB0aXRsZS50cmltKCkgfHwgdW5kZWZpbmVkKSk7IH0gY2F0Y2ggKHJlYXNvbikgeyBzZXRFcnJvcihyZWFzb24gaW5zdGFuY2VvZiBFcnJvciA/IHJlYXNvbi5tZXNzYWdlIDogJ1dlYiBhY3F1aXNpdGlvbiBmYWlsZWQuJyk7IH0gZmluYWxseSB7IHNldEJ1c3koZmFsc2UpOyB9IH07XG4gIHJldHVybiA8c2VjdGlvbiBjbGFzc05hbWU9XCJwYW5lbCB3ZWItYWNxdWlzaXRpb25cIj48ZGl2IGNsYXNzTmFtZT1cInBhbmVsLWhlYWRpbmdcIj48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+V2ViIGFjcXVpc2l0aW9uPC9zcGFuPjxzcGFuIGNsYXNzTmFtZT1cIm11dGVkLWNvcHlcIj5CYWNrZW5kIGZldGNoIHdpdGggU1NSRiBwcm90ZWN0aW9uczwvc3Bhbj48L2Rpdj48Zm9ybSBjbGFzc05hbWU9XCJsaWJyYXJ5LWZvcm0tZ3JpZCB3ZWItZm9ybVwiIG9uU3VibWl0PXtzdWJtaXR9PjxsYWJlbD48c3BhbiBjbGFzc05hbWU9XCJleWVicm93XCI+VVJMPC9zcGFuPjxpbnB1dCB0eXBlPVwidXJsXCIgdmFsdWU9e3VybH0gb25DaGFuZ2U9eyhldmVudCkgPT4gc2V0VXJsKGV2ZW50LnRhcmdldC52YWx1ZSl9IHJlcXVpcmVkIHBsYWNlaG9sZGVyPVwiaHR0cHM6Ly8uLi5cIiAvPjwvbGFiZWw+PGxhYmVsPjxzcGFuIGNsYXNzTmFtZT1cImV5ZWJyb3dcIj5Tb3VyY2UgdGl0bGUgKG9wdGlvbmFsKTwvc3Bhbj48aW5wdXQgdmFsdWU9e3RpdGxlfSBvbkNoYW5nZT17KGV2ZW50KSA9PiBzZXRUaXRsZShldmVudC50YXJnZXQudmFsdWUpfSAvPjwvbGFiZWw+PGJ1dHRvbiBjbGFzc05hbWU9XCJidXR0b24gYnV0dG9uLXByaW1hcnlcIiB0eXBlPVwic3VibWl0XCIgZGlzYWJsZWQ9e2J1c3kgfHwgIXVybC50cmltKCl9PntidXN5ID8gPExvYWRlckNpcmNsZSBjbGFzc05hbWU9XCJzcGluXCIgc2l6ZT17MTR9IC8+IDogPEV4dGVybmFsTGluayBzaXplPXsxNH0gLz59IEFjcXVpcmUgc291cmNlPC9idXR0b24+PC9mb3JtPntlcnJvciAmJiA8RmFpbHVyZSBtZXNzYWdlPXtlcnJvcn0gLz59e3Jlc3VsdCAmJiA8ZGl2IGNsYXNzTmFtZT1cInN1Y2Nlc3MtY2FsbG91dFwiIHJvbGU9XCJzdGF0dXNcIj5BY3F1aXJlZCDigJx7cmVzdWx0LnNvdXJjZS50aXRsZX3igJ0gYXMge3Jlc3VsdC5kb2N1bWVudC5taW1lX3R5cGV9OyB7cmVzdWx0LmRvY3VtZW50LnBhc3NhZ2VzX2NvdW50fSBwYXNzYWdlcyBhcmUgYXZhaWxhYmxlIGluIHRoZSBkb2N1bWVudCBsaWJyYXJ5LjwvZGl2Pn08L3NlY3Rpb24+O1xufVxuIl0sImZpbGUiOiJDOi9hbnZpa3NoaWtpL2Zyb250ZW5kL3NyYy9jb21wb25lbnRzL2xpYnJhcnkvTGlicmFyeVBhZ2VzLnRzeCJ9
