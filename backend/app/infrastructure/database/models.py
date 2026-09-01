@@ -3,16 +3,28 @@ from datetime import datetime, timezone
 from typing import List, Optional, Any
 from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from backend.app.infrastructure.database.session import Base
+
 from backend.app.core.config import RuntimeProfile, settings
-from backend.app.domain.models.enums import SourceType, SourceRelationshipType, ClaimType, RelationType, EvidenceStatus
+from backend.app.domain.models.enums import (
+    ClaimType,
+    EmbeddingIndexStatus,
+    EvidenceStatus,
+    ProvenanceNodeType,
+    ProvenanceRelationType,
+    RelationType,
+    SourceRelationshipType,
+    SourceType,
+)
+from backend.app.infrastructure.database.session import Base
 
 try:
     from pgvector.sqlalchemy import Vector
+    from sqlalchemy.dialects.postgresql import TSVECTOR
     PGVECTOR_AVAILABLE = True
 except ImportError:
     PGVECTOR_AVAILABLE = False
     Vector = None
+    TSVECTOR = None
 
 def generate_uuid() -> str:
     return str(uuid.uuid4())
@@ -22,7 +34,9 @@ def utc_now() -> datetime:
 
 class UserModel(Base):
     __tablename__ = "users"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=generate_uuid
+    )
     username: Mapped[str] = mapped_column(String(128), unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     conversations: Mapped[List["ConversationModel"]] = relationship("ConversationModel", back_populates="user", cascade="all, delete-orphan")
@@ -80,26 +94,225 @@ class DocumentModel(Base):
     original_filename: Mapped[Optional[str]] = mapped_column(String(512))
     storage_path: Mapped[Optional[str]] = mapped_column(String(1024))
     size_bytes: Mapped[Optional[int]] = mapped_column(Integer)
+    language: Mapped[Optional[str]] = mapped_column(String(32))
+    extraction_method: Mapped[Optional[str]] = mapped_column(String(64))
+    extraction_status: Mapped[Optional[str]] = mapped_column(String(32))
+    extraction_warnings: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    web_metadata: Mapped[Optional[dict]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     source: Mapped["SourceModel"] = relationship("SourceModel", back_populates="documents")
+    versions: Mapped[List["DocumentVersionModel"]] = relationship(
+        "DocumentVersionModel", back_populates="document", cascade="all, delete-orphan"
+    )
     passages: Mapped[List["PassageModel"]] = relationship("PassageModel", back_populates="document", cascade="all, delete-orphan")
+
+
+class DocumentVersionModel(Base):
+    __tablename__ = "document_versions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    document_id: Mapped[str] = mapped_column(String(36), ForeignKey("documents.id"), nullable=False, index=True)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    original_filename: Mapped[str] = mapped_column(String(512), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    storage_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    extraction_method: Mapped[str] = mapped_column(String(64), nullable=False)
+    extraction_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    extraction_warnings: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("document_id", "version_number", name="uix_document_version_number"),
+        UniqueConstraint("checksum_sha256", name="uix_document_version_checksum"),
+    )
+
+    document: Mapped["DocumentModel"] = relationship("DocumentModel", back_populates="versions")
+    pages: Mapped[List["PageModel"]] = relationship(
+        "PageModel", back_populates="document_version", cascade="all, delete-orphan"
+    )
+    passages: Mapped[List["PassageModel"]] = relationship(
+        "PassageModel", back_populates="document_version", cascade="all, delete-orphan"
+    )
+
+
+class PageModel(Base):
+    __tablename__ = "pages"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    document_version_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("document_versions.id"), nullable=False, index=True
+    )
+    page_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    page_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    extracted_text: Mapped[str] = mapped_column(Text, nullable=False)
+    native_extracted_text: Mapped[Optional[str]] = mapped_column(Text)
+    extraction_method: Mapped[str] = mapped_column(String(64), nullable=False)
+    extraction_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    extraction_warnings: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    ocr_status: Mapped[Optional[str]] = mapped_column(String(32))
+    ocr_language: Mapped[Optional[str]] = mapped_column(String(128))
+    ocr_dpi: Mapped[Optional[int]] = mapped_column(Integer)
+    ocr_text_length: Mapped[Optional[int]] = mapped_column(Integer)
+    ocr_text: Mapped[Optional[str]] = mapped_column(Text)
+    ocr_confidence: Mapped[Optional[float]] = mapped_column(Float)
+    ocr_processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    ocr_error: Mapped[Optional[str]] = mapped_column(Text)
+
+    __table_args__ = (
+        UniqueConstraint("document_version_id", "page_number", name="uix_page_version_number"),
+        UniqueConstraint("document_version_id", "page_order", name="uix_page_version_order"),
+    )
+
+    document_version: Mapped["DocumentVersionModel"] = relationship(
+        "DocumentVersionModel", back_populates="pages"
+    )
+    passages: Mapped[List["PassageModel"]] = relationship(
+        "PassageModel", back_populates="page", cascade="all, delete-orphan"
+    )
+
 
 class PassageModel(Base):
     __tablename__ = "passages"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     document_id: Mapped[str] = mapped_column(String(36), ForeignKey("documents.id"), nullable=False)
+    document_version_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("document_versions.id"), index=True
+    )
+    page_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("pages.id"), index=True)
     page_number: Mapped[Optional[int]] = mapped_column(Integer)
+    passage_order: Mapped[Optional[int]] = mapped_column(Integer)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    extraction_method: Mapped[Optional[str]] = mapped_column(String(64))
+    section_heading: Mapped[Optional[str]] = mapped_column(String(512))
     ocr_confidence: Mapped[Optional[float]] = mapped_column(Float, default=1.0)
     extraction_uncertainty: Mapped[bool] = mapped_column(Boolean, default=False)
     language: Mapped[str] = mapped_column(String(16), default="en")
     
     embedding_model: Mapped[Optional[str]] = mapped_column(String(128))
+    embedding_provider: Mapped[Optional[str]] = mapped_column(String(64))
+    embedding_model_version: Mapped[Optional[str]] = mapped_column(String(128))
+    embedding_dimension: Mapped[Optional[int]] = mapped_column(Integer)
+    embedding_config_fingerprint: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    embedding_content_sha256: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    embedding_generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    embedding_status: Mapped[EmbeddingIndexStatus] = mapped_column(
+        # A row constructed by legacy callers with a vector is already a
+        # usable derived index entry. Canonical ingestion explicitly sets
+        # PENDING before invoking EmbeddingIndexService.
+        SQLEnum(EmbeddingIndexStatus), default=EmbeddingIndexStatus.INDEXED, nullable=False
+    )
+    embedding_error: Mapped[Optional[str]] = mapped_column(Text)
     embedding: Mapped[Optional[Any]] = mapped_column(
         Vector(384) if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST else JSON
     )
+    # Derived search state. ``content`` remains authoritative. The 0010
+    # migration maintains this tsvector with a PostgreSQL trigger; SQLite
+    # test databases use text and the retriever's compatibility path.
+    search_vector: Mapped[Optional[Any]] = mapped_column(
+        TSVECTOR() if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST else Text
+    )
     
     document: Mapped["DocumentModel"] = relationship("DocumentModel", back_populates="passages")
+    document_version: Mapped[Optional["DocumentVersionModel"]] = relationship(
+        "DocumentVersionModel", back_populates="passages"
+    )
+    page: Mapped[Optional["PageModel"]] = relationship("PageModel", back_populates="passages")
+
+
+class MemoryRecordModel(Base):
+    """Durable, user-owned record for the generic Step 43 memory tiers."""
+
+    __tablename__ = "memory_records"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    memory_tier: Mapped[str] = mapped_column(
+        String(32), nullable=False, index=True
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
+    provenance_source_id: Mapped[Optional[str]] = mapped_column(
+        String(256), index=True
+    )
+    source_event: Mapped[str] = mapped_column(
+        String(256), nullable=False, default="interaction"
+    )
+    retention_policy: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="durable"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+
+
+class ProvenanceNodeModel(Base):
+    """Typed, stable graph nodes backed by existing domain identities."""
+
+    __tablename__ = "provenance_nodes"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    node_type: Mapped[ProvenanceNodeType] = mapped_column(
+        SQLEnum(ProvenanceNodeType), nullable=False, index=True
+    )
+    entity_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    label: Mapped[str] = mapped_column(String(512), nullable=False)
+    metadata_payload: Mapped[Optional[dict]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint("node_type", "entity_id", name="uix_provenance_node_identity"),
+    )
+
+    outgoing_edges: Mapped[List["ProvenanceEdgeModel"]] = relationship(
+        "ProvenanceEdgeModel",
+        foreign_keys="[ProvenanceEdgeModel.from_node_id]",
+        back_populates="from_node",
+        cascade="all, delete-orphan",
+    )
+    incoming_edges: Mapped[List["ProvenanceEdgeModel"]] = relationship(
+        "ProvenanceEdgeModel",
+        foreign_keys="[ProvenanceEdgeModel.to_node_id]",
+        back_populates="to_node",
+        cascade="all, delete-orphan",
+    )
+
+
+class ProvenanceEdgeModel(Base):
+    """Append-oriented typed relationship between two provenance nodes."""
+
+    __tablename__ = "provenance_edges"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    from_node_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("provenance_nodes.id"), nullable=False, index=True
+    )
+    to_node_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("provenance_nodes.id"), nullable=False, index=True
+    )
+    relationship_type: Mapped[ProvenanceRelationType] = mapped_column(
+        SQLEnum(ProvenanceRelationType), nullable=False, index=True
+    )
+    metadata_payload: Mapped[Optional[dict]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "from_node_id",
+            "to_node_id",
+            "relationship_type",
+            name="uix_provenance_edge_identity",
+        ),
+    )
+
+    from_node: Mapped["ProvenanceNodeModel"] = relationship(
+        "ProvenanceNodeModel",
+        foreign_keys=[from_node_id],
+        back_populates="outgoing_edges",
+    )
+    to_node: Mapped["ProvenanceNodeModel"] = relationship(
+        "ProvenanceNodeModel",
+        foreign_keys=[to_node_id],
+        back_populates="incoming_edges",
+    )
 
 class ClaimModel(Base):
     __tablename__ = "claims"

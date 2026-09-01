@@ -1,0 +1,160 @@
+{
+  "dataset_id": "anvikshiki-philosophy-retrieval-golden-v1",
+  "dataset_version": 1,
+  "description": "Small, source-attributed philosophical retrieval set for regression measurement; not a production-quality corpus benchmark.",
+  "corpus_root": "corpus",
+  "corpus": [
+    {
+      "source_key": "tarka_samgraha",
+      "document_key": "tarka_samgraha_eval",
+        "filename": "tarka_samgraha.pdf",
+      "title": "Tarka Samgraha of Annambhatta",
+      "author": "Annambhatta",
+      "source_type": "PRIMARY",
+      "original_language": "en",
+      "reference_url": "repository:data/originals/*_tarka_samgraha.pdf",
+      "passages": [
+        {"passage_key": "prama", "page_number": 1, "relevance_anchor": "prama", "content": "Tarka Samgraha of Annambhatta: Prama is valid cognition."},
+        {"passage_key": "anumana", "page_number": 2, "relevance_anchor": "anumana", "content": "Anumana is the instrument of inferential knowledge (anumiti)."}
+      ]
+    },
+    {
+      "source_key": "epictetus_enchiridion",
+      "document_key": "epictetus_enchiridion_eval",
+      "filename": "epictetus_enchiridion.txt",
+      "title": "The Enchiridion",
+      "author": "Epictetus",
+      "source_type": "PRIMARY",
+      "original_language": "en",
+      "reference_url": "https://www.gutenberg.org/ebooks/45109",
+      "passages": [
+        {"passage_key": "control", "page_number": 1, "relevance_anchor": "power", "content": "Of things some are in our power, and others are not. In our power are opinion, movement toward a thing, desire, aversion, and, in a word, whatever are our own acts; not in our power are the body, property, reputation, offices, and, in a word, whatever are not our own acts."},
+        {"passage_key": "judgments", "page_number": 1, "relevance_anchor": "disturbed", "content": "Men are disturbed not by things, but by the views which they take of things. Thus death is nothing terrible; for if it were, it would have appeared so to Socrates."}
+      ]
+    },
+    {
+      "source_key": "plato_apology",
+      "document_key": "plato_apology_eval",
+      "filename": "plato_apology.txt",
+      "title": "Apology",
+      "author": "Plato",
+      "source_type": "PRIMARY",
+      "original_language": "en",
+      "reference_url": "https://www.gutenberg.org/ebooks/1656",
+      "passages": [
+        {"passage_key": "examined_life", "page_number": 1, "relevance_anchor": "unexamined", "content": "The unexamined life is not worth living."},
+        {"passage_key": "socratic_wisdom", "page_number": 1, "relevance_anchor": "wisdom", "content": "I am wiser than this man; neither of us probably knows anything worthwhile, but he thinks he knows something when he does not, while I, as I do not know, do not think I do."}
+      ]
+    },
+    {
+      "source_key": "aristotle_nicomachean_ethics",
+      "document_key": "aristotle_nicomachean_ethics_eval",
+      "filename": "aristotle_nicomachean_ethics.txt",
+      "title": "The Nicomachean Ethics",
+      "author": "Aristotle",
+      "source_type": "PRIMARY",
+      "original_language": "en",
+      "reference_url": "https://www.gutenberg.org/ebooks/8438",
+      "passages": [
+        {"passage_key": "virtue_mean", "page_number": 1, "relevance_anchor": "relative mean", "content": "Virtue then is a state apt to exercise deliberate choice, being in the relative mean, determined by reason, and as the man of practical wisdom would determine."},
+        {"passage_key": "habituation", "page_number": 1, "relevance_anchor": "habits", "content": "Moral virtue comes about as a result of habit; hence also its name, by a slight variation from the word ethos. It is evident, therefore, that none of the moral virtues arises in us by nature."}
+      ]
+    },
+    {
+      "source_key": "epicurus_letter_menoeceus",
+      "document_key": "epicurus_letter_menoeceus_eval",
+      "filename": "epicurus_letter_menoeceus.txt",
+      "title": "Letter to Menoeceus",
+      "author": "Epicurus",
+      "source_type": "PRIMARY",
+      "original_language": "en",
+      "reference_url": "https://www.gutenberg.org/ebooks/57342",
+      "passages": [
+        {"passage_key": "pleasure_end", "page_number": 1, "relevance_anchor": "pleasure", "content": "We maintain that pleasure is the beginning and end of living happily. For we recognize pleasure as the first and natural good, and from pleasure we begin every choice and avoidance."},
+        {"passage_key": "simple_pleasures", "page_number": 1, "relevance_anchor": "simple", "content": "When we say, then, that pleasure is the end and aim, we do not mean the pleasures of the prodigal or the pleasures of sensuality, as some understand us through ignorance or prejudice."}
+      ]
+    },
+    {
+      "source_key": "marcus_aurelius_meditations",
+      "document_key": "marcus_aurelius_meditations_eval",
+      "filename": "marcus_aurelius_meditations.txt",
+      "title": "Meditations",
+      "author": "Marcus Aurelius",
+      "source_type": "PRIMARY",
+      "original_language": "en",
+      "reference_url": "https://www.gutenberg.org/ebooks/2680",
+      "passages": [
+        {"passage_key": "last_act", "page_number": 1, "relevance_anchor": "last", "content": "Do every act of thy life as if it were the last."},
+        {"passage_key": "soul_thoughts", "page_number": 1, "relevance_anchor": "thoughts", "content": "Such as are thy habitual thoughts, such also will be thy mind; for the soul is dyed by the thoughts."}
+      ]
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "q_nyaya_prama",
+      "query": "What does Nyaya mean by prama?",
+      "domain": "Indian epistemology",
+      "difficulty": "direct terminology",
+      "evaluation_type": "primary",
+      "expected": [{"source_key": "tarka_samgraha", "document_key": "tarka_samgraha_eval", "passage_key": "prama", "relevance": 3}],
+      "acceptable_alternatives": []
+    },
+    {
+      "query_id": "q_nyaya_inference",
+      "query": "How does Nyaya describe inference as a means of knowledge?",
+      "domain": "Indian epistemology",
+      "difficulty": "terminology paraphrase",
+      "evaluation_type": "primary",
+      "expected": [{"source_key": "tarka_samgraha", "document_key": "tarka_samgraha_eval", "passage_key": "anumana", "relevance": 3}],
+      "acceptable_alternatives": []
+    },
+    {
+      "query_id": "q_epictetus_control",
+      "query": "What does Epictetus say is within our control?",
+      "domain": "Stoic ethics",
+      "difficulty": "direct doctrinal question",
+      "evaluation_type": "primary",
+      "expected": [{"source_key": "epictetus_enchiridion", "document_key": "epictetus_enchiridion_eval", "passage_key": "control", "relevance": 3}],
+      "acceptable_alternatives": [{"source_key": "epictetus_enchiridion", "document_key": "epictetus_enchiridion_eval", "passage_key": "judgments", "relevance": 1}]
+    },
+    {
+      "query_id": "q_plato_examined_life",
+      "query": "According to Socrates, what makes a life worth living?",
+      "domain": "Socratic ethics",
+      "difficulty": "canonical formulation",
+      "evaluation_type": "primary",
+      "expected": [{"source_key": "plato_apology", "document_key": "plato_apology_eval", "passage_key": "examined_life", "relevance": 3}],
+      "acceptable_alternatives": [{"source_key": "plato_apology", "document_key": "plato_apology_eval", "passage_key": "socratic_wisdom", "relevance": 1}]
+    },
+    {
+      "query_id": "q_aristotle_virtue",
+      "query": "How does Aristotle define moral virtue in relation to excess and defect?",
+      "domain": "Aristotelian ethics",
+      "difficulty": "conceptual definition",
+      "evaluation_type": "primary",
+      "expected": [{"source_key": "aristotle_nicomachean_ethics", "document_key": "aristotle_nicomachean_ethics_eval", "passage_key": "virtue_mean", "relevance": 3}],
+      "acceptable_alternatives": [{"source_key": "aristotle_nicomachean_ethics", "document_key": "aristotle_nicomachean_ethics_eval", "passage_key": "habituation", "relevance": 1}]
+    },
+    {
+      "query_id": "q_good_life_contradiction",
+      "query": "Is the good life grounded primarily in pleasure or in virtuous activity?",
+      "domain": "ancient theories of the good life",
+      "difficulty": "contrasting doctrines",
+      "evaluation_type": "contradiction",
+      "expected": [
+        {"source_key": "epicurus_letter_menoeceus", "document_key": "epicurus_letter_menoeceus_eval", "passage_key": "pleasure_end", "relevance": 3},
+        {"source_key": "aristotle_nicomachean_ethics", "document_key": "aristotle_nicomachean_ethics_eval", "passage_key": "virtue_mean", "relevance": 3}
+      ],
+      "acceptable_alternatives": [{"source_key": "epicurus_letter_menoeceus", "document_key": "epicurus_letter_menoeceus_eval", "passage_key": "simple_pleasures", "relevance": 2}]
+    },
+    {
+      "query_id": "q_stoic_judgment",
+      "query": "What does Stoicism say about events and the judgments that disturb us?",
+      "domain": "Stoic ethics",
+      "difficulty": "cross-passage synthesis",
+      "evaluation_type": "primary",
+      "expected": [{"source_key": "epictetus_enchiridion", "document_key": "epictetus_enchiridion_eval", "passage_key": "judgments", "relevance": 3}],
+      "acceptable_alternatives": [{"source_key": "epictetus_enchiridion", "document_key": "epictetus_enchiridion_eval", "passage_key": "control", "relevance": 2}, {"source_key": "marcus_aurelius_meditations", "document_key": "marcus_aurelius_meditations_eval", "passage_key": "soul_thoughts", "relevance": 1}]
+    }
+  ]
+}

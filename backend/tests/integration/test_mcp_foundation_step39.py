@@ -1,5 +1,7 @@
 ﻿import pytest
+
 from backend.app.infrastructure.mcp.server import AnvikshikiMCPServer
+
 
 @pytest.mark.asyncio
 async def test_mcp_server_registration_and_execution():

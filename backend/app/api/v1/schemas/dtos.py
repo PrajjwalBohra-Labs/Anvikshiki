@@ -1,6 +1,7 @@
-﻿from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
 
 # --- Dialogue & Conversation Schemas ---
 class CitationDTO(BaseModel):
@@ -282,11 +283,36 @@ class DocumentProvenanceResponseDTO(BaseModel):
 class PassageProvenanceResponseDTO(BaseModel):
     passage_id: str
     document_id: str
+    document_version_id: Optional[str] = None
+    page_id: Optional[str] = None
     page_number: Optional[int] = None
+    passage_order: Optional[int] = None
     content: str
+    extraction_method: Optional[str] = None
+    section_heading: Optional[str] = None
     ocr_confidence: Optional[float] = None
     extraction_uncertainty: bool
     language: str
+
+class ProvenanceNodeResponseDTO(BaseModel):
+    node_id: str
+    node_type: str
+    entity_id: str
+    label: str
+    metadata: Dict[str, Any] = {}
+    created_at: datetime
+
+class ProvenanceEdgeResponseDTO(BaseModel):
+    edge_id: str
+    from_node_id: str
+    to_node_id: str
+    relationship_type: str
+    metadata: Dict[str, Any] = {}
+    created_at: datetime
+
+class ProvenanceGraphResponseDTO(BaseModel):
+    nodes: List[ProvenanceNodeResponseDTO] = []
+    edges: List[ProvenanceEdgeResponseDTO] = []
 
 class EvidenceTraceResponseDTO(BaseModel):
     evidence_link_id: str
@@ -298,6 +324,8 @@ class EvidenceTraceResponseDTO(BaseModel):
     document: DocumentProvenanceResponseDTO
     source: SourceProvenanceResponseDTO
     source_lineage: List[Dict[str, Any]] = []
+    graph_nodes: List[ProvenanceNodeResponseDTO] = []
+    graph_edges: List[ProvenanceEdgeResponseDTO] = []
 
 # --- Public document and acquisition contracts ---
 class SourceResponseDTO(BaseModel):
@@ -322,6 +350,22 @@ class DocumentResponseDTO(BaseModel):
 class WebAcquisitionRequestDTO(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
     source_title: Optional[str] = Field(default=None, max_length=512)
+
+class WebSearchRequestDTO(BaseModel):
+    query: str = Field(..., min_length=1, max_length=1000)
+    max_results: int = Field(default=5, ge=1, le=20)
+
+class WebSearchResultDTO(BaseModel):
+    title: str
+    url: str
+    canonical_url: str
+    snippet: str
+    rank: int
+    domain: str
+
+class WebSearchResponseDTO(BaseModel):
+    query: str
+    results: List[WebSearchResultDTO]
 
 class WebAcquisitionResponseDTO(BaseModel):
     source: SourceResponseDTO

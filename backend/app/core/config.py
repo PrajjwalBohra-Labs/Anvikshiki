@@ -1,7 +1,9 @@
 ﻿from enum import Enum
 from typing import Any, Literal, Optional
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class RuntimeProfile(str, Enum):
     CPU = "cpu"
@@ -44,15 +46,44 @@ class Settings(BaseSettings):
     
     # Embeddings & Reranking
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_PROVIDER: str = "sentence-transformers"
+    EMBEDDING_DIMENSIONS: int = Field(default=384, ge=1, le=4096)
+    EMBEDDING_BATCH_SIZE: int = Field(default=32, ge=1, le=512)
+    # Conservative PostgreSQL parser for scholarly terminology. ``simple``
+    # tokenizes without English stemming or stop words.
+    LEXICAL_SEARCH_CONFIG: Literal["simple"] = "simple"
+    LEXICAL_MAX_QUERY_LENGTH: int = Field(default=1000, ge=1, le=10_000)
+    LEXICAL_DEFAULT_LIMIT: int = Field(default=10, ge=1, le=100)
+    LEXICAL_MAX_RESULTS: int = Field(default=100, ge=1, le=1000)
+    # Hybrid retrieval uses rank-aware fusion because lexical rank and vector
+    # similarity are not comparable raw scores.  The candidate limits are
+    # intentionally separate from the public top_k result limit.
+    HYBRID_LEXICAL_WEIGHT: float = Field(default=1.0, ge=0, le=10)
+    HYBRID_SEMANTIC_WEIGHT: float = Field(default=1.0, ge=0, le=10)
+    HYBRID_LEXICAL_CANDIDATE_LIMIT: int = Field(default=30, ge=1, le=500)
+    HYBRID_SEMANTIC_CANDIDATE_LIMIT: int = Field(default=30, ge=1, le=500)
+    HYBRID_RRF_K: int = Field(default=60, ge=1, le=1000)
+    RERANKER_ENABLED: bool = True
+    RERANKER_CANDIDATE_MULTIPLIER: int = Field(default=2, ge=1, le=10)
     RERANKER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     
     # Subsystems Toggles
     ENABLE_OCR: bool = True
+    OCR_TESSERACT_CMD: Optional[str] = None
+    OCR_LANGUAGES: str = "eng"
+    OCR_DPI: int = Field(default=300, ge=72, le=600)
+    OCR_TIMEOUT_SECONDS: float = Field(default=120.0, gt=0, le=600)
+    OCR_MIN_CONFIDENCE: float = Field(default=0.60, ge=0.0, le=1.0)
     ENABLE_WEB_RETRIEVAL: bool = True
     WEB_RETRIEVAL_MAX_RESULTS: int = Field(default=5, ge=1, le=20)
     WEB_MAX_RESPONSE_BYTES: int = Field(default=5_000_000, ge=1_024, le=50_000_000)
     WEB_REQUEST_TIMEOUT_SECONDS: float = Field(default=20.0, gt=0, le=120)
+    WEB_USER_AGENT: str = "AnvikshikiResearchBot/1.0"
+    WEB_SEARCH_USER_AGENT: str = "Mozilla/5.0 (compatible; Anvikshiki/1.0)"
+    WEB_RESPECT_ROBOTS: bool = True
     ENABLE_MCP_SERVER: bool = False
+    MCP_SERVER_NAME: str = "anvikshiki"
+    MCP_SERVER_VERSION: str = "1.0.0"
     
     # Frontend/CORS
     FRONTEND_URL: str = "http://localhost:5173"
