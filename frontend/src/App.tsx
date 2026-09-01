@@ -10,6 +10,8 @@ import { executeDialogue, getHealth } from './api/services';
 import { MemoryPage } from './components/memory/MemoryPage';
 import { KnowledgeGraphPage } from './components/knowledge/KnowledgeGraphPage';
 import { NotebookPage } from './components/notebook/NotebookPage';
+import { CommandPalette } from './components/commands/CommandPalette';
+import { COMMANDS, isCommandPaletteShortcut } from './commands/registry';
 import { navigate, routeView, useRoute } from './routing';
 import type { DialogueTurnDTO, HealthDTO } from './types';
 import './styles/tokens.css';
@@ -34,6 +36,17 @@ function HealthRow({ icon, label, value }: { icon: React.ReactNode; label: strin
 
 function AuthenticatedApp() {
   const { user, initializing, logout } = useAuth(); const route = useRoute();
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isCommandPaletteShortcut(event)) {
+        event.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   if (initializing) return <main className="auth-screen"><LoadingMessage label="Restoring local research session..." /></main>;
   if (!user) return <AuthScreen />;
   const activeView: AppView = routeView(route);
@@ -57,7 +70,7 @@ function AuthenticatedApp() {
     case 'not-found': content = <section className="secondary-page"><div className="eyebrow">404 / Not found</div><h1>This path is not part of the instrument.</h1><button className="button button-primary" type="button" onClick={() => navigate('/research')}>Return to inquiry</button></section>; break;
     default: content = <ResearchWorkspace userId={user.user_id} />;
   }
-  return <AnvikshikiShell activeView={activeView} onViewChange={changeView} userName={user.username} onLogout={() => { void logout(); }}><div key={window.location.pathname}>{content}</div></AnvikshikiShell>;
+  return <><AnvikshikiShell activeView={activeView} onViewChange={changeView} userName={user.username} onLogout={() => { void logout(); }} onOpenCommandPalette={() => setCommandPaletteOpen(true)}><div key={window.location.pathname}>{content}</div></AnvikshikiShell><CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} commands={COMMANDS} /></>;
 }
 
 export function App() { return <AuthProvider><AuthenticatedApp /></AuthProvider>; }
