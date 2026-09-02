@@ -1,7 +1,7 @@
 ﻿from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # --- Dialogue & Conversation Schemas ---
@@ -191,6 +191,31 @@ class ResearchRunExecutionResponseDTO(BaseModel):
     retrieved_passages_count: int
     safe_events: List[Dict[str, Any]] = []
     result: ResearchResultResponseDTO
+
+
+class BackgroundResearchJobRequestDTO(BaseModel):
+    """Research-only payload for durable background execution."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str = Field(..., min_length=3, max_length=10_000)
+    domain: Optional[str] = Field(default=None, max_length=128)
+    depth: Optional[str] = Field(default="standard", max_length=32)
+    idempotency_key: str = Field(..., min_length=1, max_length=128)
+
+
+class BackgroundJobResponseDTO(BaseModel):
+    job_id: str
+    job_type: str
+    research_run_id: Optional[str] = None
+    status: str
+    attempts: int
+    max_attempts: int
+    result: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
 
 class ResearchEventResponseDTO(BaseModel):
     event_id: str
