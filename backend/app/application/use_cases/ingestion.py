@@ -1,6 +1,5 @@
 import mimetypes
 from datetime import datetime, timezone
-from typing import List, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -52,10 +51,10 @@ class DocumentIngestionService:
     @staticmethod
     def _extraction_metadata(
         mime_type: str,
-        parsed_data: List[dict],
-        page_data: List[dict] | None = None,
-        additional_warnings: List[str] | None = None,
-    ) -> tuple[str, str, List[str]]:
+        parsed_data: list[dict],
+        page_data: list[dict] | None = None,
+        additional_warnings: list[str] | None = None,
+    ) -> tuple[str, str, list[str]]:
         if mime_type == "application/pdf":
             method = PdfDocumentParser.EXTRACTION_METHOD
         elif mime_type in {"text/html", "application/xhtml+xml"}:
@@ -86,7 +85,7 @@ class DocumentIngestionService:
         status = "partial" if partial_extraction or additional_warnings else "success"
         return method, status, unique_warnings
 
-    def _apply_ocr_to_pages(self, page_data: List[dict], pdf_content: bytes) -> None:
+    def _apply_ocr_to_pages(self, page_data: list[dict], pdf_content: bytes) -> None:
         """Apply OCR only to uncertain pages and retain native page metadata."""
         for page in page_data:
             if not page.get("passages") or not any(
@@ -169,7 +168,7 @@ class DocumentIngestionService:
         filename: str,
         content: bytes,
         mime_type: str | None = None,
-    ) -> Tuple[DocumentModel, List[PassageModel]]:
+    ) -> tuple[DocumentModel, list[PassageModel]]:
         source_result = await self.session.execute(select(SourceModel).where(SourceModel.id == source_id))
         source = source_result.scalars().first()
         if not source:
@@ -189,7 +188,7 @@ class DocumentIngestionService:
             )
 
         try:
-            page_data: List[dict] = []
+            page_data: list[dict] = []
             if resolved_mime_type == "application/pdf":
                 page_data = PdfDocumentParser.parse_pages(content)
                 self._apply_ocr_to_pages(page_data, content)
@@ -201,7 +200,7 @@ class DocumentIngestionService:
             else:
                 parsed_data = TextDocumentParser.parse_text(content)
         except ValueError as exc:
-            raise AnvikshikiDomainError(f"Document extraction failed: {exc}", status_code=422) from exc
+            raise AnvikshikiDomainError("Document extraction failed.", status_code=422) from exc
 
         if not parsed_data:
             raise AnvikshikiDomainError("Document extraction produced no passages.", status_code=422)

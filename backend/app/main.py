@@ -1,10 +1,23 @@
-from fastapi import FastAPI
+from time import perf_counter
+from uuid import uuid4
+
+import structlog
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+
 from backend.app.api.v1 import api_router
-from backend.app.infrastructure.database.session import engine, AsyncSessionLocal
-from backend.app.core.errors import AnvikshikiDomainError, domain_error_handler, global_exception_handler
 from backend.app.core.config import settings
+from backend.app.core.errors import (
+    AnvikshikiDomainError,
+    domain_error_handler,
+    global_exception_handler,
+)
+from backend.app.core.logging import setup_logging
+from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
+
+setup_logging()
+logger = structlog.get_logger(__name__)
 
 app = FastAPI(
     title="Anvīkṣikī Epistemic Research Engine",
@@ -21,6 +34,40 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Accept", "Authorization", "Content-Type", "Last-Event-ID"],
 )
+
+
+@app.middleware("http")
+async def security_and_observability_middleware(request: Request, call_next):
+    request_id = uuid4().hex
+    started = perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        logger.error(
+            "http_request_failed",
+            request_id=request_id,
+            method=request.method,
+            path_template=getattr(request.scope.get("route"), "path", "unmatched"),
+            error_type=type(exc).__name__,
+        )
+        raise
+    duration_ms = round((perf_counter() - started) * 1000, 2)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    if request.url.path.startswith("/api/") or request.url.path == "/health":
+        response.headers["Cache-Control"] = "no-store"
+    logger.info(
+        "http_request",
+        request_id=request_id,
+        method=request.method,
+        path_template=getattr(request.scope.get("route"), "path", "unmatched"),
+        status_code=response.status_code,
+        duration_ms=duration_ms,
+    )
+    return response
 
 app.include_router(api_router)
 app.add_exception_handler(AnvikshikiDomainError, domain_error_handler)
@@ -46,8 +93,9 @@ async def health_check():
                     text("SELECT extversion FROM pg_extension WHERE extname = 'vector'")
                 )
                 pgvector_status = "available" if extension.scalar_one_or_none() else "unavailable"
-    except Exception as e:
-        db_status = f"error: {str(e)}"
+    except Exception as exc:  # noqa: BLE001 - health is a failure boundary
+        logger.warning("health_check_failed", error_type=type(exc).__name__)
+        db_status = "unavailable"
 
     return {
         "status": "healthy" if db_status == "connected" else "degraded",
