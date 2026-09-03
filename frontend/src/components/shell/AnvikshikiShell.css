@@ -15,9 +15,7 @@
 .brand-lockup strong { display: block; font-size: 11px; letter-spacing: .16em; }
 .brand-lockup span { display: block; color: var(--text-muted); font: 10px var(--font-mono); margin-top: 5px; }
 .brand-mark { width: 31px; height: 31px; flex: 0 0 31px; display: grid; place-items: center; border: 1px solid var(--aged-bronze); color: var(--dusty-oat); font: 600 14px var(--font-mono); }
-<<<<<<< HEAD
 .brand-mark img { display: block; width: 25px; height: 25px; object-fit: contain; filter: drop-shadow(0 0 7px rgba(180, 154, 131, .12)); }
-=======
 .command-trigger { display: flex; align-items: center; gap: 10px; min-height: 36px; margin: 11px 9px 0; padding: 0 10px; border: 1px solid var(--border-subtle); color: var(--text-muted); background: var(--surface-inset); text-align: left; font: 10px var(--font-mono); letter-spacing: .04em; }
 .command-trigger:hover, .command-trigger:focus-visible { border-color: var(--aged-bronze); color: var(--text-secondary); }
 .command-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -34,7 +32,6 @@
 .is-collapsed .workspace-mode-selector { grid-template-columns: 1fr; }
 .is-collapsed .workspace-mode-selector::before, .is-collapsed .workspace-mode-tab > span:last-child { display: none; }
 .is-collapsed .workspace-mode-tab { justify-content: center; padding: 0; }
->>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 .icon-button { display: grid; place-items: center; min-width: 30px; min-height: 30px; padding: 5px; border: 0; color: var(--text-muted); background: transparent; }
 .icon-button:hover { color: var(--text-secondary); background: var(--surface-raised); }
 .sidebar-close { display: none; margin-left: auto; }

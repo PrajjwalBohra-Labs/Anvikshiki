@@ -1,13 +1,7 @@
-<<<<<<< HEAD
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
-=======
-from typing import List, Dict, Any, Optional
-from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
->>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 
 
 # --- Dialogue & Conversation Schemas ---
