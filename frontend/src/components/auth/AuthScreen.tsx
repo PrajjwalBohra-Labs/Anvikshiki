@@ -20,7 +20,7 @@ export function AuthScreen() {
     <main className="auth-screen">
       <div className="auth-frame">
         <section className="auth-card">
-          <div className="auth-brand"><div className="brand-mark" aria-hidden="true">A</div><div><div className="eyebrow">Private research instrument</div><strong>ANVIKSHIKI</strong></div></div>
+          <div className="auth-brand"><div className="brand-mark"><img src="/anvikshiki-logo.png" alt="" /></div><div><div className="eyebrow">Private research instrument</div><strong>ANVIKSHIKI</strong></div></div>
           <div className="eyebrow">Local session / Entry</div>
           <h1>Begin with a research identity.</h1>
           <p className="page-lede">Create a local session to keep your investigations, evidence trails, and epistemic context scoped to you.</p>

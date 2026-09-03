@@ -1,12 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { AlertTriangle, Database, HeartPulse, LoaderCircle, MessageCircle, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, BookOpen, Database, HeartPulse, LoaderCircle, MessageCircle, ShieldCheck } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { AuthScreen } from './components/auth/AuthScreen';
 import { DocumentsPage, DocumentDetailPage, SourcesPage, WebAcquisitionPanel } from './components/library/LibraryPages';
 import { ResearchHistoryPage, ResearchQuestionsPage, ResearchRunDetailPage } from './components/research/ResearchRecords';
 import { ResearchWorkspace } from './components/research/ResearchWorkspace';
+import { KnowledgeGraphPage } from './components/knowledge/KnowledgeGraphPage';
+import { BackgroundJobsPage } from './components/jobs/BackgroundJobsPage';
 import { AnvikshikiShell, type AppView } from './components/shell/AnvikshikiShell';
-import { executeDialogue, getEpistemicPositions, getHealth } from './api/services';
+import { executeDialogue, exportResearchRun, getEpistemicPositions, getHealth } from './api/services';
 import { navigate, routeView, useRoute } from './routing';
 import type { DialogueTurnDTO, EpistemicPositionDTO, HealthDTO } from './types';
 import './styles/tokens.css';
@@ -14,6 +16,12 @@ import './styles/app.css';
 
 function LoadingMessage({ label }: { label: string }) { return <p className="muted-copy loading-message" role="status"><LoaderCircle className="spin" size={14} /> {label}</p>; }
 function ErrorMessage({ message }: { message: string }) { return <div className="inline-error" role="alert"><AlertTriangle size={15} />{message}</div>; }
+
+function ExportRecordAction({ runId }: { runId: string }) {
+  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const exportRecord = async () => { setBusy(true); setError(''); try { const data = await exportResearchRun(runId); const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const anchor = window.document.createElement('a'); anchor.href = url; anchor.download = `research-${runId}.json`; anchor.click(); URL.revokeObjectURL(url); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Research export failed.'); } finally { setBusy(false); } };
+  return <div className="record-export"><button className="button button-primary" type="button" onClick={() => void exportRecord()} disabled={busy}>{busy ? 'Preparing export...' : 'Export this research record'}</button>{error && <ErrorMessage message={error} />}</div>;
+}
 
 function MemoryPage({ userId }: { userId: string }) {
   const [positions, setPositions] = useState<EpistemicPositionDTO[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
@@ -24,7 +32,7 @@ function MemoryPage({ userId }: { userId: string }) {
 function DialoguePage() {
   const [input, setInput] = useState(''); const [mode, setMode] = useState('socratic'); const [turn, setTurn] = useState<DialogueTurnDTO | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState('');
   const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (!input.trim()) return; setLoading(true); setError(''); try { setTurn(await executeDialogue(input.trim(), mode)); setInput(''); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Dialogue response failed.'); } finally { setLoading(false); } };
-  return <section className="secondary-page"><div className="eyebrow">Dialogue / Reflection</div><h1>Reflective dialogue</h1><p className="page-lede">A dialogue turn is separate from a research run and is shown only when returned by the backend.</p><section className="dialogue-panel panel"><form className="dialogue-form" onSubmit={submit}><label htmlFor="dialogue-mode" className="sr-only">Dialogue mode</label><select id="dialogue-mode" value={mode} onChange={(event) => setMode(event.target.value)} disabled={loading}><option value="socratic">Socratic</option><option value="challenge">Challenge</option><option value="explanation">Explanation</option><option value="counterexample">Counterexample</option><option value="debate">Debate</option><option value="reflective">Reflective</option></select><label htmlFor="dialogue-input" className="sr-only">Dialogue prompt</label><input id="dialogue-input" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask for a challenge, clarification, or counterexample..." disabled={loading} /><button className="button button-primary" type="submit" disabled={loading || !input.trim()}>{loading ? <LoaderCircle className="spin" size={14} /> : <MessageCircle size={14} />} Send</button></form>{error && <ErrorMessage message={error} />}{turn && <article className="dialogue-response"><div className="eyebrow">{turn.dialogue_mode} response{turn.source_title ? ` · ${turn.source_title}` : ''}</div><p>{turn.response_text}</p><div className="dialogue-flags"><span>{turn.evidence_linked ? 'Evidence linked' : 'No evidence linked'}</span><span>{turn.preserves_uncertainty ? 'Uncertainty preserved' : 'Uncertainty not reported'}</span>{turn.disagrees_with_user && <span>Challenges the premise</span>}</div></article>}</section></section>;
+  return <section className="secondary-page"><div className="eyebrow">Dialogue / Reflection</div><h1>Reflective dialogue</h1><p className="page-lede">A dialogue turn is separate from a research run and is shown only when returned by the backend.</p><section className="dialogue-panel panel"><form className="dialogue-form" onSubmit={submit}><label htmlFor="dialogue-mode" className="sr-only">Dialogue mode</label><select id="dialogue-mode" value={mode} onChange={(event) => setMode(event.target.value)} disabled={loading}><option value="socratic">Socratic</option><option value="challenge">Challenge</option><option value="explanation">Explanation</option><option value="counterexample">Counterexample</option><option value="debate">Debate</option><option value="reflective">Reflective</option></select><label htmlFor="dialogue-input" className="sr-only">Dialogue prompt</label><input id="dialogue-input" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask for a challenge, clarification, or counterexample..." disabled={loading} /><button className="button button-primary" type="submit" disabled={loading || !input.trim()}>{loading ? <LoaderCircle className="spin" size={14} /> : <MessageCircle size={14} />} Send</button></form>{error && <ErrorMessage message={error} />}{turn && <article className="dialogue-response"><div className="eyebrow">{turn.dialogue_mode} response{turn.source_title ? `  /  ${turn.source_title}` : ''}</div><p>{turn.response_text}</p><div className="dialogue-flags"><span>{turn.evidence_linked ? 'Evidence linked' : 'No evidence linked'}</span><span>{turn.preserves_uncertainty ? 'Uncertainty preserved' : 'Uncertainty not reported'}</span>{turn.disagrees_with_user && <span>Challenges the premise</span>}</div></article>}</section></section>;
 }
 
 function SettingsPage({ user }: { user: { user_id: string; username: string } }) {
@@ -43,9 +51,10 @@ function AuthenticatedApp() {
   const changeView = (view: AppView) => navigate(view === 'inquiry' ? '/research' : view === 'history' ? '/research/runs' : view === 'questions' ? '/research/questions' : view === 'library' ? '/library/sources' : `/${view}`);
   let content: React.ReactNode;
   switch (route.name) {
-    case 'research-run': content = <ResearchRunDetailPage runId={route.id} />; break;
+    case 'research-run': content = <><ResearchRunDetailPage runId={route.id} /><ExportRecordAction runId={route.id} /></>; break;
     case 'research-runs': content = <ResearchHistoryPage />; break;
     case 'research-questions': content = <ResearchQuestionsPage />; break;
+    case 'research-jobs': content = <BackgroundJobsPage />; break;
     case 'library-document': content = <DocumentDetailPage documentId={route.id} />; break;
     case 'library-documents': content = <DocumentsPage />; break;
     case 'library-sources': content = <><SourcesPage /><section className="secondary-page secondary-page-compact"><WebAcquisitionPanel /></section></>; break;
@@ -53,6 +62,9 @@ function AuthenticatedApp() {
     case 'memory': content = <MemoryPage userId={user.user_id} />; break;
     case 'dialogue': content = <DialoguePage />; break;
     case 'settings': content = <SettingsPage user={user} />; break;
+    case 'knowledge-graph': content = <KnowledgeGraphPage />; break;
+    case 'knowledge-graph-run': content = <KnowledgeGraphPage runId={route.id} />; break;
+    case 'notebook': content = <section className="secondary-page"><div className="eyebrow">Notebook / Thinking surface</div><h1>Notebook</h1><p className="page-lede">The current backend exposes research records, evidence, and provenance. Durable notebook persistence is not available in this checkout, so no client-only notes are presented as saved research.</p><div className="empty-card"><BookOpen size={18} />Open a research record to work with backend-authoritative findings.</div><button className="button button-primary" type="button" onClick={() => navigate('/research/runs')}>Review research records</button></section>; break;
     case 'not-found': content = <section className="secondary-page"><div className="eyebrow">404 / Not found</div><h1>This path is not part of the instrument.</h1><button className="button button-primary" type="button" onClick={() => navigate('/research')}>Return to inquiry</button></section>; break;
     default: content = <ResearchWorkspace userId={user.user_id} />;
   }

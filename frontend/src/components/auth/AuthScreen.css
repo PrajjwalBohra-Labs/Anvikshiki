@@ -1,8 +1,9 @@
-.auth-screen { min-height: 100vh; display: grid; place-items: center; padding: 28px; background: var(--background); }
-.auth-frame { width: min(100%, 930px); display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr); border: 1px solid var(--border-subtle); background: var(--surface); box-shadow: var(--shadow-deep); }
+.auth-screen { min-height: 100vh; display: grid; place-items: center; padding: 28px; background: radial-gradient(circle at 72% 20%, rgba(91,70,54,.14), transparent 34rem), var(--background); }
+.auth-frame { width: min(100%, 930px); display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(220px, .7fr); border: 1px solid var(--border-subtle); background: linear-gradient(135deg, rgba(27,25,23,.98), rgba(17,17,16,.98)); box-shadow: var(--shadow-deep); }
 .auth-card { display: grid; gap: 16px; padding: clamp(25px, 5vw, 58px); border-right: 1px solid var(--border-subtle); }
 .auth-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
 .auth-brand .brand-mark { width: 31px; height: 31px; display: grid; place-items: center; border: 1px solid var(--aged-bronze); color: var(--dusty-oat); font: 600 14px var(--font-mono); }
+.auth-brand .brand-mark img { width: 25px; height: 25px; object-fit: contain; }
 .auth-brand strong { display: block; margin-top: 5px; color: var(--text-secondary); font-size: 12px; letter-spacing: .17em; }
 .auth-card h1 { max-width: 500px; color: var(--text-secondary); font-family: var(--font-serif); font-size: clamp(31px, 5vw, 52px); font-weight: 500; letter-spacing: -.03em; line-height: 1.05; margin: 0; }
 .auth-card .page-lede { max-width: 470px; margin: 0; }
@@ -10,7 +11,7 @@
 .auth-form label { display: grid; gap: 8px; }
 .auth-form input { width: 100%; padding: 12px; }
 .auth-form .button { width: 100%; }
-.auth-notes { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 16px; min-height: 350px; padding: 27px; background: var(--surface-inset); }
+.auth-notes { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 16px; min-height: 350px; padding: 27px; border-left: 1px solid rgba(180,154,131,.04); background: radial-gradient(circle at 50% 22%, rgba(91,70,54,.14), transparent 18rem), var(--surface-inset); }
 .auth-notes > p { color: var(--text-secondary); font-family: var(--font-serif); font-size: 18px; line-height: 1.45; margin: 0; }
 .auth-notes > small { color: var(--text-muted); font: 10px/1.5 var(--font-mono); }
 .auth-note-list { display: grid; gap: 10px; width: 100%; padding: 15px 0; border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font: 10px var(--font-mono); text-transform: uppercase; }

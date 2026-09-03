@@ -8,6 +8,9 @@ import type {
   EpistemicPositionDTO,
   EvidenceTraceDTO,
   HealthDTO,
+  BackgroundJobDTO,
+  ProvenanceGraphDTO,
+  ResearchExportDTO,
   ResearchQuestionDetailDTO,
   ResearchQuestionSummaryDTO,
   ResearchEventDTO,
@@ -148,6 +151,18 @@ export function getRunAnalysis(runId: string): Promise<SpecialistAnalysisDTO> {
 
 export function getRunProvenance(runId: string): Promise<EvidenceTraceDTO[]> {
   return request<EvidenceTraceDTO[]>(`/research/runs/${encodeURIComponent(runId)}/provenance`);
+}
+
+export function getRunProvenanceGraph(runId: string): Promise<ProvenanceGraphDTO> {
+  return request<ProvenanceGraphDTO>(`/research/runs/${encodeURIComponent(runId)}/provenance/graph`);
+}
+
+export function exportResearchRun(runId: string): Promise<ResearchExportDTO> {
+  return request<ResearchExportDTO>(`/research/runs/${encodeURIComponent(runId)}/export`);
+}
+
+export function listBackgroundJobs(): Promise<BackgroundJobDTO[]> {
+  return request<BackgroundJobDTO[]>('/research/jobs');
 }
 
 export function getHealth(): Promise<HealthDTO> {

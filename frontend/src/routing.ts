@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
 export type Route =
-  | { name: 'research' | 'research-new' | 'research-runs' | 'research-questions' | 'library' | 'library-sources' | 'library-documents' | 'memory' | 'dialogue' | 'settings' | 'not-found' }
-  | { name: 'research-run' | 'library-document'; id: string };
+  | { name: 'research' | 'research-new' | 'research-runs' | 'research-questions' | 'research-jobs' | 'library' | 'library-sources' | 'library-documents' | 'memory' | 'dialogue' | 'settings' | 'knowledge-graph' | 'notebook' | 'not-found' }
+  | { name: 'research-run' | 'library-document' | 'knowledge-graph-run'; id: string };
 
 export function parseRoute(pathname: string): Route {
   const path = pathname.replace(/\/+$/, '') || '/research';
@@ -10,17 +10,22 @@ export function parseRoute(pathname: string): Route {
   if (run) return { name: 'research-run', id: decodeURIComponent(run[1]) };
   const document = path.match(/^\/library\/documents\/([^/]+)$/);
   if (document) return { name: 'library-document', id: decodeURIComponent(document[1]) };
-  const routes: Record<string, Exclude<Route['name'], 'research-run' | 'library-document'>> = {
+  const graph = path.match(/^\/knowledge-graph\/([^/]+)$/);
+  if (graph) return { name: 'knowledge-graph-run', id: decodeURIComponent(graph[1]) };
+  const routes: Record<string, Exclude<Route['name'], 'research-run' | 'library-document' | 'knowledge-graph-run'>> = {
     '/research': 'research',
     '/research/new': 'research-new',
     '/research/runs': 'research-runs',
     '/research/questions': 'research-questions',
+    '/research/jobs': 'research-jobs',
     '/library': 'library',
     '/library/sources': 'library-sources',
     '/library/documents': 'library-documents',
     '/memory': 'memory',
     '/dialogue': 'dialogue',
     '/settings': 'settings',
+    '/knowledge-graph': 'knowledge-graph',
+    '/notebook': 'notebook',
   };
   return routes[path] ? { name: routes[path] } : { name: 'not-found' };
 }
@@ -47,5 +52,7 @@ export function routeView(route: Route): 'inquiry' | 'history' | 'questions' | '
   if (route.name === 'memory') return 'memory';
   if (route.name === 'dialogue') return 'dialogue';
   if (route.name === 'settings') return 'settings';
+  if (route.name === 'knowledge-graph' || route.name === 'knowledge-graph-run') return 'memory';
+  if (route.name === 'notebook') return 'inquiry';
   return 'inquiry';
 }

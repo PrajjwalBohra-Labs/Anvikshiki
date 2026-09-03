@@ -29,6 +29,9 @@
   --accent-warm: var(--aged-bronze);
   --accent-archival: var(--walnut-leather);
   --accent-cool: var(--twilight-blue);
+  --accent-sage: #78806a;
+  --accent-copper: #9b6f4f;
+  --text-on-accent: #171310;
 
   /* Epistemic semantics. */
   --evidence: var(--dusty-oat);
@@ -49,6 +52,17 @@
   --shadow-deep: 0 18px 46px rgba(0, 0, 0, 0.28);
   --shadow-inset: inset 0 1px rgba(255, 255, 255, 0.025);
   --focus-ring: 0 0 0 2px var(--ink-black), 0 0 0 4px var(--dusty-oat);
+  --radius-sm: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --motion-fast: 140ms;
+  --motion-standard: 200ms;
+  --content-width: 1180px;
+  --reading-width: 760px;
 }
 
 * { box-sizing: border-box; }
@@ -61,7 +75,10 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  line-height: 1.45;
 }
+
+::selection { background: rgba(180, 154, 131, .34); color: #eee3d8; }
 
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
@@ -69,7 +86,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   outline: none;
   box-shadow: var(--focus-ring);
 }
-::selection { background: var(--aged-bronze); color: var(--text-primary); }
+/* Selection follows the archival accent without flattening the text contrast. */
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
