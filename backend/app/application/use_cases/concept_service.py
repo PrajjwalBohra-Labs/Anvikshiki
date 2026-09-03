@@ -1,8 +1,12 @@
-﻿from typing import List, Optional, Dict, Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from backend.app.infrastructure.database.models import ConceptModel, ConceptRelationshipModel
-from backend.app.core.errors import AnvikshikiDomainError
+
+from backend.app.infrastructure.database.models import (
+    ConceptModel,
+    ConceptRelationshipModel,
+)
+
 
 class ConceptService:
     """
@@ -16,9 +20,9 @@ class ConceptService:
         self,
         name: str,
         definition: str,
-        original_language_term: Optional[str] = None,
-        transliteration: Optional[str] = None,
-        aliases: Optional[List[str]] = None
+        original_language_term: str | None = None,
+        transliteration: str | None = None,
+        aliases: list[str] | None = None
     ) -> ConceptModel:
         concept = ConceptModel(
             name=name,
@@ -32,7 +36,7 @@ class ConceptService:
         await self.session.refresh(concept)
         return concept
 
-    async def search_concepts(self, query: str) -> List[ConceptModel]:
+    async def search_concepts(self, query: str) -> list[ConceptModel]:
         stmt = select(ConceptModel).where(
             (ConceptModel.name.ilike(f"%{query}%")) |
             (ConceptModel.original_language_term.ilike(f"%{query}%")) |

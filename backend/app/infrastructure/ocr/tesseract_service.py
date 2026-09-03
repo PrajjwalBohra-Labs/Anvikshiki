@@ -3,7 +3,6 @@
 import io
 import re
 from datetime import datetime, timezone
-from typing import Dict, Optional
 
 import fitz  # PyMuPDF
 import pytesseract
@@ -12,7 +11,6 @@ from langdetect import DetectorFactory, LangDetectException, detect_langs
 from PIL import Image
 
 from backend.app.core.config import settings
-
 
 logger = structlog.get_logger(__name__)
 DetectorFactory.seed = 0
@@ -37,7 +35,7 @@ class TesseractOcrService:
     def _language_parts(language: str) -> list[str]:
         return [part for part in re.split(r"[+,\s]+", language.strip()) if part]
 
-    def availability_error(self, language: Optional[str] = None) -> Optional[str]:
+    def availability_error(self, language: str | None = None) -> str | None:
         """Return a diagnostic string, or None when Tesseract can run."""
         if not self.enabled:
             return "OCR is disabled by configuration."
@@ -60,7 +58,7 @@ class TesseractOcrService:
             return "Unsupported OCR language(s): " + ", ".join(missing_languages)
         return None
 
-    def is_available(self, language: Optional[str] = None) -> bool:
+    def is_available(self, language: str | None = None) -> bool:
         return self.availability_error(language) is None
 
     @staticmethod
@@ -74,8 +72,8 @@ class TesseractOcrService:
         status: str,
         content: str = "",
         confidence: float = 0.0,
-        error: Optional[str] = None,
-    ) -> Dict:
+        error: str | None = None,
+    ) -> dict:
         return {
             "content": content,
             "confidence": confidence,
@@ -91,7 +89,7 @@ class TesseractOcrService:
         }
 
     @staticmethod
-    def _parse_data(data: Dict) -> tuple[str, float]:
+    def _parse_data(data: dict) -> tuple[str, float]:
         text_parts = []
         confidence_values = []
         for raw_text, raw_confidence in zip(data.get("text", []), data.get("conf", [])):
@@ -151,8 +149,8 @@ class TesseractOcrService:
         return selected_language
 
     def process_pdf_page(
-        self, pdf_bytes: bytes, page_num: int, language: Optional[str] = None
-    ) -> Dict:
+        self, pdf_bytes: bytes, page_num: int, language: str | None = None
+    ) -> dict:
         """Render one 1-indexed page and return structured OCR outcome metadata."""
         requested_language = language or self.languages
         availability_error = self.availability_error(requested_language)

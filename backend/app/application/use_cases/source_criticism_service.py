@@ -1,8 +1,11 @@
-﻿from typing import Dict, Any, Optional
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.infrastructure.database.models import SourceCriticismModel, SourceModel
-from backend.app.domain.models.enums import EvidenceStatus
+
 from backend.app.core.errors import AnvikshikiDomainError
+from backend.app.domain.models.enums import EvidenceStatus
+from backend.app.infrastructure.database.models import SourceCriticismModel, SourceModel
+
 
 class SourceCriticismEngine:
     """
@@ -19,8 +22,8 @@ class SourceCriticismEngine:
         basis: str,
         confidence: float = 1.0,
         status: EvidenceStatus = EvidenceStatus.PLAUSIBLE,
-        supporting_evidence: Optional[Dict[str, Any]] = None,
-        contradicting_evidence: Optional[Dict[str, Any]] = None
+        supporting_evidence: dict[str, Any] | None = None,
+        contradicting_evidence: dict[str, Any] | None = None
     ) -> SourceCriticismModel:
         source = await self.session.get(SourceModel, source_id)
         if not source:

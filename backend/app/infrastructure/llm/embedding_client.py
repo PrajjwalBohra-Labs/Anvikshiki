@@ -1,6 +1,5 @@
 import hashlib
 import math
-from typing import List
 
 import structlog
 
@@ -25,16 +24,16 @@ class LocalEmbeddingClient:
         self.model = model
         self.adapter = LocalSentenceTransformerEmbeddingAdapter(model_name=model)
 
-    def _generate_synthetic_vector(self, text: str, dim: int = 64) -> List[float]:
+    def _generate_synthetic_vector(self, text: str, dim: int = 64) -> list[float]:
         vec = []
         for i in range(dim):
-            digest = hashlib.sha256(f"{text}_{i}".encode("utf-8")).hexdigest()
+            digest = hashlib.sha256(f"{text}_{i}".encode()).hexdigest()
             value = (int(digest[:8], 16) / 0xFFFFFFFF) * 2 - 1
             vec.append(value)
         norm = math.sqrt(sum(x * x for x in vec)) or 1.0
         return [x / norm for x in vec]
 
-    async def get_embedding(self, text: str) -> List[float]:
+    async def get_embedding(self, text: str) -> list[float]:
         if not text.strip():
             return []
         if settings.RUNTIME_PROFILE == RuntimeProfile.TEST:

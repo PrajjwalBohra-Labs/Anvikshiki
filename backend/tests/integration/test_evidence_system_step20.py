@@ -1,8 +1,15 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel, ClaimModel
-from backend.app.domain.models.enums import SourceType, ClaimType, RelationType
+import pytest
+
 from backend.app.application.use_cases.evidence_service import EvidenceService
+from backend.app.domain.models.enums import ClaimType, RelationType, SourceType
+from backend.app.infrastructure.database.models import (
+    ClaimModel,
+    DocumentModel,
+    PassageModel,
+    SourceModel,
+)
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():

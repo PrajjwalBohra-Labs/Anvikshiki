@@ -1,13 +1,20 @@
-﻿from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user, resolve_user_id
+
+from backend.app.api.dependencies import (
+    AuthenticatedPrincipal,
+    get_current_user,
+    resolve_user_id,
+)
+from backend.app.api.v1.schemas.dtos import (
+    EpistemicPositionCreateDTO,
+    EpistemicPositionResponseDTO,
+    EpistemicPositionUpdateDTO,
+)
+from backend.app.application.memory.epistemic_memory import EpistemicMemoryService
 from backend.app.infrastructure.database.models import EpistemicPositionModel
 from backend.app.infrastructure.database.session import get_db
-from backend.app.application.memory.epistemic_memory import EpistemicMemoryService
-from backend.app.api.v1.schemas.dtos import (
-    EpistemicPositionCreateDTO, EpistemicPositionUpdateDTO, EpistemicPositionResponseDTO
-)
 
 router = APIRouter()
 
@@ -74,7 +81,7 @@ async def update_position_status(
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
 
-@router.get("/user/{user_id}/positions", response_model=List[EpistemicPositionResponseDTO])
+@router.get("/user/{user_id}/positions", response_model=list[EpistemicPositionResponseDTO])
 async def get_user_positions(
     user_id: str,
     db: AsyncSession = Depends(get_db),

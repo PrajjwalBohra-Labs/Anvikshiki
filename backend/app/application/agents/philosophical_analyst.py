@@ -1,9 +1,17 @@
-from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-import structlog
+from typing import Any
 
-from backend.app.infrastructure.database.models import ArgumentModel, PremiseModel, ObjectionModel, AssumptionModel, EvidenceLinkModel, PassageModel
+import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.domain.models.enums import RelationType
+from backend.app.infrastructure.database.models import (
+    ArgumentModel,
+    AssumptionModel,
+    EvidenceLinkModel,
+    ObjectionModel,
+    PassageModel,
+    PremiseModel,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -12,17 +20,17 @@ class PhilosophicalAnalyst:
     Reconstructs dialectical arguments, maps premises to evidence passages,
     and preserves original philosophical terminology.
     """
-    def __init__(self, session: Optional[AsyncSession] = None):
+    def __init__(self, session: AsyncSession | None = None):
         self.session = session
 
     async def reconstruct_argument(
         self,
         title: str,
-        conclusion_statement: Optional[str] = None,
-        conclusion: Optional[str] = None,
-        premises: Optional[List[Dict[str, Any]]] = None,
-        objections: Optional[List[Dict[str, Any]]] = None,
-        assumptions: Optional[List[Dict[str, Any]]] = None
+        conclusion_statement: str | None = None,
+        conclusion: str | None = None,
+        premises: list[dict[str, Any]] | None = None,
+        objections: list[dict[str, Any]] | None = None,
+        assumptions: list[dict[str, Any]] | None = None
     ) -> ArgumentModel:
         final_conclusion = conclusion_statement or conclusion or "Unspecified conclusion"
 

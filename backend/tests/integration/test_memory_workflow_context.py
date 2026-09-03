@@ -1,10 +1,13 @@
-from typing import Any, AsyncGenerator, Dict, Optional
+from collections.abc import AsyncGenerator
+from typing import Any
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import delete
 
-from backend.app.application.orchestration.research_workflow import ResearchWorkflowEngine
+from backend.app.application.orchestration.research_workflow import (
+    ResearchWorkflowEngine,
+)
 from backend.app.infrastructure.ai.local_model_adapter import BaseModelAdapter
 from backend.app.infrastructure.database.models import (
     DurableGraphCheckpointModel,
@@ -32,17 +35,17 @@ class CapturingLLMAdapter(BaseModelAdapter):
     async def generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         max_tokens: int = 512,
         temperature: float = 0.7,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self.prompt = prompt
         return {"content": "context captured", "model": self.model_name}
 
     async def stream_generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         max_tokens: int = 512,
         temperature: float = 0.7,
     ) -> AsyncGenerator[str, None]:

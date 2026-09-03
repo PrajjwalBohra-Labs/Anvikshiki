@@ -1,20 +1,22 @@
-﻿import math
-from typing import List, Optional
+import math
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+
+from backend.app.core.config import settings
+from backend.app.domain.models.enums import EmbeddingIndexStatus, SourceType
 from backend.app.infrastructure.database.models import (
     PGVECTOR_AVAILABLE,
-    PassageModel,
     DocumentModel,
+    PassageModel,
     SourceModel,
     Vector,
 )
-from backend.app.domain.models.enums import EmbeddingIndexStatus, SourceType
 from backend.app.infrastructure.rag.lexical_retriever import ScoredPassage
-from backend.app.core.config import settings
 
-def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
+
+def cosine_similarity(vec1: list[float], vec2: list[float]) -> float:
     """Calculates cosine similarity between two dense vectors."""
     if not vec1 or not vec2 or len(vec1) != len(vec2):
         return 0.0
@@ -31,13 +33,13 @@ class SemanticRetriever:
 
     async def search(
         self,
-        query_vector: List[float],
-        source_type: Optional[SourceType] = None,
+        query_vector: list[float],
+        source_type: SourceType | None = None,
         limit: int = 10,
-        document_id: Optional[str] = None,
-        document_version_id: Optional[str] = None,
-        source_id: Optional[str] = None,
-    ) -> List[ScoredPassage]:
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+        source_id: str | None = None,
+    ) -> list[ScoredPassage]:
         """
         Performs semantic vector search across passage embeddings.
         Includes provenance-aware eager loading and metadata filtering.

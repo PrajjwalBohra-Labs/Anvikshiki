@@ -3,8 +3,10 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import delete, event
 
+from backend.app.application.orchestration.research_workflow import (
+    ResearchWorkflowEngine,
+)
 from backend.app.application.use_cases.hybrid_retrieval import HybridRetrievalService
-from backend.app.application.orchestration.research_workflow import ResearchWorkflowEngine
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalSentenceTransformerEmbeddingAdapter,
 )
@@ -12,11 +14,10 @@ from backend.app.infrastructure.database.models import (
     DocumentModel,
     EvidenceLinkModel,
     PassageModel,
-    SourceModel,
     SourceCriticismModel,
+    SourceModel,
 )
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
-
 
 pytestmark = pytest.mark.postgres
 

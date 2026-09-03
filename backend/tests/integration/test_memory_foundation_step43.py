@@ -1,10 +1,11 @@
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import delete
+
 from backend.app.application.memory.memory_foundation import MemoryFoundationService
 from backend.app.infrastructure.database.models import MemoryRecordModel, UserModel
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
-from sqlalchemy import delete
 
 
 @pytest.fixture

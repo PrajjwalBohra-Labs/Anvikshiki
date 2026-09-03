@@ -1,38 +1,45 @@
+<<<<<<< HEAD
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
+=======
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 
 
 # --- Dialogue & Conversation Schemas ---
 class CitationDTO(BaseModel):
     passage_id: str
     source_title: str
-    page_number: Optional[int] = None
+    page_number: int | None = None
     extracted_text: str
 
 class MessageCreateDTO(BaseModel):
     role: str = Field(..., pattern="^(user|assistant|system)$")
     content: str = Field(..., min_length=1)
-    research_run_id: Optional[str] = None
-    citations: Optional[List[Dict[str, Any]]] = None
+    research_run_id: str | None = None
+    citations: list[dict[str, Any]] | None = None
 
 class MessageResponseDTO(BaseModel):
     message_id: str
     role: str
     content: str
-    research_run_id: Optional[str] = None
-    citations: List[Dict[str, Any]] = []
+    research_run_id: str | None = None
+    citations: list[dict[str, Any]] = []
     created_at: datetime
 
 class ConversationCreateDTO(BaseModel):
     user_id: str
-    title: Optional[str] = "New Research Dialogue"
+    title: str | None = "New Research Dialogue"
 
 class ConversationResponseDTO(BaseModel):
     conversation_id: str
-    title: Optional[str]
+    title: str | None
     created_at: datetime
-    messages: List[MessageResponseDTO] = []
+    messages: list[MessageResponseDTO] = []
 
 
 # --- Notebook contract ---
@@ -84,7 +91,7 @@ class NotebookResponseDTO(BaseModel):
 class DialogueTurnRequestDTO(BaseModel):
     user_utterance: str = Field(..., min_length=1)
     dialogue_mode: str = Field("socratic", description="socratic, challenge, explanation, counterexample, debate, reflective")
-    evidence_passage_id: Optional[str] = None
+    evidence_passage_id: str | None = None
     user_mastery_demonstrated: bool = False
 
 class DialogueTurnResponseDTO(BaseModel):
@@ -93,7 +100,7 @@ class DialogueTurnResponseDTO(BaseModel):
     disagrees_with_user: bool
     evidence_linked: bool
     preserves_uncertainty: bool
-    source_title: Optional[str] = None
+    source_title: str | None = None
 
 # --- Epistemic Memory Schemas ---
 class EpistemicPositionCreateDTO(BaseModel):
@@ -101,13 +108,13 @@ class EpistemicPositionCreateDTO(BaseModel):
     claim_statement: str = Field(..., min_length=5)
     position: str = Field(..., description="tentative, accepted, rejected, contested, under investigation, unresolved")
     confidence: float = Field(1.0, ge=0.0, le=1.0)
-    supporting_evidence: Optional[List[Dict[str, Any]]] = None
-    counterarguments: Optional[List[Dict[str, Any]]] = None
+    supporting_evidence: list[dict[str, Any]] | None = None
+    counterarguments: list[dict[str, Any]] | None = None
     status: str = "tentative"
 
 class EpistemicPositionUpdateDTO(BaseModel):
     new_status: str
-    change_reason: Optional[str] = None
+    change_reason: str | None = None
 
 class EpistemicPositionResponseDTO(BaseModel):
     position_id: str
@@ -115,17 +122,17 @@ class EpistemicPositionResponseDTO(BaseModel):
     position: str
     confidence: float
     status: str
-    supporting_evidence: Optional[List[Dict[str, Any]]] = []
-    counterarguments: Optional[List[Dict[str, Any]]] = []
+    supporting_evidence: list[dict[str, Any]] | None = []
+    counterarguments: list[dict[str, Any]] | None = []
     updated_at: datetime
-    history: List[Dict[str, Any]] = []
+    history: list[dict[str, Any]] = []
 
 # --- Research & Continuity Schemas ---
 class ResearchRunRequestDTO(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
     query: str = Field(..., min_length=3, max_length=10_000)
-    domain: Optional[str] = Field("Philosophy & Empirical Epistemology", max_length=128)
-    depth: Optional[str] = "standard"
+    domain: str | None = Field("Philosophy & Empirical Epistemology", max_length=128)
+    depth: str | None = "standard"
 
 class ResearchResumeRequestDTO(BaseModel):
     research_question_id: str = Field(..., min_length=1, max_length=128)
@@ -134,108 +141,108 @@ class ResearchResumeRequestDTO(BaseModel):
 class ResearchContinuityResponseDTO(BaseModel):
     research_question_id: str
     main_question: str
-    subquestions: List[str]
-    scope: Optional[str]
-    domain: Optional[str]
+    subquestions: list[str]
+    scope: str | None
+    domain: str | None
     research_status: str
-    established_findings: List[str]
-    unresolved_questions: List[str]
-    user_positions: List[Dict[str, Any]]
-    evidence_trail: List[Dict[str, Any]]
-    research_timeline: List[Dict[str, Any]]
+    established_findings: list[str]
+    unresolved_questions: list[str]
+    user_positions: list[dict[str, Any]]
+    evidence_trail: list[dict[str, Any]]
+    research_timeline: list[dict[str, Any]]
     suggested_next_step: str
 
 class ResearchQuestionSummaryResponseDTO(BaseModel):
     question_id: str
-    user_id: Optional[str] = None
+    user_id: str | None = None
     main_question: str
-    domain: Optional[str] = None
+    domain: str | None = None
     research_status: str
     created_at: datetime
-    run_ids: List[str] = []
+    run_ids: list[str] = []
 
 class ResearchQuestionDetailResponseDTO(ResearchQuestionSummaryResponseDTO):
-    subquestions: List[str] = []
-    scope: Optional[str] = None
-    constraints: List[str] = []
-    user_position: Optional[str] = None
-    open_questions: List[str] = []
+    subquestions: list[str] = []
+    scope: str | None = None
+    constraints: list[str] = []
+    user_position: str | None = None
+    open_questions: list[str] = []
 
 # --- Public research result contracts ---
 class ResearchStepResponseDTO(BaseModel):
     step_name: str
     step_type: str
     status: str
-    payload: Optional[Dict[str, Any]] = None
-    event_id: Optional[str] = None
-    event_sequence: Optional[int] = None
+    payload: dict[str, Any] | None = None
+    event_id: str | None = None
+    event_sequence: int | None = None
     created_at: datetime
 
 class ResearchPassageResponseDTO(BaseModel):
     passage_id: str
-    source_id: Optional[str] = None
+    source_id: str | None = None
     source_title: str
     content: str
-    page_number: Optional[int] = None
-    source_type: Optional[str] = None
-    retrieval_channels: List[str] = []
+    page_number: int | None = None
+    source_type: str | None = None
+    retrieval_channels: list[str] = []
 
 class ValidatedClaimResponseDTO(BaseModel):
-    claim_id: Optional[str] = None
+    claim_id: str | None = None
     statement: str
-    claim_type: Optional[str] = None
-    passage_id: Optional[str] = None
-    source_title: Optional[str] = None
+    claim_type: str | None = None
+    passage_id: str | None = None
+    source_title: str | None = None
     confidence: float = 0.0
     is_verified: bool = False
-    reason: Optional[str] = None
+    reason: str | None = None
 
 class SpecialistAnalysisResponseDTO(BaseModel):
-    philosophical_arguments: List[Dict[str, Any]] = []
-    source_criticisms: List[Dict[str, Any]] = []
-    scientific_analyses: List[Dict[str, Any]] = []
-    comparisons: List[Dict[str, Any]] = []
-    challenges: List[Dict[str, Any]] = []
+    philosophical_arguments: list[dict[str, Any]] = []
+    source_criticisms: list[dict[str, Any]] = []
+    scientific_analyses: list[dict[str, Any]] = []
+    comparisons: list[dict[str, Any]] = []
+    challenges: list[dict[str, Any]] = []
 
 class ResearchResultResponseDTO(BaseModel):
     run_id: str
     query: str
-    domain: Optional[str] = None
+    domain: str | None = None
     validation_status: str
     final_response: str
     validated_claims_count: int
-    retrieved_passages: List[ResearchPassageResponseDTO] = []
-    claims: List[ValidatedClaimResponseDTO] = []
+    retrieved_passages: list[ResearchPassageResponseDTO] = []
+    claims: list[ValidatedClaimResponseDTO] = []
     specialist_analysis: SpecialistAnalysisResponseDTO = SpecialistAnalysisResponseDTO()
-    validation: Dict[str, Any] = {}
+    validation: dict[str, Any] = {}
 
 class ResearchRunSummaryResponseDTO(BaseModel):
     run_id: str
-    research_question_id: Optional[str] = None
-    thread_id: Optional[str] = None
-    user_id: Optional[str] = None
+    research_question_id: str | None = None
+    thread_id: str | None = None
+    user_id: str | None = None
     query: str
-    domain: Optional[str] = None
-    depth: Optional[str] = None
+    domain: str | None = None
+    depth: str | None = None
     status: str
-    error_message: Optional[str] = None
+    error_message: str | None = None
     started_at: datetime
-    finished_at: Optional[datetime] = None
+    finished_at: datetime | None = None
 
 class ResearchRunDetailResponseDTO(ResearchRunSummaryResponseDTO):
-    output_references: Optional[Dict[str, Any]] = None
-    steps: List[ResearchStepResponseDTO] = []
-    result: Optional[ResearchResultResponseDTO] = None
+    output_references: dict[str, Any] | None = None
+    steps: list[ResearchStepResponseDTO] = []
+    result: ResearchResultResponseDTO | None = None
 
 class ResearchRunExecutionResponseDTO(BaseModel):
     run_id: str
-    research_question_id: Optional[str] = None
+    research_question_id: str | None = None
     status: str
     query: str
     final_response: str
-    validated_claims: List[Dict[str, Any]] = []
+    validated_claims: list[dict[str, Any]] = []
     retrieved_passages_count: int
-    safe_events: List[Dict[str, Any]] = []
+    safe_events: list[dict[str, Any]] = []
     result: ResearchResultResponseDTO
 
 
@@ -245,36 +252,36 @@ class BackgroundResearchJobRequestDTO(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     query: str = Field(..., min_length=3, max_length=10_000)
-    domain: Optional[str] = Field(default=None, max_length=128)
-    depth: Optional[str] = Field(default="standard", max_length=32)
+    domain: str | None = Field(default=None, max_length=128)
+    depth: str | None = Field(default="standard", max_length=32)
     idempotency_key: str = Field(..., min_length=1, max_length=128)
 
 
 class BackgroundJobResponseDTO(BaseModel):
     job_id: str
     job_type: str
-    research_run_id: Optional[str] = None
+    research_run_id: str | None = None
     status: str
     attempts: int
     max_attempts: int
-    result: Optional[Dict[str, Any]] = None
-    error_message: Optional[str] = None
+    result: dict[str, Any] | None = None
+    error_message: str | None = None
     created_at: datetime
-    started_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
 
 class ResearchEventResponseDTO(BaseModel):
     event_id: str
     sequence: int
     run_id: str
     event: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 
 # --- Public claim/evidence/provenance contracts ---
 class EvidenceLinkResponseDTO(BaseModel):
     evidence_link_id: str
-    claim_id: Optional[str] = None
-    premise_id: Optional[str] = None
+    claim_id: str | None = None
+    premise_id: str | None = None
     passage_id: str
     relation_type: str
     confidence_weight: float
@@ -283,39 +290,39 @@ class ClaimEvidenceResponseDTO(BaseModel):
     claim_id: str
     statement: str
     claim_type: str
-    provenance_id: Optional[str] = None
+    provenance_id: str | None = None
     confidence: float
     lifecycle_status: str
-    evidence_links: List[EvidenceLinkResponseDTO] = []
+    evidence_links: list[EvidenceLinkResponseDTO] = []
 
 class SourceProvenanceResponseDTO(BaseModel):
     source_id: str
     title: str
-    author: Optional[str] = None
-    historical_era: Optional[str] = None
-    original_language: Optional[str] = None
+    author: str | None = None
+    historical_era: str | None = None
+    original_language: str | None = None
     source_type: str
-    reference_url: Optional[str] = None
+    reference_url: str | None = None
 
 class DocumentProvenanceResponseDTO(BaseModel):
     document_id: str
     source_id: str
     checksum_sha256: str
     mime_type: str
-    original_filename: Optional[str] = None
-    total_pages: Optional[int] = None
+    original_filename: str | None = None
+    total_pages: int | None = None
 
 class PassageProvenanceResponseDTO(BaseModel):
     passage_id: str
     document_id: str
-    document_version_id: Optional[str] = None
-    page_id: Optional[str] = None
-    page_number: Optional[int] = None
-    passage_order: Optional[int] = None
+    document_version_id: str | None = None
+    page_id: str | None = None
+    page_number: int | None = None
+    passage_order: int | None = None
     content: str
-    extraction_method: Optional[str] = None
-    section_heading: Optional[str] = None
-    ocr_confidence: Optional[float] = None
+    extraction_method: str | None = None
+    section_heading: str | None = None
+    ocr_confidence: float | None = None
     extraction_uncertainty: bool
     language: str
 
@@ -324,7 +331,7 @@ class ProvenanceNodeResponseDTO(BaseModel):
     node_type: str
     entity_id: str
     label: str
-    metadata: Dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
     created_at: datetime
 
 class ProvenanceEdgeResponseDTO(BaseModel):
@@ -332,49 +339,59 @@ class ProvenanceEdgeResponseDTO(BaseModel):
     from_node_id: str
     to_node_id: str
     relationship_type: str
-    metadata: Dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
     created_at: datetime
 
 class ProvenanceGraphResponseDTO(BaseModel):
-    nodes: List[ProvenanceNodeResponseDTO] = []
-    edges: List[ProvenanceEdgeResponseDTO] = []
+    nodes: list[ProvenanceNodeResponseDTO] = []
+    edges: list[ProvenanceEdgeResponseDTO] = []
 
 class EvidenceTraceResponseDTO(BaseModel):
     evidence_link_id: str
-    claim_id: Optional[str] = None
-    premise_id: Optional[str] = None
+    claim_id: str | None = None
+    premise_id: str | None = None
     relation_type: str
     confidence_weight: float
     passage: PassageProvenanceResponseDTO
     document: DocumentProvenanceResponseDTO
     source: SourceProvenanceResponseDTO
-    source_lineage: List[Dict[str, Any]] = []
-    graph_nodes: List[ProvenanceNodeResponseDTO] = []
-    graph_edges: List[ProvenanceEdgeResponseDTO] = []
+    source_lineage: list[dict[str, Any]] = []
+    graph_nodes: list[ProvenanceNodeResponseDTO] = []
+    graph_edges: list[ProvenanceEdgeResponseDTO] = []
+
+
+class ResearchExportResponseDTO(BaseModel):
+    """Stable machine-readable export of one owned research record."""
+
+    schema_version: str = "1.0"
+    format: str = "json"
+    research_run: ResearchRunDetailResponseDTO
+    claims: list[ClaimEvidenceResponseDTO] = []
+    provenance: list[EvidenceTraceResponseDTO] = []
 
 # --- Public document and acquisition contracts ---
 class SourceResponseDTO(BaseModel):
     id: str
     title: str
-    author: Optional[str] = None
-    historical_era: Optional[str] = None
-    original_language: Optional[str] = None
+    author: str | None = None
+    historical_era: str | None = None
+    original_language: str | None = None
     source_type: str
-    reference_url: Optional[str] = None
+    reference_url: str | None = None
 
 class DocumentResponseDTO(BaseModel):
     document_id: str
     source_id: str
     checksum_sha256: str
     mime_type: str
-    original_filename: Optional[str] = None
-    total_pages: Optional[int] = None
+    original_filename: str | None = None
+    total_pages: int | None = None
     created_at: datetime
     passages_count: int
 
 class WebAcquisitionRequestDTO(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
-    source_title: Optional[str] = Field(default=None, max_length=512)
+    source_title: str | None = Field(default=None, max_length=512)
 
 class WebSearchRequestDTO(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000)
@@ -390,7 +407,7 @@ class WebSearchResultDTO(BaseModel):
 
 class WebSearchResponseDTO(BaseModel):
     query: str
-    results: List[WebSearchResultDTO]
+    results: list[WebSearchResultDTO]
 
 class WebAcquisitionResponseDTO(BaseModel):
     source: SourceResponseDTO
@@ -404,4 +421,4 @@ class UserResponseDTO(BaseModel):
     user_id: str
     username: str
     created_at: datetime
-    access_token: Optional[str] = None
+    access_token: str | None = None

@@ -1,5 +1,9 @@
-﻿import pytest
-from backend.app.application.orchestration.research_coordinator import build_coordinator_graph
+import pytest
+
+from backend.app.application.orchestration.research_coordinator import (
+    build_coordinator_graph,
+)
+
 
 @pytest.mark.asyncio
 async def test_research_coordinator_routing():

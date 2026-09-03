@@ -1,16 +1,22 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.future import select
+from httpx import ASGITransport, AsyncClient
 
-from backend.app.main import app
-from backend.app.infrastructure.database.session import engine, Base, AsyncSessionLocal
-from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel, ClaimModel
-from backend.app.domain.models.enums import SourceType
-from backend.app.application.use_cases.document_ingestion import DocumentIngestionService
+from backend.app.application.orchestration.research_workflow import (
+    ResearchWorkflowEngine,
+)
+from backend.app.application.use_cases.claim_extraction_service import (
+    ClaimExtractionService,
+)
+from backend.app.application.use_cases.document_ingestion import (
+    DocumentIngestionService,
+)
 from backend.app.application.use_cases.hybrid_retrieval import HybridRetrievalService
-from backend.app.application.use_cases.claim_extraction_service import ClaimExtractionService
+from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.ai.local_model_adapter import BaseModelAdapter
-from backend.app.application.orchestration.research_workflow import ResearchWorkflowEngine
+from backend.app.infrastructure.database.models import SourceModel
+from backend.app.infrastructure.database.session import AsyncSessionLocal, Base, engine
+from backend.app.main import app
+
 
 class ProductionTestLLMAdapter(BaseModelAdapter):
     def __init__(self):

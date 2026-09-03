@@ -1,11 +1,12 @@
-﻿import pytest
 import fitz
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel
-from backend.app.infrastructure.storage.local_storage import LocalStorageService
+import pytest
+
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.domain.models.enums import SourceType
+from backend.app.infrastructure.database.models import SourceModel
+from backend.app.infrastructure.database.session import Base, engine
+from backend.app.infrastructure.storage.local_storage import LocalStorageService
+
 
 @pytest.fixture
 async def setup_test_env(tmp_path, monkeypatch):

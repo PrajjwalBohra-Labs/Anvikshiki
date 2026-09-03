@@ -1,9 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react';
+<<<<<<< HEAD
+import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileSearch, FileText, Library, LogOut, Menu, MessageCircle, Network, Search, Settings, X } from 'lucide-react';
+import { navigate } from '../../routing';
+import { CommandPalette } from '../command/CommandPalette';
+=======
 import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileSearch, FileText, Library, LogOut, Menu, MessageCircle, Network, NotebookPen, Settings, Share2, X } from 'lucide-react';
 import { Command } from 'lucide-react';
 import { COMMAND_PALETTE_SHORTCUT } from '../../commands/registry';
 import { navigate } from '../../routing';
 import { WORKSPACE_MODES, workspaceModeForView, type WorkspaceModeId } from '../../workspace/modes';
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 import './AnvikshikiShell.css';
 
 export type AppView = 'inquiry' | 'history' | 'questions' | 'library' | 'memory' | 'knowledge-graph' | 'notebook' | 'dialogue' | 'settings';
@@ -12,7 +18,8 @@ interface NavItem { id: AppView; label: string; icon: typeof CircleHelp; path?: 
 const navGroups: { mode: WorkspaceModeId; label: string; items: NavItem[] }[] = [
   { mode: 'investigation', label: 'Investigation', items: [
     { id: 'inquiry', label: 'Research', icon: CircleHelp },
-    { id: 'history', label: 'Research runs', icon: FileSearch },
+    { id: 'history', label: 'Research runs', icon: FileSearch, path: '/research/runs' },
+    { id: 'history', label: 'Background work', icon: Activity, path: '/research/jobs' },
     { id: 'questions', label: 'Questions', icon: CircleHelp },
   ] },
   { mode: 'library', label: 'Library', items: [
@@ -20,6 +27,15 @@ const navGroups: { mode: WorkspaceModeId; label: string; items: NavItem[] }[] = 
     { id: 'library', label: 'Sources', icon: FileText, path: '/library/sources' },
     { id: 'library', label: 'Documents', icon: BookOpen, path: '/library/documents' },
   ] },
+<<<<<<< HEAD
+  { label: 'Knowledge', items: [
+    { id: 'memory', label: 'Memory', icon: Network, path: '/memory' },
+    { id: 'memory', label: 'Knowledge graph', icon: Network, path: '/knowledge-graph' },
+    { id: 'inquiry', label: 'Notebook', icon: FileText, path: '/notebook' },
+    { id: 'dialogue', label: 'Dialogue', icon: MessageCircle, path: '/dialogue' },
+  ] },
+  { label: 'System', items: [{ id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }] },
+=======
   { mode: 'knowledge', label: 'Knowledge', items: [
     { id: 'memory', label: 'Memory', icon: Network },
     { id: 'knowledge-graph', label: 'Knowledge graph', icon: Share2, path: '/knowledge-graph' },
@@ -27,6 +43,7 @@ const navGroups: { mode: WorkspaceModeId; label: string; items: NavItem[] }[] = 
     { id: 'dialogue', label: 'Dialogue', icon: MessageCircle },
   ] },
   { mode: 'system', label: 'System', items: [{ id: 'settings', label: 'Settings', icon: Settings }] },
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 ];
 
 interface Props {
@@ -41,6 +58,9 @@ interface Props {
 export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, onOpenCommandPalette, children }: Props) {
   const [leftOpen, setLeftOpen] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+<<<<<<< HEAD
+  const [paletteOpen, setPaletteOpen] = useState(false);
+=======
   const activeMode = workspaceModeForView(activeView);
   const visibleNavGroups = navGroups.filter((group) => group.mode === activeMode.id);
   const selectMode = (modeId: WorkspaceModeId) => {
@@ -54,8 +74,10 @@ export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, 
     const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? WORKSPACE_MODES.length - 1 : (index + offset + WORKSPACE_MODES.length) % WORKSPACE_MODES.length;
     selectMode(WORKSPACE_MODES[nextIndex].id);
   };
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 
   useEffect(() => { setMobileNavOpen(false); }, [activeView]);
+  useEffect(() => { const onKey = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setPaletteOpen(true); } if (event.key === 'Escape') setPaletteOpen(false); }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, []);
 
   return (
     <div className="app-shell">
@@ -65,13 +87,14 @@ export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, 
         <div className="header-title"><span className="eyebrow">Environment for inquiry</span><strong>ANVIKSHIKI</strong></div>
         <div className="header-context"><span className="header-rule" aria-hidden="true" /><span>Private intellectual workstation</span></div>
         <div className="header-status"><span className="status-dot" aria-hidden="true" /><span>LOCAL SESSION</span></div>
+        <button className="icon-button palette-trigger" aria-label="Open command palette" onClick={() => setPaletteOpen(true)}><Search size={16} /><span>Ctrl+K</span></button>
       </header>
 
       {mobileNavOpen && <button className="mobile-scrim" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
       <div className="shell-body">
         <aside className={"left-sidebar " + (leftOpen ? 'is-open ' : 'is-collapsed ') + (mobileNavOpen ? 'mobile-open' : '')}>
           <div className="brand-lockup">
-            <div className="brand-mark" aria-hidden="true">A</div>
+            <div className="brand-mark"><img src="/anvikshiki-logo.png" alt="" /></div>
             {leftOpen && <div><strong>ANVIKSHIKI</strong><span>Research instrument</span></div>}
             <button className="icon-button sidebar-close" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><X size={17} /></button>
           </div>
@@ -125,6 +148,7 @@ export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, 
         <span><FileText size={13} /> Evidence appears when returned by the backend</span>
         <span className="status-bar-right"><BookOpen size={13} /> Local-first workspace</span>
       </footer>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }

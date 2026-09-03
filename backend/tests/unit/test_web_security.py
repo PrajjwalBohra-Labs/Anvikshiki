@@ -1,9 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from backend.app.application.use_cases.web_acquisition import WebAcquisitionService
-from backend.app.core.errors import AnvikshikiDomainError
 from backend.app.core.config import settings
+from backend.app.core.errors import AnvikshikiDomainError
 
 
 @pytest.mark.parametrize(

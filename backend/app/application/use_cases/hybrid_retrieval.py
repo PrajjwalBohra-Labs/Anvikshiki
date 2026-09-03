@@ -1,15 +1,22 @@
-from typing import List, Dict, Any, Optional
+from typing import Any
+
+import structlog
+from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func, or_
-import structlog
 
-from backend.app.infrastructure.database.models import PassageModel, DocumentModel, SourceModel, PGVECTOR_AVAILABLE
-from backend.app.infrastructure.database.models import Vector
-from backend.app.infrastructure.ai.embedding_reranker_adapters import (
-    LocalSentenceTransformerEmbeddingAdapter, LocalCrossEncoderRerankerAdapter
-)
 from backend.app.domain.models.enums import SourceType
+from backend.app.infrastructure.ai.embedding_reranker_adapters import (
+    LocalCrossEncoderRerankerAdapter,
+    LocalSentenceTransformerEmbeddingAdapter,
+)
+from backend.app.infrastructure.database.models import (
+    PGVECTOR_AVAILABLE,
+    DocumentModel,
+    PassageModel,
+    SourceModel,
+    Vector,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -26,10 +33,10 @@ class HybridRetrievalService:
     async def retrieve_evidence(
         self,
         query: str,
-        domain: Optional[str] = None,
-        source_type_filter: Optional[SourceType] = None,
+        domain: str | None = None,
+        source_type_filter: SourceType | None = None,
         top_k: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         # 1. Generate Query Vector Embedding (384 dimensions)
         query_vectors = await self.embedder.embed_texts([query])
         query_vec = query_vectors[0]

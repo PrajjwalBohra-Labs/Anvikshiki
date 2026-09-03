@@ -1,8 +1,10 @@
-﻿import pytest
-from httpx import AsyncClient, ASGITransport
-from backend.app.main import app
+import pytest
+from httpx import ASGITransport, AsyncClient
+
 from backend.app.core.config import settings
-from backend.app.infrastructure.database.session import engine, Base
+from backend.app.infrastructure.database.session import Base, engine
+from backend.app.main import app
+
 
 @pytest.fixture(autouse=True)
 async def setup_test_db(tmp_path, monkeypatch):

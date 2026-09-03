@@ -1,7 +1,9 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import UserModel
+import pytest
+
 from backend.app.application.memory.cognitive_memory import CognitiveMemoryService
+from backend.app.infrastructure.database.models import UserModel
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():

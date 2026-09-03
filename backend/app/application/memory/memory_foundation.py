@@ -7,9 +7,10 @@ from datetime import datetime
 from typing import Any
 
 import structlog
-from backend.app.infrastructure.database.models import MemoryRecordModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.infrastructure.database.models import MemoryRecordModel
 
 logger = structlog.get_logger(__name__)
 

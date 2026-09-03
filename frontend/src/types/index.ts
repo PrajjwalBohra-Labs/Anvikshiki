@@ -416,6 +416,51 @@ export interface HealthDTO {
   environment?: string;
 }
 
+<<<<<<< HEAD
+export interface ProvenanceGraphNodeDTO {
+  node_id: string;
+  node_type: string;
+  entity_id: string;
+  label: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ProvenanceGraphEdgeDTO {
+  edge_id: string;
+  from_node_id: string;
+  to_node_id: string;
+  relationship_type: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ProvenanceGraphDTO {
+  nodes: ProvenanceGraphNodeDTO[];
+  edges: ProvenanceGraphEdgeDTO[];
+}
+
+export interface ResearchExportDTO {
+  schema_version: string;
+  format: string;
+  research_run: ResearchRunDetailDTO;
+  claims: ClaimEvidenceDTO[];
+  provenance: EvidenceTraceDTO[];
+}
+
+export interface BackgroundJobDTO {
+  job_id: string;
+  job_type: string;
+  research_run_id?: string | null;
+  status: string;
+  attempts: number;
+  max_attempts: number;
+  result_payload?: Record<string, unknown> | null;
+  error_message?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+=======
 export interface NotebookDTO {
   notebook_id: string;
   title: string;
@@ -432,6 +477,7 @@ export interface NotebookCreateDTO {
 export interface NotebookUpdateDTO {
   title?: string;
   content?: string;
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 }
 
 export interface Message {

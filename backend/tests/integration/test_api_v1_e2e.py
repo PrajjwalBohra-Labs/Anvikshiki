@@ -1,9 +1,10 @@
-﻿import pytest
-import json
-from httpx import AsyncClient, ASGITransport
-from backend.app.main import app
-from backend.app.infrastructure.database.session import engine, Base
+import pytest
+from httpx import ASGITransport, AsyncClient
+
 from backend.app.infrastructure.database.models import UserModel
+from backend.app.infrastructure.database.session import Base, engine
+from backend.app.main import app
+
 
 @pytest.fixture
 async def setup_test_env():

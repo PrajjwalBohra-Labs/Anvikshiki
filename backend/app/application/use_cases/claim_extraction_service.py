@@ -1,10 +1,10 @@
 import re
-from typing import List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-import structlog
 
-from backend.app.infrastructure.database.models import ClaimModel, EvidenceLinkModel
+import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.domain.models.enums import ClaimType, RelationType
+from backend.app.infrastructure.database.models import ClaimModel, EvidenceLinkModel
 
 logger = structlog.get_logger(__name__)
 
@@ -13,7 +13,7 @@ class ClaimExtractionService:
     Extracts structured, evidence-linked claims distinguishing:
     DIRECT_SOURCE_CLAIM, TRANSLATION, SCHOLARLY_INTERPRETATION, SCIENTIFIC_FINDING, INFERENCE, HYPOTHESIS, MODEL_SYNTHESIS.
     """
-    def __init__(self, session: AsyncSession, run_id: Optional[str] = None):
+    def __init__(self, session: AsyncSession, run_id: str | None = None):
         self.session = session
         self.run_id = run_id
 
@@ -23,7 +23,7 @@ class ClaimExtractionService:
         passage_content: str,
         source_title: str,
         source_type: str = "PRIMARY"
-    ) -> List[ClaimModel]:
+    ) -> list[ClaimModel]:
         # Determine explicit claim type based on source taxonomy.
         if source_type == "PRIMARY":
             claim_type = ClaimType.DIRECT_SOURCE_CLAIM

@@ -1,7 +1,10 @@
-﻿import logging
+import logging
 import sys
+
 import structlog
+
 from backend.app.core.config import settings
+
 
 def setup_logging():
     log_level = logging.DEBUG if settings.DEBUG else logging.INFO

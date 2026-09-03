@@ -1,23 +1,29 @@
-﻿from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional, List, Dict, Any
+from typing import Any
+
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, ConfigDict
-from backend.app.infrastructure.database.session import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.api.dependencies import (
+    AuthenticatedPrincipal,
+    get_current_user,
+    resolve_user_id,
+)
 from backend.app.application.use_cases.chat_orchestrator import ChatOrchestratorService
-from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user, resolve_user_id
+from backend.app.infrastructure.database.session import get_db
 
 router = APIRouter(prefix="/chat", tags=["Chat & Agent"])
 
 class ChatQueryRequest(BaseModel):
     user_id: str
-    conversation_id: Optional[str] = None
+    conversation_id: str | None = None
     message: str
 
 class ChatApiResponse(BaseModel):
     conversation_id: str
     reply: str
-    citations: List[str]
-    argument_summary: Optional[Dict[str, Any]] = None
+    citations: list[str]
+    argument_summary: dict[str, Any] | None = None
     model_config = ConfigDict(from_attributes=True)
 
 @router.post("/", response_model=ChatApiResponse, status_code=status.HTTP_200_OK)

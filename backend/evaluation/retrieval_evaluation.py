@@ -13,7 +13,6 @@ import hashlib
 import json
 import math
 from collections.abc import Iterable
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -61,13 +60,19 @@ def _dataset_path(path: str | None) -> Path:
 def load_dataset(path: str | None = None) -> tuple[dict[str, Any], Path]:
     dataset_path = _dataset_path(path)
     if not dataset_path.is_file():
-        raise EvaluationError(f"Evaluation dataset is missing: {dataset_path}")
+        raise EvaluationError("Evaluation dataset is missing.")
     try:
         dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise EvaluationError(f"Evaluation dataset could not be loaded: {exc}") from exc
+        raise EvaluationError("Evaluation dataset could not be loaded.") from exc
     validate_dataset(dataset, dataset_path)
     return dataset, dataset_path
+
+
+def _required_text(value: Any, field: str, location: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise EvaluationError(f"{location} {field} must be a non-empty string.")
+    return value
 
 
 def _validate_reference(
@@ -76,10 +81,14 @@ def _validate_reference(
     query_id: str,
     location: str,
 ) -> None:
+    if not isinstance(reference, dict):
+        raise EvaluationError(f"{query_id} {location} must be an object.")
     required = {"source_key", "document_key", "passage_key", "relevance"}
     missing = required - reference.keys()
     if missing:
         raise EvaluationError(f"{query_id} {location} is missing: {sorted(missing)}")
+    for field in ("source_key", "document_key", "passage_key"):
+        _required_text(reference[field], field, f"{query_id} {location}")
     relevance = reference["relevance"]
     if (
         not isinstance(relevance, int)
@@ -99,8 +108,16 @@ def _validate_reference(
 
 
 def validate_dataset(dataset: dict[str, Any], dataset_path: Path | None = None) -> None:
-    if not isinstance(dataset, dict) or not dataset.get("dataset_id"):
-        raise EvaluationError("Evaluation dataset must have a dataset_id.")
+    if not isinstance(dataset, dict):
+        raise EvaluationError("Evaluation dataset must be an object.")
+    _required_text(dataset.get("dataset_id"), "dataset_id", "Dataset")
+    dataset_version = dataset.get("dataset_version")
+    if not (
+        (isinstance(dataset_version, int) and not isinstance(dataset_version, bool) and dataset_version > 0)
+        or (isinstance(dataset_version, str) and dataset_version.strip())
+    ):
+        raise EvaluationError("Dataset dataset_version must be a positive integer or non-empty string.")
+    _required_text(dataset.get("corpus_root", "corpus"), "corpus_root", "Dataset")
     corpus = dataset.get("corpus")
     queries = dataset.get("queries")
     if not isinstance(corpus, list) or not corpus:
@@ -117,6 +134,8 @@ def validate_dataset(dataset: dict[str, Any], dataset_path: Path | None = None) 
         else None
     )
     for document in corpus:
+        if not isinstance(document, dict):
+            raise EvaluationError("Corpus entries must be objects.")
         for field in (
             "source_key",
             "document_key",
@@ -129,6 +148,10 @@ def validate_dataset(dataset: dict[str, Any], dataset_path: Path | None = None) 
                 raise EvaluationError(f"Corpus document is missing {field}.")
         source_key = document["source_key"]
         document_key = document["document_key"]
+        _required_text(source_key, "source_key", "Corpus document")
+        _required_text(document_key, "document_key", "Corpus document")
+        _required_text(document["filename"], "filename", document_key)
+        _required_text(document["title"], "title", document_key)
         if source_key in source_keys:
             raise EvaluationError(f"Duplicate source_key: {source_key}")
         if document_key in document_keys:
@@ -145,16 +168,21 @@ def validate_dataset(dataset: dict[str, Any], dataset_path: Path | None = None) 
                 fixture_path.relative_to(root)
             except ValueError as exc:
                 raise EvaluationError(
-                    f"Corpus filename escapes corpus_root: {document['filename']}"
+                    f"Corpus filename escapes corpus_root for {document_key}."
                 ) from exc
             if not fixture_path.is_file():
-                raise EvaluationError(f"Corpus fixture is missing: {fixture_path}")
+                raise EvaluationError(f"Corpus fixture is missing for {document_key}.")
         passage_keys: set[str] = set()
+        if not isinstance(document["passages"], list) or not document["passages"]:
+            raise EvaluationError(f"Corpus document {document_key} has no passages.")
         for passage in document["passages"]:
+            if not isinstance(passage, dict):
+                raise EvaluationError(f"{document_key} passages must be objects.")
             for field in ("passage_key", "page_number", "content"):
                 if field not in passage:
                     raise EvaluationError(f"{document_key} passage is missing {field}.")
             passage_key = passage["passage_key"]
+            _required_text(passage_key, "passage_key", document_key)
             if passage_key in passage_keys:
                 raise EvaluationError(
                     f"Duplicate passage_key in {document_key}: {passage_key}"
@@ -178,6 +206,8 @@ def validate_dataset(dataset: dict[str, Any], dataset_path: Path | None = None) 
 
     query_ids: set[str] = set()
     for query in queries:
+        if not isinstance(query, dict):
+            raise EvaluationError("Query entries must be objects.")
         for field in (
             "query_id",
             "query",
@@ -190,12 +220,20 @@ def validate_dataset(dataset: dict[str, Any], dataset_path: Path | None = None) 
             if field not in query:
                 raise EvaluationError(f"Query is missing {field}.")
         query_id = query["query_id"]
+        _required_text(query_id, "query_id", "Query")
+        _required_text(query["query"], "query", query_id)
+        for field in ("domain", "difficulty", "evaluation_type"):
+            _required_text(query[field], field, query_id)
         if query_id in query_ids:
             raise EvaluationError(f"Duplicate query_id: {query_id}")
         query_ids.add(query_id)
-        if not query["query"].strip() or not query["expected"]:
+        if not isinstance(query["expected"], list) or not query["expected"]:
             raise EvaluationError(
                 f"Query {query_id} must have text and expected evidence."
+            )
+        if not isinstance(query["acceptable_alternatives"], list):
+            raise EvaluationError(
+                f"Query {query_id} acceptable_alternatives must be a list."
             )
         seen: set[str] = set()
         for location, references in (
@@ -335,19 +373,21 @@ def _dcg(relevances: Iterable[int]) -> float:
 def calculate_metrics(
     retrieved: list[str], labels: dict[str, int], k: int
 ) -> dict[str, float | None]:
+    if k < 1:
+        raise EvaluationError("k must be positive.")
     top = retrieved[:k]
     relevant = set(labels)
     hits = [item for item in top if item in relevant]
-    recall = len(set(hits)) / len(relevant) if relevant else None
-    precision = len(set(hits)) / k if k else None
+    recall = len(set(hits)) / len(relevant) if relevant else 0.0
+    precision = len(set(hits)) / k
     reciprocal_rank = next(
-        (1.0 / (index + 1) for index, item in enumerate(retrieved) if item in relevant),
+        (1.0 / (index + 1) for index, item in enumerate(top) if item in relevant),
         0.0,
     )
     actual = [labels.get(item, 0) for item in top]
     ideal = sorted(labels.values(), reverse=True)[:k]
     ideal_dcg = _dcg(ideal)
-    ndcg = _dcg(actual) / ideal_dcg if ideal_dcg else None
+    ndcg = _dcg(actual) / ideal_dcg if ideal_dcg else 0.0
     return {
         f"recall@{k}": recall,
         f"precision@{k}": precision,
@@ -470,8 +510,9 @@ async def evaluate_dataset(
         "corpus_identity": corpus_identity,
         "methods": {},
         "warnings": [],
-        "generated_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
     for method in METHODS:
         query_reports = []
         failures = []
@@ -565,15 +606,13 @@ async def evaluate_dataset(
                         }
                     )
                     metrics_by_query.append(query_metrics)
-                except Exception as exc:  # noqa: BLE001 - record per-query failures without fabricating metrics
-                    failures.append(
-                        {
-                            "query_id": query["query_id"],
-                            "error": f"{type(exc).__name__}: {exc}",
-                        }
-                    )
+                except Exception:  # noqa: BLE001 - record per-query failures without fabricating metrics
+                    failures.append({"query_id": query["query_id"], "error": "evaluation failed"})
         if failures:
-            raise EvaluationError(f"{method} evaluation failed: {failures}")
+            failed_ids = ", ".join(item["query_id"] for item in failures)
+            raise EvaluationError(
+                f"{method} evaluation failed for queries: {failed_ids}."
+            )
         metric_names = sorted({name for item in metrics_by_query for name in item})
         aggregate = {
             name: _mean([item.get(name) for item in metrics_by_query])
@@ -599,7 +638,13 @@ async def evaluate_dataset(
                 1 for item in query_reports if item["empty_result"]
             ),
         }
-    stable = {
+    report["deterministic_signature"] = deterministic_signature(report)
+    return report
+
+
+def canonical_evaluation_result(report: dict[str, Any]) -> dict[str, Any]:
+    """Return the timestamp/path-free result used for reproducible signing."""
+    return {
         "dataset": report["dataset"],
         "configuration": report["configuration"],
         "corpus_identity": {
@@ -608,7 +653,7 @@ async def evaluate_dataset(
                 "checksum_sha256": identity["checksum_sha256"],
                 "passage_pages": identity["passage_pages"],
             }
-            for document_key, identity in report["corpus_identity"].items()
+            for document_key, identity in sorted(report["corpus_identity"].items())
         },
         "methods": {
             method: {
@@ -627,10 +672,13 @@ async def evaluate_dataset(
             for method in METHODS
         },
     }
-    report["deterministic_signature"] = hashlib.sha256(
-        json.dumps(stable, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
-    return report
+
+
+def deterministic_signature(report: dict[str, Any]) -> str:
+    canonical = json.dumps(
+        canonical_evaluation_result(report), sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 def compare_baseline(
@@ -640,26 +688,38 @@ def compare_baseline(
         return None
     path = Path(baseline_path)
     if not path.is_file():
-        raise EvaluationError(f"Baseline report is missing: {path}")
+        raise EvaluationError("Baseline report is missing.")
     try:
         baseline = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise EvaluationError(f"Baseline report could not be loaded: {exc}") from exc
+        raise EvaluationError("Baseline report could not be loaded.") from exc
     comparison: dict[str, Any] = {
         "baseline_dataset_id": baseline.get("dataset", {}).get("dataset_id"),
         "methods": {},
+        "regressions": [],
     }
     for method in METHODS:
         current_metrics = report["methods"].get(method, {}).get("metrics", {})
         baseline_metrics = (
             baseline.get("methods", {}).get(method, {}).get("metrics", {})
         )
-        comparison["methods"][method] = {
+        deltas = {
             name: (current_metrics[name] - baseline_metrics[name])
             for name in current_metrics
             if isinstance(current_metrics.get(name), (int, float))
             and isinstance(baseline_metrics.get(name), (int, float))
         }
+        comparison["methods"][method] = deltas
+        comparison["regressions"].extend(
+            {
+                "method": method,
+                "metric": name,
+                "delta": delta,
+            }
+            for name, delta in sorted(deltas.items())
+            if delta < -1e-12
+        )
+    comparison["regressions"].sort(key=lambda item: (item["method"], item["metric"]))
     return comparison
 
 

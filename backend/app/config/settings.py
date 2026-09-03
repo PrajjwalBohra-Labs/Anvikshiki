@@ -1,5 +1,7 @@
 import os
+
 from pydantic import BaseModel, Field
+
 
 class EmbeddingSettings(BaseModel):
     provider: str = "sentence-transformers"

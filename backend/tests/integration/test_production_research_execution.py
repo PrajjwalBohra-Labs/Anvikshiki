@@ -1,17 +1,23 @@
 import pytest
-import json
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.future import select
 
-from backend.app.main import app
-from backend.app.infrastructure.database.session import engine, Base, AsyncSessionLocal
-from backend.app.infrastructure.database.models import (
-    UserModel, SourceModel, DocumentModel, PassageModel, DurableGraphCheckpointModel
+from backend.app.application.orchestration.research_workflow import (
+    ResearchWorkflowEngine,
 )
+from backend.app.application.use_cases.hybrid_retrieval import HybridRetrievalService
 from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.ai.local_model_adapter import BaseModelAdapter
-from backend.app.application.orchestration.research_workflow import ResearchWorkflowEngine
-from backend.app.application.use_cases.hybrid_retrieval import HybridRetrievalService
+from backend.app.infrastructure.database.models import (
+    DocumentModel,
+    DurableGraphCheckpointModel,
+    PassageModel,
+    SourceModel,
+    UserModel,
+)
+from backend.app.infrastructure.database.session import AsyncSessionLocal, Base, engine
+from backend.app.main import app
+
 
 class DynamicMockLLMAdapter(BaseModelAdapter):
     """Isolated LLM test adapter matching production BaseModelAdapter contract."""

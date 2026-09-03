@@ -1,5 +1,4 @@
 import re
-from typing import Dict, List
 
 import fitz  # PyMuPDF
 import structlog
@@ -14,21 +13,21 @@ class PdfDocumentParser:
     EXTRACTION_METHOD = "pymupdf_text"
 
     @staticmethod
-    def parse_pages(content: bytes) -> List[Dict]:
+    def parse_pages(content: bytes) -> list[dict]:
         try:
             document = fitz.open(stream=content, filetype="pdf")
         except Exception as exc:
             logger.error("Failed to open PDF stream", error=str(exc))
             raise ValueError(f"Invalid PDF content: {exc}") from exc
 
-        pages: List[Dict] = []
+        pages: list[dict] = []
         try:
             for page_index in range(len(document)):
                 page = document[page_index]
                 raw_text = page.get_text("text")
                 extracted_text = raw_text.strip()
-                warnings: List[str] = []
-                page_passages: List[Dict] = []
+                warnings: list[str] = []
+                page_passages: list[dict] = []
 
                 # A short or empty page is preserved as a partial extraction.
                 # OCR is deliberately not invoked here; that belongs to STEP 08.
@@ -96,7 +95,7 @@ class PdfDocumentParser:
         return pages
 
     @staticmethod
-    def parse_pdf(content: bytes) -> List[Dict]:
+    def parse_pdf(content: bytes) -> list[dict]:
         """Compatibility projection retaining the previous flat parser API."""
         return [passage for page in PdfDocumentParser.parse_pages(content) for passage in page["passages"]]
 
@@ -105,13 +104,13 @@ class TextDocumentParser:
     """Deterministic paragraph extraction for plain text and Markdown."""
 
     @staticmethod
-    def _decode(content: bytes) -> tuple[str, List[str]]:
+    def _decode(content: bytes) -> tuple[str, list[str]]:
         text = content.decode("utf-8", errors="replace")
         warnings = ["Invalid UTF-8 bytes were replaced."] if "\ufffd" in text else []
         return text, warnings
 
     @staticmethod
-    def decode_warnings(content: bytes) -> List[str]:
+    def decode_warnings(content: bytes) -> list[str]:
         """Return decoding warnings without changing the parser output."""
         return TextDocumentParser._decode(content)[1]
 
@@ -124,7 +123,7 @@ class TextDocumentParser:
         extraction_uncertainty: bool = False,
         section_heading: str | None = None,
         language: str | None = None,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Split text deterministically while retaining its page and method."""
         passages = []
         for chunk in re.split(r"\n\s*\n", text):
@@ -145,7 +144,7 @@ class TextDocumentParser:
 
 
     @staticmethod
-    def parse_text(content: bytes) -> List[Dict]:
+    def parse_text(content: bytes) -> list[dict]:
         text, _ = TextDocumentParser._decode(content)
         return TextDocumentParser.segment_text(text, "utf8_text")
 
@@ -156,7 +155,7 @@ class TextDocumentParser:
         extraction_status: str = "success",
         extraction_uncertainty: bool = False,
         language: str | None = None,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         return TextDocumentParser.segment_text(
             text,
             "tesseract_ocr",
@@ -168,11 +167,11 @@ class TextDocumentParser:
         )
 
     @staticmethod
-    def parse_markdown(content: bytes) -> List[Dict]:
+    def parse_markdown(content: bytes) -> list[dict]:
         text, _ = TextDocumentParser._decode(content)
-        passages: List[Dict] = []
+        passages: list[dict] = []
         current_heading = None
-        buffer: List[str] = []
+        buffer: list[str] = []
 
         def flush() -> None:
             if not buffer:
@@ -225,7 +224,7 @@ class HtmlDocumentParser:
     REMOVED_ELEMENTS = ("script", "style", "nav", "footer", "header", "form")
 
     @classmethod
-    def parse_html(cls, content: bytes) -> List[Dict]:
+    def parse_html(cls, content: bytes) -> list[dict]:
         text = content.decode("utf-8", errors="replace")
         soup = BeautifulSoup(text, "html.parser")
         for element in soup(cls.REMOVED_ELEMENTS):

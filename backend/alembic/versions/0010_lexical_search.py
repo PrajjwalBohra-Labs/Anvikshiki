@@ -6,7 +6,6 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-
 revision: str = "0010_lexical_search"
 down_revision: str | None = "0009_embedding_index_metadata"
 branch_labels: str | Sequence[str] | None = None

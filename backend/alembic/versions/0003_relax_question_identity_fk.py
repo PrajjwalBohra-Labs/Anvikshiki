@@ -8,7 +8,6 @@ from collections.abc import Sequence
 
 from alembic import op
 
-
 revision: str = "0003_relax_question_identity_fk"
 down_revision: str | None = "0002_public_research_contracts"
 branch_labels: str | Sequence[str] | None = None

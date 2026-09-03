@@ -28,7 +28,7 @@ const workflowStages = [
 function ResearchWorkflow({ state }: { state: ResearchStreamState }) {
   const lastNode = [...state.activity].reverse().find((item) => item.node)?.node;
   return <section className="workflow-panel" aria-label="Research workflow">
-    <div className="workflow-heading"><span className="eyebrow">Investigation path</span><span className="muted-copy">Question → synthesis</span></div>
+    <div className="workflow-heading"><span className="eyebrow">Investigation path</span><span className="muted-copy">Question to synthesis</span></div>
     <ol className="workflow-strip">
       {workflowStages.map((stage) => {
         const present = state.activity.some((item) => item.node === stage.node);
@@ -48,11 +48,11 @@ function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStream
   const analysisCount = result ? Object.values(result.specialist_analysis).reduce((total, group) => total + group.length, 0) : 0;
   const categories = [
     { label: 'EVIDENCE', value: passages.length || evidenceResults.length, note: passages.length ? 'retrieved passages' : evidenceResults.length ? 'lookup passages' : 'not reported', icon: BookOpen, tone: 'evidence' },
-    { label: 'SOURCES', value: sourceCount || '—', note: sourceCount ? 'represented in result' : 'not reported', icon: Database, tone: 'archival' },
-    { label: 'CLAIMS', value: claimCount || '—', note: claimCount ? 'returned claims' : 'not reported', icon: CheckCircle2, tone: 'interpretation' },
-    { label: 'ARGUMENTS', value: analysisCount || '—', note: analysisCount ? 'specialist fields' : 'not reported', icon: GitBranch, tone: 'scientific' },
-    { label: 'CONCEPTS', value: '—', note: 'not exposed by current run', icon: Layers3, tone: 'hypothesis' },
-    { label: 'MEMORY', value: '—', note: 'not exposed by current run', icon: ShieldCheck, tone: 'memory' },
+    { label: 'SOURCES', value: sourceCount || '-', note: sourceCount ? 'represented in result' : 'not reported', icon: Database, tone: 'archival' },
+    { label: 'CLAIMS', value: claimCount || '-', note: claimCount ? 'returned claims' : 'not reported', icon: CheckCircle2, tone: 'interpretation' },
+    { label: 'ARGUMENTS', value: analysisCount || '-', note: analysisCount ? 'specialist fields' : 'not reported', icon: GitBranch, tone: 'scientific' },
+    { label: 'CONCEPTS', value: '-', note: 'not exposed by current run', icon: Layers3, tone: 'hypothesis' },
+    { label: 'MEMORY', value: '-', note: 'not exposed by current run', icon: ShieldCheck, tone: 'memory' },
     { label: 'ACTIVITY', value: state.activity.length, note: state.status === 'idle' ? 'awaiting research' : state.status, icon: Terminal, tone: state.status === 'failed' ? 'contradiction' : 'activity' },
   ];
   return <aside className="intelligence-sidebar" aria-label="Research intelligence">
@@ -61,7 +61,7 @@ function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStream
     <div className="intelligence-list">
       {categories.map(({ label, value, note, icon: Icon, tone }) => <div className={`intelligence-item ${tone}`} key={label}><Icon size={14} /><div><strong>{label}</strong><small>{note}</small></div><b>{value}</b></div>)}
     </div>
-    <div className="intelligence-trace"><span className="eyebrow">Trace boundary</span><p><span>Source</span><i>→</i><span>Passage</span><i>→</i><span>Claim</span></p><small>Only relationships returned by the backend are shown.</small></div>
+    <div className="intelligence-trace"><span className="eyebrow">Trace boundary</span><p><span>Source</span><i>-&gt;</i><span>Passage</span><i>-&gt;</i><span>Claim</span></p><small>Only relationships returned by the backend are shown.</small></div>
   </aside>;
 }
 
@@ -242,7 +242,7 @@ export function ResearchWorkspace({ userId }: Props) {
           <button className="button button-primary" type="submit" disabled={dialogueLoading || !dialogueInput.trim()}>{dialogueLoading ? <LoaderCircle className="spin" size={14} /> : <MessageCircle size={14} />} Send</button>
         </form>
         {dialogueError && <div className="error-callout" role="alert"><AlertTriangle size={16} /><span>{dialogueError}</span></div>}
-        {dialogueTurn && <article className="dialogue-response"><div className="eyebrow">{dialogueTurn.dialogue_mode} response{dialogueTurn.source_title ? ' · ' + dialogueTurn.source_title : ''}</div><p>{dialogueTurn.response_text}</p><div className="dialogue-flags"><span>{dialogueTurn.evidence_linked ? 'Evidence linked' : 'No evidence linked'}</span><span>{dialogueTurn.preserves_uncertainty ? 'Uncertainty preserved' : 'Uncertainty not reported'}</span>{dialogueTurn.disagrees_with_user && <span>Challenges the premise</span>}</div></article>}
+        {dialogueTurn && <article className="dialogue-response"><div className="eyebrow">{dialogueTurn.dialogue_mode} response{dialogueTurn.source_title ? ' / ' + dialogueTurn.source_title : ''}</div><p>{dialogueTurn.response_text}</p><div className="dialogue-flags"><span>{dialogueTurn.evidence_linked ? 'Evidence linked' : 'No evidence linked'}</span><span>{dialogueTurn.preserves_uncertainty ? 'Uncertainty preserved' : 'Uncertainty not reported'}</span>{dialogueTurn.disagrees_with_user && <span>Challenges the premise</span>}</div></article>}
       </section>
         </div>
         <IntelligenceSidebar state={state} evidenceResults={evidenceResults} />

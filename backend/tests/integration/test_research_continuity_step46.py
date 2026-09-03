@@ -1,9 +1,17 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import (
-    UserModel, ResearchQuestionModel, ResearchRunModel, ResearchStepModel, EpistemicPositionModel
+import pytest
+
+from backend.app.application.use_cases.research_continuity import (
+    ResearchContinuityService,
 )
-from backend.app.application.use_cases.research_continuity import ResearchContinuityService
+from backend.app.infrastructure.database.models import (
+    EpistemicPositionModel,
+    ResearchQuestionModel,
+    ResearchRunModel,
+    ResearchStepModel,
+    UserModel,
+)
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():

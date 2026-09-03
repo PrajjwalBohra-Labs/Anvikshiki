@@ -1,7 +1,9 @@
-﻿from typing import Optional, Dict, Any
+from typing import Any
 from urllib.parse import urlparse
-from backend.app.domain.models.enums import SourceType
+
 import structlog
+
+from backend.app.domain.models.enums import SourceType
 
 logger = structlog.get_logger(__name__)
 
@@ -26,7 +28,7 @@ class WebSourceFilteringService:
         "twitter.com", "x.com", "facebook.com", "instagram.com", "reddit.com", "tiktok.com"
     ]
 
-    def evaluate_source(self, url: str, content_snippet: Optional[str] = None) -> Dict[str, Any]:
+    def evaluate_source(self, url: str, content_snippet: str | None = None) -> dict[str, Any]:
         """
         Evaluates a web URL against scholarly classification rules with precise domain matching.
         """

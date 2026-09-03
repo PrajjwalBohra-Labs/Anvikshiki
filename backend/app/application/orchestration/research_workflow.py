@@ -1,41 +1,52 @@
 import json
-from typing import TypedDict, List, Dict, Any, Optional, AsyncGenerator
-import structlog
-from langgraph.graph import StateGraph, END
+from collections.abc import AsyncGenerator
+from typing import Any, TypedDict
 
-from backend.app.infrastructure.database.session import AsyncSessionLocal
-from backend.app.application.use_cases.hybrid_retrieval import HybridRetrievalService
+import structlog
+from langgraph.graph import END, StateGraph
+
+from backend.app.application.agents.challenger_agent import ChallengerAgent
+from backend.app.application.agents.comparative_analyst import ComparativeAnalyst
 from backend.app.application.agents.philosophical_analyst import PhilosophicalAnalyst
 from backend.app.application.agents.scientific_analyst import ScientificAnalyst
 from backend.app.application.agents.source_critic_agent import SourceCriticAgent
-from backend.app.application.agents.challenger_agent import ChallengerAgent
-from backend.app.application.use_cases.synthesis_validation_service import SynthesisValidationService
-from backend.app.application.use_cases.claim_extraction_service import ClaimExtractionService
 from backend.app.application.memory.epistemic_memory import EpistemicMemoryService
-from backend.app.application.agents.comparative_analyst import ComparativeAnalyst
-from backend.app.infrastructure.ai.local_model_adapter import BaseModelAdapter, OllamaLocalAdapter
-from backend.app.application.orchestration.durable_checkpointer import DurableDatabaseCheckpointer
+from backend.app.application.orchestration.durable_checkpointer import (
+    DurableDatabaseCheckpointer,
+)
+from backend.app.application.use_cases.claim_extraction_service import (
+    ClaimExtractionService,
+)
+from backend.app.application.use_cases.hybrid_retrieval import HybridRetrievalService
+from backend.app.application.use_cases.synthesis_validation_service import (
+    SynthesisValidationService,
+)
 from backend.app.core.config import settings
+from backend.app.infrastructure.ai.local_model_adapter import (
+    BaseModelAdapter,
+    OllamaLocalAdapter,
+)
+from backend.app.infrastructure.database.session import AsyncSessionLocal
 
 logger = structlog.get_logger(__name__)
 
 class ResearchWorkflowState(TypedDict):
-    run_id: Optional[str]
+    run_id: str | None
     query: str
     domain: str
     user_id: str
-    retrieved_passages: List[Dict[str, Any]]
-    extracted_claims: List[Dict[str, Any]]
-    criticisms: List[Dict[str, Any]]
-    reconstructed_arguments: List[Dict[str, Any]]
-    objections: List[Dict[str, Any]]
-    scientific_analyses: List[Dict[str, Any]]
-    comparisons: List[Dict[str, Any]]
-    user_epistemic_positions: List[Dict[str, Any]]
+    retrieved_passages: list[dict[str, Any]]
+    extracted_claims: list[dict[str, Any]]
+    criticisms: list[dict[str, Any]]
+    reconstructed_arguments: list[dict[str, Any]]
+    objections: list[dict[str, Any]]
+    scientific_analyses: list[dict[str, Any]]
+    comparisons: list[dict[str, Any]]
+    user_epistemic_positions: list[dict[str, Any]]
     validation_status: str
-    validated_claims: List[Dict[str, Any]]
+    validated_claims: list[dict[str, Any]]
     final_response: str
-    validation_details: Dict[str, Any]
+    validation_details: dict[str, Any]
     current_step: str
 
 class ResearchWorkflowEngine:
@@ -43,7 +54,7 @@ class ResearchWorkflowEngine:
     LangGraph research orchestrator:
     Query -> Hybrid RAG -> Real Passages -> Specialist Agents -> Challenger -> LLM -> Validation.
     """
-    def __init__(self, session_or_factory: Optional[Any] = None, llm_adapter: Optional[BaseModelAdapter] = None):
+    def __init__(self, session_or_factory: Any | None = None, llm_adapter: BaseModelAdapter | None = None):
         if session_or_factory is not None and callable(session_or_factory):
             self.session_factory = session_or_factory
         else:
@@ -59,7 +70,7 @@ class ResearchWorkflowEngine:
     def _build_graph(self):
         builder = StateGraph(ResearchWorkflowState)
 
-        async def coordinator_node(state: ResearchWorkflowState) -> Dict[str, Any]:
+        async def coordinator_node(state: ResearchWorkflowState) -> dict[str, Any]:
             logger.info("Coordinator query planning", query=state["query"])
             async with self.session_factory() as session:
                 positions = await EpistemicMemoryService(session).get_user_positions(
@@ -71,7 +82,7 @@ class ResearchWorkflowEngine:
                 "current_step": "coordinator_completed",
             }
 
-        async def retrieval_node(state: ResearchWorkflowState) -> Dict[str, Any]:
+        async def retrieval_node(state: ResearchWorkflowState) -> dict[str, Any]:
             query = state["query"]
             domain = state.get("domain", "Epistemology")
             
@@ -100,7 +111,7 @@ class ResearchWorkflowEngine:
                 "current_step": "retrieval_completed"
             }
 
-        async def specialist_analysis_node(state: ResearchWorkflowState) -> Dict[str, Any]:
+        async def specialist_analysis_node(state: ResearchWorkflowState) -> dict[str, Any]:
             passages = state.get("retrieved_passages", [])
             claims = []
             arguments = []
@@ -171,7 +182,7 @@ class ResearchWorkflowEngine:
                 "current_step": "specialist_analysis_completed"
             }
 
-        async def challenger_node(state: ResearchWorkflowState) -> Dict[str, Any]:
+        async def challenger_node(state: ResearchWorkflowState) -> dict[str, Any]:
             claims = state.get("extracted_claims", [])
             objections = []
 
@@ -189,7 +200,7 @@ class ResearchWorkflowEngine:
                 "current_step": "challenger_completed"
             }
 
-        async def validation_node(state: ResearchWorkflowState) -> Dict[str, Any]:
+        async def validation_node(state: ResearchWorkflowState) -> dict[str, Any]:
             claims = state.get("extracted_claims", [])
             async with self.session_factory() as session:
                 validator = SynthesisValidationService(session)
@@ -238,7 +249,7 @@ class ResearchWorkflowEngine:
 
         return builder.compile(checkpointer=self.checkpointer)
 
-    def _result_payload(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def _result_payload(self, state: dict[str, Any]) -> dict[str, Any]:
         return {
             "run_id": state.get("run_id") or "",
             "query": state.get("query", ""),
@@ -264,8 +275,8 @@ class ResearchWorkflowEngine:
         user_id: str,
         domain: str = "Epistemology",
         thread_id: str = "default_thread",
-        run_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
         initial_state: ResearchWorkflowState = {
             "run_id": run_id,
             "query": query,
@@ -294,8 +305,8 @@ class ResearchWorkflowEngine:
         user_id: str,
         domain: str = "Epistemology",
         thread_id: str = "default_thread",
-        run_id: Optional[str] = None,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        run_id: str | None = None,
+    ) -> AsyncGenerator[dict[str, Any], None]:
         initial_state: ResearchWorkflowState = {
             "run_id": run_id,
             "query": query,
