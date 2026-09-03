@@ -8,15 +8,25 @@ import { ResearchWorkspace } from './components/research/ResearchWorkspace';
 import { KnowledgeGraphPage } from './components/knowledge/KnowledgeGraphPage';
 import { BackgroundJobsPage } from './components/jobs/BackgroundJobsPage';
 import { AnvikshikiShell, type AppView } from './components/shell/AnvikshikiShell';
+<<<<<<< HEAD
 import { executeDialogue, exportResearchRun, getEpistemicPositions, getHealth } from './api/services';
+=======
+import { executeDialogue, getHealth } from './api/services';
+import { MemoryPage } from './components/memory/MemoryPage';
+import { KnowledgeGraphPage } from './components/knowledge/KnowledgeGraphPage';
+import { NotebookPage } from './components/notebook/NotebookPage';
+import { CommandPalette } from './components/commands/CommandPalette';
+import { COMMANDS, isCommandPaletteShortcut } from './commands/registry';
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 import { navigate, routeView, useRoute } from './routing';
-import type { DialogueTurnDTO, EpistemicPositionDTO, HealthDTO } from './types';
+import type { DialogueTurnDTO, HealthDTO } from './types';
 import './styles/tokens.css';
 import './styles/app.css';
 
 function LoadingMessage({ label }: { label: string }) { return <p className="muted-copy loading-message" role="status"><LoaderCircle className="spin" size={14} /> {label}</p>; }
 function ErrorMessage({ message }: { message: string }) { return <div className="inline-error" role="alert"><AlertTriangle size={15} />{message}</div>; }
 
+<<<<<<< HEAD
 function ExportRecordAction({ runId }: { runId: string }) {
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const exportRecord = async () => { setBusy(true); setError(''); try { const data = await exportResearchRun(runId); const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const anchor = window.document.createElement('a'); anchor.href = url; anchor.download = `research-${runId}.json`; anchor.click(); URL.revokeObjectURL(url); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Research export failed.'); } finally { setBusy(false); } };
@@ -29,6 +39,8 @@ function MemoryPage({ userId }: { userId: string }) {
   return <section className="secondary-page"><div className="eyebrow">Understanding / Epistemic memory</div><h1>Current understanding</h1><p className="page-lede">Persisted positions are research continuity context, not automatically source evidence.</p>{loading && <LoadingMessage label="Loading epistemic positions..." />}{error && <ErrorMessage message={error} />}{!loading && !error && positions.length === 0 && <div className="empty-card"><ShieldCheck size={18} />No epistemic positions are currently returned for this user.</div>}<div className="position-list">{positions.map((position) => <article className="position-card" key={position.position_id}><div className="position-heading"><span className="eyebrow">{position.status}</span><span>{Math.round(position.confidence * 100)}% confidence</span></div><p>{position.claim_statement}</p><small>{position.position}</small></article>)}</div></section>;
 }
 
+=======
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 function DialoguePage() {
   const [input, setInput] = useState(''); const [mode, setMode] = useState('socratic'); const [turn, setTurn] = useState<DialogueTurnDTO | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState('');
   const submit = async (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (!input.trim()) return; setLoading(true); setError(''); try { setTurn(await executeDialogue(input.trim(), mode)); setInput(''); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Dialogue response failed.'); } finally { setLoading(false); } };
@@ -45,6 +57,17 @@ function HealthRow({ icon, label, value }: { icon: React.ReactNode; label: strin
 
 function AuthenticatedApp() {
   const { user, initializing, logout } = useAuth(); const route = useRoute();
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isCommandPaletteShortcut(event)) {
+        event.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   if (initializing) return <main className="auth-screen"><LoadingMessage label="Restoring local research session..." /></main>;
   if (!user) return <AuthScreen />;
   const activeView: AppView = routeView(route);
@@ -60,6 +83,10 @@ function AuthenticatedApp() {
     case 'library-sources': content = <><SourcesPage /><section className="secondary-page secondary-page-compact"><WebAcquisitionPanel /></section></>; break;
     case 'library': content = <SourcesPage />; break;
     case 'memory': content = <MemoryPage userId={user.user_id} />; break;
+    case 'knowledge-graph': content = <KnowledgeGraphPage />; break;
+    case 'knowledge-graph-run': content = <KnowledgeGraphPage runId={route.id} />; break;
+    case 'notebook': content = <NotebookPage />; break;
+    case 'notebook-entry': content = <NotebookPage notebookId={route.id} />; break;
     case 'dialogue': content = <DialoguePage />; break;
     case 'settings': content = <SettingsPage user={user} />; break;
     case 'knowledge-graph': content = <KnowledgeGraphPage />; break;
@@ -68,7 +95,7 @@ function AuthenticatedApp() {
     case 'not-found': content = <section className="secondary-page"><div className="eyebrow">404 / Not found</div><h1>This path is not part of the instrument.</h1><button className="button button-primary" type="button" onClick={() => navigate('/research')}>Return to inquiry</button></section>; break;
     default: content = <ResearchWorkspace userId={user.user_id} />;
   }
-  return <AnvikshikiShell activeView={activeView} onViewChange={changeView} userName={user.username} onLogout={() => { void logout(); }}><div key={window.location.pathname}>{content}</div></AnvikshikiShell>;
+  return <><AnvikshikiShell activeView={activeView} onViewChange={changeView} userName={user.username} onLogout={() => { void logout(); }} onOpenCommandPalette={() => setCommandPaletteOpen(true)}><div key={window.location.pathname}>{content}</div></AnvikshikiShell><CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} commands={COMMANDS} /></>;
 }
 
 export function App() { return <AuthProvider><AuthenticatedApp /></AuthProvider>; }

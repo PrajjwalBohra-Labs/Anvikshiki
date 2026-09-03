@@ -1,24 +1,33 @@
 import { useEffect, useState, type ReactNode } from 'react';
+<<<<<<< HEAD
 import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileSearch, FileText, Library, LogOut, Menu, MessageCircle, Network, Search, Settings, X } from 'lucide-react';
 import { navigate } from '../../routing';
 import { CommandPalette } from '../command/CommandPalette';
+=======
+import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileSearch, FileText, Library, LogOut, Menu, MessageCircle, Network, NotebookPen, Settings, Share2, X } from 'lucide-react';
+import { Command } from 'lucide-react';
+import { COMMAND_PALETTE_SHORTCUT } from '../../commands/registry';
+import { navigate } from '../../routing';
+import { WORKSPACE_MODES, workspaceModeForView, type WorkspaceModeId } from '../../workspace/modes';
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 import './AnvikshikiShell.css';
 
-export type AppView = 'inquiry' | 'history' | 'questions' | 'library' | 'memory' | 'dialogue' | 'settings';
+export type AppView = 'inquiry' | 'history' | 'questions' | 'library' | 'memory' | 'knowledge-graph' | 'notebook' | 'dialogue' | 'settings';
 
 interface NavItem { id: AppView; label: string; icon: typeof CircleHelp; path?: string; }
-const navGroups: { label: string; items: NavItem[] }[] = [
-  { label: 'Investigation', items: [
+const navGroups: { mode: WorkspaceModeId; label: string; items: NavItem[] }[] = [
+  { mode: 'investigation', label: 'Investigation', items: [
     { id: 'inquiry', label: 'Research', icon: CircleHelp },
     { id: 'history', label: 'Research runs', icon: FileSearch, path: '/research/runs' },
     { id: 'history', label: 'Background work', icon: Activity, path: '/research/jobs' },
     { id: 'questions', label: 'Questions', icon: CircleHelp },
   ] },
-  { label: 'Library', items: [
+  { mode: 'library', label: 'Library', items: [
     { id: 'library', label: 'Library', icon: Library, path: '/library' },
     { id: 'library', label: 'Sources', icon: FileText, path: '/library/sources' },
     { id: 'library', label: 'Documents', icon: BookOpen, path: '/library/documents' },
   ] },
+<<<<<<< HEAD
   { label: 'Knowledge', items: [
     { id: 'memory', label: 'Memory', icon: Network, path: '/memory' },
     { id: 'memory', label: 'Knowledge graph', icon: Network, path: '/knowledge-graph' },
@@ -26,6 +35,15 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     { id: 'dialogue', label: 'Dialogue', icon: MessageCircle, path: '/dialogue' },
   ] },
   { label: 'System', items: [{ id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }] },
+=======
+  { mode: 'knowledge', label: 'Knowledge', items: [
+    { id: 'memory', label: 'Memory', icon: Network },
+    { id: 'knowledge-graph', label: 'Knowledge graph', icon: Share2, path: '/knowledge-graph' },
+    { id: 'notebook', label: 'Notebook', icon: NotebookPen, path: '/notebook' },
+    { id: 'dialogue', label: 'Dialogue', icon: MessageCircle },
+  ] },
+  { mode: 'system', label: 'System', items: [{ id: 'settings', label: 'Settings', icon: Settings }] },
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 ];
 
 interface Props {
@@ -33,13 +51,30 @@ interface Props {
   onViewChange: (view: AppView) => void;
   userName: string;
   onLogout: () => void;
+  onOpenCommandPalette?: () => void;
   children: ReactNode;
 }
 
-export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, children }: Props) {
+export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, onOpenCommandPalette, children }: Props) {
   const [leftOpen, setLeftOpen] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+<<<<<<< HEAD
   const [paletteOpen, setPaletteOpen] = useState(false);
+=======
+  const activeMode = workspaceModeForView(activeView);
+  const visibleNavGroups = navGroups.filter((group) => group.mode === activeMode.id);
+  const selectMode = (modeId: WorkspaceModeId) => {
+    const mode = WORKSPACE_MODES.find((candidate) => candidate.id === modeId);
+    if (mode) navigate(mode.defaultPath);
+  };
+  const handleModeKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const offset = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? WORKSPACE_MODES.length - 1 : (index + offset + WORKSPACE_MODES.length) % WORKSPACE_MODES.length;
+    selectMode(WORKSPACE_MODES[nextIndex].id);
+  };
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 
   useEffect(() => { setMobileNavOpen(false); }, [activeView]);
   useEffect(() => { const onKey = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setPaletteOpen(true); } if (event.key === 'Escape') setPaletteOpen(false); }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, []);
@@ -63,8 +98,30 @@ export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, 
             {leftOpen && <div><strong>ANVIKSHIKI</strong><span>Research instrument</span></div>}
             <button className="icon-button sidebar-close" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><X size={17} /></button>
           </div>
+          {onOpenCommandPalette && <button className="command-trigger" type="button" onClick={onOpenCommandPalette} aria-label="Open command palette" aria-haspopup="dialog" title="Open command palette"><Command size={15} />{leftOpen && <><span>Command palette</span><kbd>{COMMAND_PALETTE_SHORTCUT}</kbd></>}</button>}
+          <div className="workspace-mode-selector" role="tablist" aria-label="Workspace modes">
+            {WORKSPACE_MODES.map((mode, index) => (
+              <button
+                key={mode.id}
+                id={`workspace-mode-${mode.id}`}
+                className={"workspace-mode-tab " + (mode.id === activeMode.id ? 'active' : '')}
+                type="button"
+                role="tab"
+                aria-selected={mode.id === activeMode.id}
+                aria-controls="primary-navigation"
+                aria-label={`${mode.label}: ${mode.description}`}
+                tabIndex={mode.id === activeMode.id ? 0 : -1}
+                title={`${mode.label}: ${mode.description}`}
+                onClick={() => selectMode(mode.id)}
+                onKeyDown={(event) => handleModeKeyDown(event, index)}
+              >
+                <span aria-hidden="true">{mode.label.slice(0, 1)}</span>
+                {leftOpen && <span>{mode.label}</span>}
+              </button>
+            ))}
+          </div>
           <nav id="primary-navigation" aria-label="Primary navigation" className="primary-nav">
-            {navGroups.map((group) => <div className="nav-group" key={group.label}>
+            {visibleNavGroups.map((group) => <div className="nav-group" key={group.label}>
               {leftOpen && <span className="nav-group-label">{group.label}</span>}
               {group.items.map(({ id, label, icon: Icon, path }) => {
                 const pathActive = path ? (window.location.pathname === path || window.location.pathname.startsWith(`${path}/`)) : true;

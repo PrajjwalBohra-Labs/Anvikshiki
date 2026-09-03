@@ -238,6 +238,29 @@ export interface EvidenceTraceDTO {
   source_lineage: Record<string, unknown>[];
 }
 
+export interface ProvenanceNodeDTO {
+  node_id: string;
+  node_type: string;
+  entity_id: string;
+  label: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ProvenanceEdgeDTO {
+  edge_id: string;
+  from_node_id: string;
+  to_node_id: string;
+  relationship_type: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ProvenanceGraphDTO {
+  nodes: ProvenanceNodeDTO[];
+  edges: ProvenanceEdgeDTO[];
+}
+
 export interface DocumentDTO {
   document_id: string;
   source_id: string;
@@ -353,6 +376,21 @@ export interface EpistemicPositionDTO {
   history: Record<string, unknown>[];
 }
 
+export interface EpistemicPositionCreateDTO {
+  user_id: string;
+  claim_statement: string;
+  position: string;
+  confidence: number;
+  supporting_evidence?: Record<string, unknown>[];
+  counterarguments?: Record<string, unknown>[];
+  status?: string;
+}
+
+export interface EpistemicPositionUpdateDTO {
+  new_status: string;
+  change_reason?: string;
+}
+
 export interface ResearchContinuityResponseDTO {
   research_question_id: string;
   main_question: string;
@@ -378,6 +416,7 @@ export interface HealthDTO {
   environment?: string;
 }
 
+<<<<<<< HEAD
 export interface ProvenanceGraphNodeDTO {
   node_id: string;
   node_type: string;
@@ -421,6 +460,24 @@ export interface BackgroundJobDTO {
   created_at: string;
   started_at?: string | null;
   finished_at?: string | null;
+=======
+export interface NotebookDTO {
+  notebook_id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotebookCreateDTO {
+  title: string;
+  content: string;
+}
+
+export interface NotebookUpdateDTO {
+  title?: string;
+  content?: string;
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 }
 
 export interface Message {

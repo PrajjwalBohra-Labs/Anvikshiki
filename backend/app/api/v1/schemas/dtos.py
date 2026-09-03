@@ -1,7 +1,13 @@
+<<<<<<< HEAD
 from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+=======
+from typing import List, Dict, Any, Optional
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+>>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 
 
 # --- Dialogue & Conversation Schemas ---
@@ -34,6 +40,53 @@ class ConversationResponseDTO(BaseModel):
     title: str | None
     created_at: datetime
     messages: list[MessageResponseDTO] = []
+
+
+# --- Notebook contract ---
+class NotebookCreateDTO(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(..., min_length=1, max_length=256)
+    content: str = Field(default="", max_length=100_000)
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Notebook title cannot be blank.")
+        return cleaned
+
+
+class NotebookUpdateDTO(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: Optional[str] = Field(default=None, min_length=1, max_length=256)
+    content: Optional[str] = Field(default=None, max_length=100_000)
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Notebook title cannot be blank.")
+        return cleaned
+
+    @model_validator(mode="after")
+    def require_change(self):
+        if self.title is None and self.content is None:
+            raise ValueError("At least one notebook field must be provided.")
+        return self
+
+
+class NotebookResponseDTO(BaseModel):
+    notebook_id: str
+    title: str
+    content: str
+    created_at: datetime
+    updated_at: datetime
 
 class DialogueTurnRequestDTO(BaseModel):
     user_utterance: str = Field(..., min_length=1)
