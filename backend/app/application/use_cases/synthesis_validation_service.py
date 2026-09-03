@@ -1,7 +1,9 @@
 import re
-from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
+
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.infrastructure.database.models import PassageModel
 
 logger = structlog.get_logger(__name__)
@@ -10,14 +12,14 @@ class SynthesisValidationService:
     """
     Validates claim-evidence linkage, checks passage existence, and blocks ungrounded assertions.
     """
-    def __init__(self, session: Optional[AsyncSession] = None):
+    def __init__(self, session: AsyncSession | None = None):
         self.session = session
 
     async def validate_research_output(
         self,
-        claims: List[Dict[str, Any]],
-        research_scope: Optional[str] = None
-    ) -> Dict[str, Any]:
+        claims: list[dict[str, Any]],
+        research_scope: str | None = None
+    ) -> dict[str, Any]:
         validated = []
         blocked = []
         warnings = []

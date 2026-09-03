@@ -1,14 +1,16 @@
-﻿from typing import TypedDict, List, Optional, Any
-from langgraph.graph import StateGraph, START, END
+from typing import Any, TypedDict
+
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, START, StateGraph
+
 
 class ResearchState(TypedDict):
     """Typed research state definition for LangGraph execution."""
     query: str
     validated: bool
     status: str
-    error: Optional[str]
-    history: List[str]
+    error: str | None
+    history: list[str]
 
 def node_research_input(state: ResearchState) -> ResearchState:
     """Initial research input node."""

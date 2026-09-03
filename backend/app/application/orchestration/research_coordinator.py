@@ -1,17 +1,19 @@
-﻿from typing import TypedDict, List, Optional, Dict, Any
-from langgraph.graph import StateGraph, START, END
+from typing import Any, TypedDict
+
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, START, StateGraph
+
 
 class CoordinatorState(TypedDict):
     """Typed state for the Research Coordinator workflow."""
     query: str
     research_depth: str  # "shallow" or "deep"
     retrieval_needed: bool
-    required_roles: List[str]
+    required_roles: list[str]
     is_complex: bool
     human_input_needed: bool
     status: str
-    history: List[str]
+    history: list[str]
 
 def coordinator_node(state: CoordinatorState) -> CoordinatorState:
     """

@@ -1,6 +1,8 @@
 """Durable, typed provenance graph assembly over existing research records."""
 
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -32,17 +34,17 @@ class ProvenanceService:
 
     def __init__(self, session: AsyncSession):
         self.session = session
-        self._node_cache: Dict[tuple[str, str], ProvenanceNodeModel] = {}
-        self._edge_cache: Dict[tuple[str, str, str], ProvenanceEdgeModel] = {}
-        self._touched_nodes: Dict[str, ProvenanceNodeModel] = {}
-        self._touched_edges: Dict[str, ProvenanceEdgeModel] = {}
+        self._node_cache: dict[tuple[str, str], ProvenanceNodeModel] = {}
+        self._edge_cache: dict[tuple[str, str, str], ProvenanceEdgeModel] = {}
+        self._touched_nodes: dict[str, ProvenanceNodeModel] = {}
+        self._touched_edges: dict[str, ProvenanceEdgeModel] = {}
 
     async def _node(
         self,
         node_type: ProvenanceNodeType,
         entity_id: str,
         label: str,
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
     ) -> ProvenanceNodeModel:
         key = (node_type.value, str(entity_id))
         cached = self._node_cache.get(key)
@@ -75,7 +77,7 @@ class ProvenanceService:
         from_node: ProvenanceNodeModel,
         to_node: ProvenanceNodeModel,
         relationship_type: ProvenanceRelationType,
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
     ) -> ProvenanceEdgeModel:
         key = (from_node.id, to_node.id, relationship_type.value)
         cached = self._edge_cache.get(key)
@@ -109,6 +111,20 @@ class ProvenanceService:
         return value.value if hasattr(value, "value") else value
 
     @staticmethod
+    def _stable_datetime(value: datetime) -> datetime:
+        """Return a consistently timezone-aware value across DB dialects.
+
+        SQLite does not preserve the timezone flag of SQLAlchemy DateTime
+        columns, so a just-created row and the same row read back could be
+        serialized differently.  Provenance exports are deterministic API
+        records; interpret legacy naive UTC values explicitly at this
+        boundary without changing the stored value.
+        """
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+    @staticmethod
     def _node_payload(node: ProvenanceNodeModel) -> dict:
         return {
             "node_id": node.id,
@@ -116,7 +132,7 @@ class ProvenanceService:
             "entity_id": node.entity_id,
             "label": node.label,
             "metadata": node.metadata_payload or {},
-            "created_at": node.created_at,
+            "created_at": ProvenanceService._stable_datetime(node.created_at),
         }
 
     @staticmethod
@@ -127,7 +143,7 @@ class ProvenanceService:
             "to_node_id": edge.to_node_id,
             "relationship_type": ProvenanceService._enum_value(edge.relationship_type),
             "metadata": edge.metadata_payload or {},
-            "created_at": edge.created_at,
+            "created_at": ProvenanceService._stable_datetime(edge.created_at),
         }
 
     async def link_sources(
@@ -143,7 +159,7 @@ class ProvenanceService:
         await self.session.commit()
         return rel
 
-    async def trace_lineage(self, source_id: str) -> List[Dict]:
+    async def trace_lineage(self, source_id: str) -> list[dict]:
         """Trace source lineage while retaining the existing response shape."""
         lineage = []
         current_id = source_id
@@ -170,7 +186,7 @@ class ProvenanceService:
     async def record_document_ancestry(
         self,
         document: DocumentModel,
-        version: Optional[DocumentVersionModel] = None,
+        version: DocumentVersionModel | None = None,
         pages: Iterable[PageModel] = (),
         passages: Iterable[PassageModel] = (),
     ) -> None:
@@ -274,7 +290,7 @@ class ProvenanceService:
         pages = version.pages if version is not None else []
         await self.record_document_ancestry(document, version, pages, [passage])
 
-    async def _materialize_run(self, run_id: str) -> Optional[ResearchRunModel]:
+    async def _materialize_run(self, run_id: str) -> ResearchRunModel | None:
         run = await self.session.get(ResearchRunModel, run_id)
         if run is None:
             return None
@@ -474,7 +490,7 @@ class ProvenanceService:
             "edges": [self._edge_payload(edge) for edge in self._touched_edges.values()],
         }
 
-    async def trace_passage(self, passage_id: str) -> Optional[dict]:
+    async def trace_passage(self, passage_id: str) -> dict | None:
         result = await self.session.execute(
             select(PassageModel)
             .where(PassageModel.id == passage_id)
@@ -493,7 +509,7 @@ class ProvenanceService:
         await self.session.commit()
         return await self._graph_response()
 
-    async def trace_claim(self, claim_id: str) -> Optional[dict]:
+    async def trace_claim(self, claim_id: str) -> dict | None:
         claim = await self.session.get(ClaimModel, claim_id)
         if claim is None:
             return None
@@ -551,7 +567,7 @@ class ProvenanceService:
             )
             await self._edge(evidence_node, passage_node, ProvenanceRelationType.CITES)
 
-    async def trace_run(self, run_id: str) -> List[Dict]:
+    async def trace_run(self, run_id: str) -> list[dict]:
         """Return the compatible trace list with an additive typed graph."""
         run = await self._materialize_run(run_id)
         if run is None:
@@ -624,7 +640,7 @@ class ProvenanceService:
             )
         return traces
 
-    async def trace_run_graph(self, run_id: str) -> Optional[dict]:
+    async def trace_run_graph(self, run_id: str) -> dict | None:
         """Return the complete graph, including runs without evidence rows."""
         run = await self._materialize_run(run_id)
         if run is None:
@@ -633,10 +649,10 @@ class ProvenanceService:
 
     async def trace_source_impact(
         self,
-        source_id: Optional[str] = None,
-        document_id: Optional[str] = None,
-        passage_id: Optional[str] = None,
-    ) -> Optional[dict]:
+        source_id: str | None = None,
+        document_id: str | None = None,
+        passage_id: str | None = None,
+    ) -> dict | None:
         """Find existing claims and runs depending on a source resource."""
         if not any((source_id, document_id, passage_id)):
             return None

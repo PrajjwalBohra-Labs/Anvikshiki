@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.api.v1.schemas.dtos import UserCreateDTO, UserResponseDTO
 from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user
+from backend.app.api.v1.schemas.dtos import UserCreateDTO, UserResponseDTO
 from backend.app.application.use_cases.user_service import UserService
 from backend.app.core.errors import AnvikshikiDomainError
 from backend.app.infrastructure.database.session import get_db

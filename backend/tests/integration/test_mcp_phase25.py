@@ -11,7 +11,6 @@ from backend.app.infrastructure.database.session import AsyncSessionLocal, engin
 from backend.app.infrastructure.mcp.research_tools import register_mcp_research_tools
 from backend.app.infrastructure.mcp.server import AnvikshikiMCPServer
 
-
 pytestmark = pytest.mark.postgres
 
 

@@ -1,6 +1,9 @@
-﻿import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from backend.app.infrastructure.ai.local_model_adapter import OllamaLocalAdapter
+
 
 @pytest.mark.asyncio
 async def test_ollama_adapter_generation_success():

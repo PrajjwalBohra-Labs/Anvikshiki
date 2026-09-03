@@ -1,13 +1,13 @@
+import textwrap
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
-import textwrap
 from unittest.mock import patch
 
 import fitz
 import pytest
-from sqlalchemy import select
 from PIL import Image, ImageDraw, ImageFont
+from sqlalchemy import select
 
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.core.config import settings
@@ -15,7 +15,11 @@ from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalSentenceTransformerEmbeddingAdapter,
 )
-from backend.app.infrastructure.database.models import PageModel, ProvenanceNodeModel, SourceModel
+from backend.app.infrastructure.database.models import (
+    PageModel,
+    ProvenanceNodeModel,
+    SourceModel,
+)
 from backend.app.infrastructure.database.session import AsyncSessionLocal, Base, engine
 from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
 from backend.app.infrastructure.storage.local_storage import LocalStorageService

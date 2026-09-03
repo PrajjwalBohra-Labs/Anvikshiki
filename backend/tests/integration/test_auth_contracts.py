@@ -2,9 +2,12 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from backend.app.application.use_cases.user_service import UserService
-from backend.app.infrastructure.database.models import ResearchQuestionModel, ResearchRunModel
-from backend.app.infrastructure.database.session import AsyncSessionLocal, Base, engine
 from backend.app.core.config import settings
+from backend.app.infrastructure.database.models import (
+    ResearchQuestionModel,
+    ResearchRunModel,
+)
+from backend.app.infrastructure.database.session import AsyncSessionLocal, Base, engine
 from backend.app.main import app
 
 

@@ -1,8 +1,10 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel
-from backend.app.domain.models.enums import SourceType, EvidenceStatus
+import pytest
+
 from backend.app.application.agents.source_critic_agent import SourceCriticAgent
+from backend.app.domain.models.enums import EvidenceStatus, SourceType
+from backend.app.infrastructure.database.models import SourceModel
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():

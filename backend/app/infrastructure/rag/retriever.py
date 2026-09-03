@@ -5,7 +5,7 @@ are retrieval metadata only and are never used as documentary evidence.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,9 +23,9 @@ from backend.app.infrastructure.rag.semantic_retriever import SemanticRetriever
 class RetrievalOutcome:
     """Results plus explicit branch health for a retrieval operation."""
 
-    results: List[ScoredPassage] = field(default_factory=list)
+    results: list[ScoredPassage] = field(default_factory=list)
     status: str = "complete"
-    warnings: List[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
     lexical_count: int = 0
     semantic_count: int = 0
 
@@ -43,7 +43,7 @@ class HybridRetriever:
     def __init__(
         self,
         session: AsyncSession,
-        embedding_client: Optional[LocalEmbeddingClient] = None,
+        embedding_client: LocalEmbeddingClient | None = None,
     ):
         self.session = session
         self.lexical = LexicalRetriever(session)
@@ -57,12 +57,12 @@ class HybridRetriever:
     async def lexical_retrieve(
         self,
         query: str,
-        source_type: Optional[SourceType] = None,
-        language: Optional[str] = None,
+        source_type: SourceType | None = None,
+        language: str | None = None,
         top_k: int = 5,
-        source_id: Optional[str] = None,
-        document_id: Optional[str] = None,
-        document_version_id: Optional[str] = None,
+        source_id: str | None = None,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
     ) -> RetrievalOutcome:
         results = await self.lexical.search(
             query=query,
@@ -78,11 +78,11 @@ class HybridRetriever:
     async def semantic_retrieve(
         self,
         query: str,
-        source_type: Optional[SourceType] = None,
+        source_type: SourceType | None = None,
         top_k: int = 5,
-        source_id: Optional[str] = None,
-        document_id: Optional[str] = None,
-        document_version_id: Optional[str] = None,
+        source_id: str | None = None,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
     ) -> RetrievalOutcome:
         try:
             query_vector = await self.embed_client.get_embedding(query)
@@ -106,17 +106,17 @@ class HybridRetriever:
     async def hybrid_retrieve_with_metadata(
         self,
         query: str,
-        source_type: Optional[SourceType] = None,
-        language: Optional[str] = None,
+        source_type: SourceType | None = None,
+        language: str | None = None,
         top_k: int = 5,
-        rrf_k: Optional[int] = None,
-        source_id: Optional[str] = None,
-        document_id: Optional[str] = None,
-        document_version_id: Optional[str] = None,
-        lexical_weight: Optional[float] = None,
-        semantic_weight: Optional[float] = None,
-        lexical_candidate_limit: Optional[int] = None,
-        semantic_candidate_limit: Optional[int] = None,
+        rrf_k: int | None = None,
+        source_id: str | None = None,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+        lexical_weight: float | None = None,
+        semantic_weight: float | None = None,
+        lexical_candidate_limit: int | None = None,
+        semantic_candidate_limit: int | None = None,
     ) -> RetrievalOutcome:
         if top_k < 1:
             raise ValueError("top_k must be positive.")
@@ -149,7 +149,7 @@ class HybridRetriever:
             raise ValueError("Hybrid weights cannot be negative.")
 
         lexical_outcome = RetrievalOutcome()
-        warnings: List[str] = []
+        warnings: list[str] = []
         try:
             lexical_outcome = await self.lexical_retrieve(
                 query=query,
@@ -183,9 +183,9 @@ class HybridRetriever:
 
         # Stable passage identity is the only union key. A passage present in
         # both branches appears once while retaining both contributions.
-        candidates: Dict[str, Dict[str, Any]] = {}
+        candidates: dict[str, dict[str, Any]] = {}
 
-        def add_branch(items: List[ScoredPassage], branch: str) -> None:
+        def add_branch(items: list[ScoredPassage], branch: str) -> None:
             rank_one = 1.0 / (fusion_k + 1)
             for rank, item in enumerate(items, start=1):
                 passage_id = item.passage.id
@@ -209,7 +209,7 @@ class HybridRetriever:
         add_branch(lexical_outcome.results, "lexical")
         add_branch(semantic_outcome.results, "semantic")
 
-        fused: List[ScoredPassage] = []
+        fused: list[ScoredPassage] = []
         for candidate in candidates.values():
             lexical_contribution = candidate["normalized_lexical_score"]
             semantic_contribution = candidate["normalized_semantic_score"]
@@ -254,14 +254,14 @@ class HybridRetriever:
     async def hybrid_retrieve(
         self,
         query: str,
-        source_type: Optional[SourceType] = None,
-        language: Optional[str] = None,
+        source_type: SourceType | None = None,
+        language: str | None = None,
         top_k: int = 5,
-        rrf_k: Optional[int] = None,
-        source_id: Optional[str] = None,
-        document_id: Optional[str] = None,
-        document_version_id: Optional[str] = None,
-    ) -> List[ScoredPassage]:
+        rrf_k: int | None = None,
+        source_id: str | None = None,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+    ) -> list[ScoredPassage]:
         """Backward-compatible list API for existing application callers."""
         outcome = await self.hybrid_retrieve_with_metadata(
             query=query,

@@ -1,18 +1,23 @@
-﻿from typing import List, Dict, Any, Optional
+
+import structlog
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.domain.models.enums import ClaimType, PramanaType, RelationType, EvidenceStatus
-from backend.app.domain.models.reasoning import Claim, Evidence, Argument
+
+from backend.app.domain.models.enums import (
+    ClaimType,
+    EvidenceStatus,
+    PramanaType,
+    RelationType,
+)
+from backend.app.domain.models.reasoning import Claim, Evidence
 from backend.app.infrastructure.rag.reranker import AdvancedRetriever
-from backend.app.core.config import settings, RuntimeProfile
-import structlog
 
 logger = structlog.get_logger(__name__)
 
 class ReconstructedArgumentResponse(BaseModel):
     conclusion: Claim
-    premises: List[Claim]
-    evidence_links: List[Evidence]
+    premises: list[Claim]
+    evidence_links: list[Evidence]
     pramana_type: PramanaType
     overall_status: EvidenceStatus
 
@@ -21,7 +26,7 @@ class ReasoningEngineService:
         self.session = session
         self.retriever = AdvancedRetriever(session)
 
-    async def synthesize_argument(self, query: str, source_type: Optional[str] = None) -> ReconstructedArgumentResponse:
+    async def synthesize_argument(self, query: str, source_type: str | None = None) -> ReconstructedArgumentResponse:
         """
         Retrieves relevant passages via Advanced Hybrid/Reranked RAG,
         extracts epistemic claims, and structures them into a formal Pramana argument.

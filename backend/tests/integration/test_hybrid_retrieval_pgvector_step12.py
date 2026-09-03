@@ -3,9 +3,12 @@ from pathlib import Path
 import pytest
 from sqlalchemy import delete, select
 
-from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.application.use_cases.embedding_indexing import EmbeddingIndexService
+from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.domain.models.enums import SourceType
+from backend.app.infrastructure.ai.embedding_reranker_adapters import (
+    LocalSentenceTransformerEmbeddingAdapter,
+)
 from backend.app.infrastructure.database.models import (
     DocumentModel,
     DocumentVersionModel,
@@ -18,10 +21,6 @@ from backend.app.infrastructure.database.models import (
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
 from backend.app.infrastructure.rag.retriever import HybridRetriever
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
-from backend.app.infrastructure.ai.embedding_reranker_adapters import (
-    LocalSentenceTransformerEmbeddingAdapter,
-)
-
 
 pytestmark = pytest.mark.postgres
 

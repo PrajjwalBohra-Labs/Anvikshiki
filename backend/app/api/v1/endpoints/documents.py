@@ -1,26 +1,26 @@
-﻿from fastapi import APIRouter, Depends, File, Form, UploadFile, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Query
+
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy.future import select
-from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
-from backend.app.infrastructure.database.session import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
 from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user
-from backend.app.infrastructure.storage.local_storage import LocalStorageService
-from backend.app.application.use_cases.ingestion import DocumentIngestionService
-from backend.app.application.use_cases.document_service import DocumentService
 from backend.app.api.v1.schemas.dtos import DocumentResponseDTO
-from backend.app.infrastructure.database.models import DocumentModel, PassageModel
+from backend.app.application.use_cases.document_service import DocumentService
+from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.core.errors import AnvikshikiDomainError
+from backend.app.infrastructure.database.models import DocumentModel, PassageModel
+from backend.app.infrastructure.database.session import get_db
+from backend.app.infrastructure.storage.local_storage import LocalStorageService
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 class PassageResponse(BaseModel):
     id: str
-    page_number: Optional[int]
+    page_number: int | None
     content: str
-    extraction_method: Optional[str]
+    extraction_method: str | None
     ocr_confidence: float
     extraction_uncertainty: bool
     language: str
@@ -30,14 +30,14 @@ class DocumentUploadResponse(BaseModel):
     document_id: str
     checksum_sha256: str
     mime_type: str
-    total_pages: Optional[int]
+    total_pages: int | None
     passages_count: int
 
-@router.get("/", response_model=List[DocumentResponseDTO])
+@router.get("/", response_model=list[DocumentResponseDTO])
 async def list_documents(
-    source_id: Optional[str] = Query(default=None),
+    source_id: str | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
     return await DocumentService(db).list_documents(source_id=source_id)
 
@@ -46,7 +46,7 @@ async def upload_document(
     source_id: str = Form(...),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
     content = await file.read()
     storage = LocalStorageService()
@@ -71,7 +71,7 @@ async def upload_document(
 async def get_document(
     document_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
     service = DocumentService(db)
     document = await service.get_document(document_id)
@@ -83,7 +83,7 @@ async def get_document(
 async def serve_document(
     document_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
     service = DocumentService(db)
     document = await service.get_document(document_id)
@@ -96,11 +96,11 @@ async def serve_document(
         filename=document.original_filename or path.name,
     )
 
-@router.get("/{document_id}/passages", response_model=List[PassageResponse])
+@router.get("/{document_id}/passages", response_model=list[PassageResponse])
 async def get_document_passages(
     document_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
     doc_result = await db.execute(select(DocumentModel).where(DocumentModel.id == document_id))
     doc = doc_result.scalars().first()

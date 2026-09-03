@@ -15,6 +15,7 @@ from backend.app.application.background.worker import (
     deterministic_job_id,
 )
 from backend.app.application.use_cases.user_service import UserService
+from backend.app.core.config import settings
 from backend.app.infrastructure.database.models import (
     AuthSessionModel,
     BackgroundJobModel,
@@ -32,22 +33,27 @@ TEST_USER_IDS: set[str] = set()
 
 @pytest.fixture
 async def setup_test_env():
+    previous_auth_mode = settings.AUTH_MODE
+    settings.AUTH_MODE = "required"
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
-    yield
-    if not TEST_USER_IDS:
-        return
-    async with AsyncSessionLocal() as session:
-        user_ids = tuple(TEST_USER_IDS)
-        run_ids = select(ResearchRunModel.id).where(ResearchRunModel.user_id.in_(user_ids))
-        await session.execute(delete(ResearchStepModel).where(ResearchStepModel.run_id.in_(run_ids)))
-        await session.execute(delete(BackgroundJobModel).where(BackgroundJobModel.user_id.in_(user_ids)))
-        await session.execute(delete(ResearchRunModel).where(ResearchRunModel.user_id.in_(user_ids)))
-        await session.execute(delete(ResearchQuestionModel).where(ResearchQuestionModel.user_id.in_(user_ids)))
-        await session.execute(delete(AuthSessionModel).where(AuthSessionModel.user_id.in_(user_ids)))
-        await session.execute(delete(UserModel).where(UserModel.id.in_(user_ids)))
-        await session.commit()
-    TEST_USER_IDS.clear()
+    try:
+        yield
+        if not TEST_USER_IDS:
+            return
+        async with AsyncSessionLocal() as session:
+            user_ids = tuple(TEST_USER_IDS)
+            run_ids = select(ResearchRunModel.id).where(ResearchRunModel.user_id.in_(user_ids))
+            await session.execute(delete(ResearchStepModel).where(ResearchStepModel.run_id.in_(run_ids)))
+            await session.execute(delete(BackgroundJobModel).where(BackgroundJobModel.user_id.in_(user_ids)))
+            await session.execute(delete(ResearchRunModel).where(ResearchRunModel.user_id.in_(user_ids)))
+            await session.execute(delete(ResearchQuestionModel).where(ResearchQuestionModel.user_id.in_(user_ids)))
+            await session.execute(delete(AuthSessionModel).where(AuthSessionModel.user_id.in_(user_ids)))
+            await session.execute(delete(UserModel).where(UserModel.id.in_(user_ids)))
+            await session.commit()
+        TEST_USER_IDS.clear()
+    finally:
+        settings.AUTH_MODE = previous_auth_mode
 
 
 async def create_job(user_id: str, key: str = "job-key"):

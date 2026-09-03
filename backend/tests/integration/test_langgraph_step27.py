@@ -1,5 +1,7 @@
-﻿import pytest
+import pytest
+
 from backend.app.application.orchestration.graph_foundation import build_research_graph
+
 
 @pytest.mark.asyncio
 async def test_langgraph_execution_and_checkpointing():

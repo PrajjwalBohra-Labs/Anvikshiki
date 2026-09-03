@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 from backend.app.core.config import RuntimeProfile, settings
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
@@ -25,8 +24,8 @@ class LocalRerankerClient:
         return round(0.2 + (overlap_ratio * 0.8), 4)
 
     async def rerank(
-        self, query: str, passages: List[ScoredPassage], top_k: int = 5
-    ) -> List[ScoredPassage]:
+        self, query: str, passages: list[ScoredPassage], top_k: int = 5
+    ) -> list[ScoredPassage]:
         if not passages:
             return []
 
@@ -80,7 +79,7 @@ class AdvancedRetriever(HybridRetriever):
         self,
         session,
         embedding_client=None,
-        reranker_client: Optional[LocalRerankerClient] = None,
+        reranker_client: LocalRerankerClient | None = None,
     ):
         super().__init__(session, embedding_client)
         self.reranker = reranker_client or LocalRerankerClient()
@@ -89,12 +88,12 @@ class AdvancedRetriever(HybridRetriever):
         self,
         query: str,
         source_type=None,
-        language: Optional[str] = None,
+        language: str | None = None,
         top_k: int = 5,
-        source_id: Optional[str] = None,
-        document_id: Optional[str] = None,
-        document_version_id: Optional[str] = None,
-    ) -> List[ScoredPassage]:
+        source_id: str | None = None,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+    ) -> list[ScoredPassage]:
         outcome = await self.retrieve_and_rerank_with_metadata(
             query=query,
             source_type=source_type,
@@ -110,11 +109,11 @@ class AdvancedRetriever(HybridRetriever):
         self,
         query: str,
         source_type=None,
-        language: Optional[str] = None,
+        language: str | None = None,
         top_k: int = 5,
-        source_id: Optional[str] = None,
-        document_id: Optional[str] = None,
-        document_version_id: Optional[str] = None,
+        source_id: str | None = None,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
     ) -> RetrievalOutcome:
         outcome = await self.hybrid_retrieve_with_metadata(
             query=query,

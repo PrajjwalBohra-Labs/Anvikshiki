@@ -1,9 +1,10 @@
-﻿import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel
-from backend.app.domain.models.enums import SourceType, SourceRelationshipType
+import pytest
+
 from backend.app.application.use_cases.provenance import ProvenanceService
+from backend.app.domain.models.enums import SourceRelationshipType, SourceType
+from backend.app.infrastructure.database.models import SourceModel
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():

@@ -1,8 +1,10 @@
-﻿import pytest
+import pytest
+
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
+    LocalCrossEncoderRerankerAdapter,
     LocalSentenceTransformerEmbeddingAdapter,
-    LocalCrossEncoderRerankerAdapter
 )
+
 
 @pytest.mark.asyncio
 async def test_embedding_adapter_version_and_caching():

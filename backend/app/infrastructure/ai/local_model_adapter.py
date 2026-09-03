@@ -1,8 +1,11 @@
-from abc import ABC, abstractmethod
-from typing import Dict, Any, AsyncGenerator, Optional
-import httpx
 import json
+from abc import ABC, abstractmethod
+from collections.abc import AsyncGenerator
+from typing import Any
+
+import httpx
 import structlog
+
 from backend.app.config.settings import config
 from backend.app.core.config import settings as runtime_settings
 
@@ -17,17 +20,17 @@ class BaseModelAdapter(ABC):
     async def generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         max_tokens: int = 512,
         temperature: float = 0.7
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         pass
 
     @abstractmethod
     async def stream_generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         max_tokens: int = 512,
         temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:
@@ -42,8 +45,8 @@ class OllamaLocalAdapter(BaseModelAdapter):
     """
     def __init__(
         self,
-        model_name: Optional[str] = None,
-        base_url: Optional[str] = None,
+        model_name: str | None = None,
+        base_url: str | None = None,
         timeout: float = 45.0
     ):
         selected_model = model_name or runtime_settings.OLLAMA_MODEL or config.llm.model_name
@@ -54,10 +57,10 @@ class OllamaLocalAdapter(BaseModelAdapter):
     async def generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         max_tokens: int = 512,
         temperature: float = 0.7
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         url = f"{self.base_url}/api/generate"
         payload = {
             "model": self.model_name,
@@ -84,7 +87,7 @@ class OllamaLocalAdapter(BaseModelAdapter):
     async def stream_generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         max_tokens: int = 512,
         temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:

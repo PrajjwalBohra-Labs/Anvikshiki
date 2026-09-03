@@ -1,7 +1,11 @@
-﻿from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.application.use_cases.web_source_filtering import WebSourceFilteringService
+from typing import Any
+
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.application.use_cases.web_source_filtering import (
+    WebSourceFilteringService,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -15,7 +19,7 @@ class ResearchAgent:
         self.max_results = max_results
         self.filter_service = WebSourceFilteringService()
 
-    def expand_query(self, query: str) -> List[str]:
+    def expand_query(self, query: str) -> list[str]:
         """Expands a search query with semantic synonyms or traditional terminology variants."""
         cleaned = query.strip()
         expansions = [cleaned]
@@ -25,7 +29,7 @@ class ResearchAgent:
             expansions.append("Anumana logical deduction")
         return expansions
 
-    def deduplicate_sources(self, sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def deduplicate_sources(self, sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Deduplicates retrieved sources based on unique URL or title fingerprints."""
         seen = set()
         unique_sources = []
@@ -36,7 +40,7 @@ class ResearchAgent:
                 unique_sources.append(src)
         return unique_sources[:self.max_results]
 
-    async def execute_discovery(self, query: str, candidate_urls: List[str]) -> List[Dict[str, Any]]:
+    async def execute_discovery(self, query: str, candidate_urls: list[str]) -> list[dict[str, Any]]:
         """
         Discovers and filters sources, enforcing provenance and rejecting unverified material.
         """

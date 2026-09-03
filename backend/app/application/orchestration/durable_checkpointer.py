@@ -1,9 +1,17 @@
-from typing import Optional, Dict, Any, AsyncIterator, Sequence, Tuple
-from sqlalchemy.future import select
-from langgraph.checkpoint.base import BaseCheckpointSaver, Checkpoint, CheckpointMetadata, CheckpointTuple
-from backend.app.infrastructure.database.session import AsyncSessionLocal
-from backend.app.infrastructure.database.models import DurableGraphCheckpointModel
+from collections.abc import AsyncIterator, Sequence
+from typing import Any
+
 import structlog
+from langgraph.checkpoint.base import (
+    BaseCheckpointSaver,
+    Checkpoint,
+    CheckpointMetadata,
+    CheckpointTuple,
+)
+from sqlalchemy.future import select
+
+from backend.app.infrastructure.database.models import DurableGraphCheckpointModel
+from backend.app.infrastructure.database.session import AsyncSessionLocal
 
 logger = structlog.get_logger(__name__)
 
@@ -16,7 +24,7 @@ class DurableDatabaseCheckpointer(BaseCheckpointSaver):
         super().__init__()
         self.session_factory = session_factory or AsyncSessionLocal
 
-    async def aget_tuple(self, config: Dict[str, Any]) -> Optional[CheckpointTuple]:
+    async def aget_tuple(self, config: dict[str, Any]) -> CheckpointTuple | None:
         thread_id = config["configurable"]["thread_id"]
         checkpoint_id = config["configurable"].get("checkpoint_id")
 
@@ -43,11 +51,11 @@ class DurableDatabaseCheckpointer(BaseCheckpointSaver):
 
     async def aput(
         self,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
-        new_versions: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        new_versions: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         thread_id = config["configurable"]["thread_id"]
         checkpoint_id = checkpoint["id"]
         parent_checkpoint_id = config["configurable"].get("checkpoint_id")
@@ -66,18 +74,18 @@ class DurableDatabaseCheckpointer(BaseCheckpointSaver):
 
     async def aput_writes(
         self,
-        config: Dict[str, Any],
-        writes: Sequence[Tuple[str, Any]],
+        config: dict[str, Any],
+        writes: Sequence[tuple[str, Any]],
         task_id: str,
         task_path: str = "",
     ) -> None:
         """Handles intermediate channel writes dispatched during Pregel execution."""
-        return None
+        return
 
     def put_writes(
         self,
-        config: Dict[str, Any],
-        writes: Sequence[Tuple[str, Any]],
+        config: dict[str, Any],
+        writes: Sequence[tuple[str, Any]],
         task_id: str,
         task_path: str = "",
     ) -> None:
@@ -85,11 +93,11 @@ class DurableDatabaseCheckpointer(BaseCheckpointSaver):
 
     async def alist(
         self,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
         *,
-        filter: Optional[Dict[str, Any]] = None,
-        before: Optional[Dict[str, Any]] = None,
-        limit: Optional[int] = None
+        filter: dict[str, Any] | None = None,
+        before: dict[str, Any] | None = None,
+        limit: int | None = None
     ) -> AsyncIterator[CheckpointTuple]:
         if not config or "configurable" not in config:
             return
@@ -109,11 +117,11 @@ class DurableDatabaseCheckpointer(BaseCheckpointSaver):
                     parent_config=None
                 )
 
-    def get_tuple(self, config: Dict[str, Any]) -> Optional[CheckpointTuple]:
+    def get_tuple(self, config: dict[str, Any]) -> CheckpointTuple | None:
         raise NotImplementedError("Use async aget_tuple")
 
-    def put(self, config: Dict[str, Any], checkpoint: Checkpoint, metadata: CheckpointMetadata, new_versions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def put(self, config: dict[str, Any], checkpoint: Checkpoint, metadata: CheckpointMetadata, new_versions: dict[str, Any] | None = None) -> dict[str, Any]:
         raise NotImplementedError("Use async aput")
 
-    def list(self, config: Optional[Dict[str, Any]] = None, *, filter: Optional[Dict[str, Any]] = None, before: Optional[Dict[str, Any]] = None, limit: Optional[int] = None):
+    def list(self, config: dict[str, Any] | None = None, *, filter: dict[str, Any] | None = None, before: dict[str, Any] | None = None, limit: int | None = None):
         raise NotImplementedError("Use async alist")

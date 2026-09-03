@@ -1,8 +1,14 @@
-﻿from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.infrastructure.database.models import ClaimModel, EvidenceLinkModel, PassageModel
-from backend.app.domain.models.enums import ClaimType, RelationType
+from typing import Any
+
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.domain.models.enums import ClaimType, RelationType
+from backend.app.infrastructure.database.models import (
+    ClaimModel,
+    EvidenceLinkModel,
+    PassageModel,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -21,7 +27,7 @@ class EvidenceAnalyst:
         claim_type: ClaimType = ClaimType.DIRECT_SOURCE_CLAIM,
         relation_type: RelationType = RelationType.SUPPORTS,
         confidence_weight: float = 1.0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Extracts claims and links them securely to passages with confidence/uncertainty tracking.
         """

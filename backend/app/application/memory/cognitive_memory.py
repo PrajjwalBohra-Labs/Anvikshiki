@@ -1,8 +1,10 @@
-﻿from typing import List, Dict, Any, Optional
+from typing import Any
+
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
 from backend.app.infrastructure.database.models import CognitiveObservationModel
-import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -54,7 +56,7 @@ class CognitiveMemoryService:
         logger.info("Cognitive observation recorded", observation_id=obs.id, type=observation_type)
         return obs
 
-    async def inspect_observations(self, user_id: str, observation_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def inspect_observations(self, user_id: str, observation_type: str | None = None) -> list[dict[str, Any]]:
         stmt = select(CognitiveObservationModel).where(CognitiveObservationModel.user_id == user_id)
         if observation_type:
             stmt = stmt.where(CognitiveObservationModel.observation_type == observation_type)

@@ -1,8 +1,10 @@
-﻿import pytest
-from httpx import AsyncClient, ASGITransport
-from backend.app.main import app
+import pytest
+from httpx import ASGITransport, AsyncClient
+
 from backend.app.core.config import settings
-from backend.app.infrastructure.database.session import engine, Base
+from backend.app.infrastructure.database.session import Base, engine
+from backend.app.main import app
+
 
 @pytest.fixture(autouse=True)
 async def setup_test_db(tmp_path, monkeypatch):
@@ -19,9 +21,14 @@ async def setup_test_db(tmp_path, monkeypatch):
 async def test_chat_api_lifecycle():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         # 1. Create a User via direct model insertion or setup
-        from backend.app.infrastructure.database.session import AsyncSessionLocal
-        from backend.app.infrastructure.database.models import UserModel, SourceModel, DocumentModel, PassageModel
         from backend.app.domain.models.enums import SourceType
+        from backend.app.infrastructure.database.models import (
+            DocumentModel,
+            PassageModel,
+            SourceModel,
+            UserModel,
+        )
+        from backend.app.infrastructure.database.session import AsyncSessionLocal
         
         async with AsyncSessionLocal() as session:
             user = UserModel(id="user_test_123", username="api_scholar")

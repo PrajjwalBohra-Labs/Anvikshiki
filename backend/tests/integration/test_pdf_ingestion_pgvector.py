@@ -17,7 +17,6 @@ from backend.app.infrastructure.database.models import (
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
 
-
 pytestmark = pytest.mark.postgres
 
 

@@ -6,7 +6,6 @@ from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalSentenceTransformerEmbeddingAdapter,
 )
 
-
 pytestmark = pytest.mark.real_models
 
 

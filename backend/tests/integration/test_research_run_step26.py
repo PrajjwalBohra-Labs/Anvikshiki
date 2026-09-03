@@ -1,6 +1,8 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
+import pytest
+
 from backend.app.application.use_cases.research_run_service import ResearchRunService
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():
@@ -30,7 +32,7 @@ async def test_research_run_lifecycle_and_failure_inspection(setup_test_env):
 
         # 3. Simulate failure at validation step
         await service.add_step(run.id, step_name="Citation Validation", step_type="VALIDATION", status="FAILED", payload={"error": "Dangling citation"})
-        failed_run = await service.fail_run(run.id, error_message="Validation step failed due to dangling citation.")
+        await service.fail_run(run.id, error_message="Validation step failed due to dangling citation.")
 
         # 4. Inspect Run Details & Verify Last Successful Step
         details = await service.get_run_details(run.id)

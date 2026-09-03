@@ -1,8 +1,17 @@
-﻿from typing import List, Optional, Dict, Any
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from backend.app.infrastructure.database.models import ArgumentModel, PremiseModel, ObjectionModel, AssumptionModel, EvidenceLinkModel
+
 from backend.app.core.errors import AnvikshikiDomainError
+from backend.app.infrastructure.database.models import (
+    ArgumentModel,
+    AssumptionModel,
+    EvidenceLinkModel,
+    ObjectionModel,
+    PremiseModel,
+)
+
 
 class ArgumentReconstructionService:
     """
@@ -16,9 +25,9 @@ class ArgumentReconstructionService:
         self,
         title: str,
         conclusion: str,
-        premises: List[str],
-        objections: Optional[List[Dict[str, str]]] = None,
-        assumptions: Optional[List[str]] = None
+        premises: list[str],
+        objections: list[dict[str, str]] | None = None,
+        assumptions: list[str] | None = None
     ) -> ArgumentModel:
         arg = ArgumentModel(title=title, conclusion_statement=conclusion)
         self.session.add(arg)
@@ -63,13 +72,16 @@ class ArgumentReconstructionService:
         await self.session.refresh(evidence)
         return evidence
 
-    async def detect_unsupported_premises(self, argument_id: str) -> List[PremiseModel]:
+    async def detect_unsupported_premises(self, argument_id: str) -> list[PremiseModel]:
         result = await self.session.execute(
-            select(PremiseModel).where(PremiseModel.argument_id == argument_id, PremiseModel.is_supported == False)
+            select(PremiseModel).where(
+                PremiseModel.argument_id == argument_id,
+                ~PremiseModel.is_supported,
+            )
         )
         return list(result.scalars().all())
 
-    async def serialize_argument(self, argument_id: str) -> Dict[str, Any]:
+    async def serialize_argument(self, argument_id: str) -> dict[str, Any]:
         arg = await self.session.get(ArgumentModel, argument_id)
         if not arg:
             return {}

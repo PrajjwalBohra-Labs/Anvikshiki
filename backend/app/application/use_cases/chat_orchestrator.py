@@ -1,21 +1,23 @@
-﻿from typing import List, Dict, Any, Optional
+from typing import Any
+
+import structlog
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from backend.app.infrastructure.database.models import ConversationModel, MessageModel, SourceModel
-from backend.app.infrastructure.rag.reranker import AdvancedRetriever
+
 from backend.app.application.use_cases.citation_service import CitationService
 from backend.app.application.use_cases.reasoning_engine import ReasoningEngineService
 from backend.app.core.errors import AnvikshikiDomainError
-import structlog
+from backend.app.infrastructure.database.models import ConversationModel, MessageModel
+from backend.app.infrastructure.rag.reranker import AdvancedRetriever
 
 logger = structlog.get_logger(__name__)
 
 class ChatResponse(BaseModel):
     conversation_id: str
     reply: str
-    citations: List[str]
-    argument_summary: Optional[Dict[str, Any]] = None
+    citations: list[str]
+    argument_summary: dict[str, Any] | None = None
 
 class ChatOrchestratorService:
     def __init__(self, session: AsyncSession):
@@ -24,7 +26,7 @@ class ChatOrchestratorService:
         self.citation_service = CitationService(session)
         self.reasoning_engine = ReasoningEngineService(session)
 
-    async def process_chat(self, user_id: str, conversation_id: Optional[str], message: str) -> ChatResponse:
+    async def process_chat(self, user_id: str, conversation_id: str | None, message: str) -> ChatResponse:
         """
         Orchestrates a chat turn:
         1. Ensures conversation exists.

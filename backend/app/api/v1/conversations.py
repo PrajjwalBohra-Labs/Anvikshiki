@@ -1,14 +1,23 @@
-﻿import json
 import asyncio
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.infrastructure.database.session import get_db
-from backend.app.application.use_cases.conversation_service import ConversationService
-from backend.app.api.v1.schemas.dtos import (
-    ConversationCreateDTO, ConversationResponseDTO, MessageCreateDTO, MessageResponseDTO
+
+from backend.app.api.dependencies import (
+    AuthenticatedPrincipal,
+    get_current_user,
+    resolve_user_id,
 )
-from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user, resolve_user_id
+from backend.app.api.v1.schemas.dtos import (
+    ConversationCreateDTO,
+    ConversationResponseDTO,
+    MessageCreateDTO,
+    MessageResponseDTO,
+)
+from backend.app.application.use_cases.conversation_service import ConversationService
+from backend.app.infrastructure.database.session import get_db
 
 router = APIRouter()
 

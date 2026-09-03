@@ -1,5 +1,5 @@
-﻿from enum import Enum
-from typing import Any, Literal, Optional
+from enum import Enum
+from typing import Any, Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # Local AI Inference
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = Field(default="mistral")
-    VLLM_BASE_URL: Optional[str] = None  # Optional advanced runtime
+    VLLM_BASE_URL: str | None = None  # Optional advanced runtime
     
     # Embeddings & Reranking
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     
     # Subsystems Toggles
     ENABLE_OCR: bool = True
-    OCR_TESSERACT_CMD: Optional[str] = None
+    OCR_TESSERACT_CMD: str | None = None
     OCR_LANGUAGES: str = "eng"
     OCR_DPI: int = Field(default=300, ge=72, le=600)
     OCR_TIMEOUT_SECONDS: float = Field(default=120.0, gt=0, le=600)

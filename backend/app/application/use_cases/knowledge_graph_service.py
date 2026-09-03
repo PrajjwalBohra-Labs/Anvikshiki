@@ -1,11 +1,17 @@
-﻿from typing import List, Dict, Any, Optional
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
 from backend.app.infrastructure.database.models import (
-    ConceptModel, ConceptRelationshipModel,
-    SourceModel, SourceRelationshipModel,
-    EvidenceLinkModel, ClaimModel, PassageModel
+    ConceptModel,
+    ConceptRelationshipModel,
+    EvidenceLinkModel,
+    PassageModel,
+    SourceModel,
+    SourceRelationshipModel,
 )
+
 
 class KnowledgeGraphService:
     """
@@ -15,7 +21,7 @@ class KnowledgeGraphService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_related_concepts(self, concept_id: str) -> List[Dict[str, Any]]:
+    async def get_related_concepts(self, concept_id: str) -> list[dict[str, Any]]:
         """Retrieves concepts connected via concept_relationships."""
         stmt = select(ConceptRelationshipModel).where(
             (ConceptRelationshipModel.source_concept_id == concept_id) |
@@ -35,7 +41,7 @@ class KnowledgeGraphService:
                 })
         return related
 
-    async def get_related_sources(self, source_id: str) -> List[Dict[str, Any]]:
+    async def get_related_sources(self, source_id: str) -> list[dict[str, Any]]:
         """Retrieves sources connected via source_relationships (e.g., commentaries, translations)."""
         stmt = select(SourceRelationshipModel).where(
             (SourceRelationshipModel.source_id == source_id) |
@@ -55,7 +61,7 @@ class KnowledgeGraphService:
                 })
         return related
 
-    async def traverse_evidence_subgraph(self, claim_id: str) -> List[Dict[str, Any]]:
+    async def traverse_evidence_subgraph(self, claim_id: str) -> list[dict[str, Any]]:
         """Traverses from a claim through its evidence links to passages and sources."""
         stmt = select(EvidenceLinkModel).where(EvidenceLinkModel.claim_id == claim_id)
         result = await self.session.execute(stmt)

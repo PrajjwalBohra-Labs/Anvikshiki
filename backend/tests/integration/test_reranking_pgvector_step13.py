@@ -21,10 +21,12 @@ from backend.app.infrastructure.database.models import (
     SourceModel,
 )
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
+from backend.app.infrastructure.rag.reranker import (
+    AdvancedRetriever,
+    LocalRerankerClient,
+)
 from backend.app.infrastructure.rag.retriever import HybridRetriever
-from backend.app.infrastructure.rag.reranker import AdvancedRetriever, LocalRerankerClient
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
-
 
 pytestmark = pytest.mark.postgres
 

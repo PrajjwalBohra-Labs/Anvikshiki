@@ -1,12 +1,12 @@
-import os
 import hashlib
-from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-import structlog
 
-from backend.app.infrastructure.database.models import DocumentModel, PassageModel, SourceModel
-from backend.app.infrastructure.ai.embedding_reranker_adapters import LocalSentenceTransformerEmbeddingAdapter
-from backend.app.domain.models.enums import SourceType
+import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.infrastructure.ai.embedding_reranker_adapters import (
+    LocalSentenceTransformerEmbeddingAdapter,
+)
+from backend.app.infrastructure.database.models import DocumentModel, PassageModel
 
 logger = structlog.get_logger(__name__)
 

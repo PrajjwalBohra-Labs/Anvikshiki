@@ -1,9 +1,14 @@
-﻿import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+import pytest
 from sqlalchemy.future import select
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel
+
 from backend.app.domain.models.enums import SourceType
+from backend.app.infrastructure.database.models import (
+    DocumentModel,
+    PassageModel,
+    SourceModel,
+)
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture(autouse=True)
 async def setup_test_db():

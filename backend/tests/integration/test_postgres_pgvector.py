@@ -1,10 +1,9 @@
 import pytest
-from sqlalchemy import Column, Integer, MetaData, Table, Text, select, text
 from pgvector.sqlalchemy import Vector
+from sqlalchemy import Column, Integer, MetaData, Table, Text, select, text
 
 from backend.app.infrastructure.database.models import PassageModel
 from backend.app.infrastructure.database.session import engine
-
 
 pytestmark = pytest.mark.postgres
 

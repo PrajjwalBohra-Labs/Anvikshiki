@@ -1,9 +1,24 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel, ClaimModel, EvidenceLinkModel
-from backend.app.domain.models.enums import SourceType, SourceRelationshipType, ClaimType, RelationType
+import pytest
+
 from backend.app.application.use_cases.concept_service import ConceptService
-from backend.app.application.use_cases.knowledge_graph_service import KnowledgeGraphService
+from backend.app.application.use_cases.knowledge_graph_service import (
+    KnowledgeGraphService,
+)
+from backend.app.domain.models.enums import (
+    ClaimType,
+    RelationType,
+    SourceRelationshipType,
+    SourceType,
+)
+from backend.app.infrastructure.database.models import (
+    ClaimModel,
+    DocumentModel,
+    EvidenceLinkModel,
+    PassageModel,
+    SourceModel,
+)
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():
