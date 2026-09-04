@@ -135,8 +135,10 @@ class EmbeddingIndexService:
             if not passage.content.strip():
                 result = await self._mark_failed(passage.id, "Passage content is empty.")
                 results.append(result)
-                if raise_on_error:
-                    raise EmbeddingIndexError(result.error)
+                # Empty OCR placeholders are retained as explicit partial
+                # extraction records, but cannot produce a meaningful vector.
+                # Provider and dimension failures still raise for fail-closed
+                # upload callers below.
                 continue
             passage.embedding_status = EmbeddingIndexStatus.INDEXING
             passage.embedding = None
@@ -203,8 +205,14 @@ class EmbeddingIndexService:
         document_id: str | None = None,
         document_version_id: str | None = None,
         batch_size: int | None = None,
+        raise_on_error: bool = False,
     ) -> list[EmbeddingIndexResult]:
-        """Index passages in stable batches; failed batches remain retryable."""
+        """Index passages in stable batches; failed batches remain retryable.
+
+        Callers that promise an indexed document to a user can opt into a
+        fail-closed result. Background repair jobs retain the default,
+        best-effort behavior so one failed batch does not stop other work.
+        """
         if not any((passage_ids is not None, document_id, document_version_id)):
             raise ValueError("An indexing scope is required.")
         batch_limit = batch_size or settings.EMBEDDING_BATCH_SIZE
@@ -231,7 +239,7 @@ class EmbeddingIndexService:
             rows = (await self.session.execute(stmt)).scalars().all()
             if not rows:
                 break
-            results.extend(await self._index_batch(rows))
+            results.extend(await self._index_batch(rows, raise_on_error=raise_on_error))
             offset += len(rows)
             if len(rows) < batch_limit:
                 break

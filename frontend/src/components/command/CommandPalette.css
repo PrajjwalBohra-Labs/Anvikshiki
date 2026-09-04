@@ -12,3 +12,14 @@
 .palette-empty, .palette-hint { padding: 18px 14px; color: var(--text-muted); font-size: 12px; } .palette-hint { border-top: 1px solid var(--border-subtle); font: 10px var(--font-mono); }
 .palette-trigger { display: flex; gap: 5px; } .palette-trigger span { font: 9px var(--font-mono); color: var(--text-quiet); }
 @media (max-width: 460px) { .palette-backdrop { padding: 7vh 9px 12px; } }
+
+.palette-backdrop { backdrop-filter: blur(7px); background: rgba(6, 9, 8, .76); }
+.command-palette { border-color: rgba(198, 174, 142, .32); border-radius: 4px; background: #121615; box-shadow: var(--shadow-deep); }
+.palette-heading { min-height: 51px; background: rgba(198, 174, 142, .035); }
+.palette-heading .eyebrow { color: var(--dusty-oat); }
+.palette-search input { font-family: var(--font-serif); font-size: 16px; }
+.command-list { padding: 9px; }
+.command-list button { min-height: 50px; border-radius: var(--radius-sm); }
+.command-list button[aria-selected=true], .command-list button:hover { transform: none; background: rgba(198, 174, 142, .1); border-color: rgba(198, 174, 142, .28); }
+.command-list small { letter-spacing: .03em; }
+.palette-hint { background: #0e1110; }

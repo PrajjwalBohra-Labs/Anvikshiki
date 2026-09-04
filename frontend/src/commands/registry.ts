@@ -1,7 +1,7 @@
 import { BookOpen, CircleHelp, FileSearch, FileText, MessageCircle, Network, NotebookPen, Settings, Share2, type LucideIcon } from 'lucide-react';
 import { navigate } from '../routing';
 
-export const COMMAND_PALETTE_SHORTCUT = 'Ctrl / ⌘ K';
+export const COMMAND_PALETTE_SHORTCUT = 'Ctrl / Cmd K';
 
 export function isCommandPaletteShortcut(event: Pick<KeyboardEvent, 'metaKey' | 'ctrlKey' | 'key'>): boolean {
   return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';

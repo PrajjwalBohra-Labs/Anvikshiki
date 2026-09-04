@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from backend.app.domain.models.enums import SourceType
+from backend.app.domain.models.enums import EmbeddingIndexStatus, SourceType
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalCrossEncoderRerankerAdapter,
     LocalSentenceTransformerEmbeddingAdapter,
@@ -35,6 +35,7 @@ class HybridRetrievalService:
         query: str,
         domain: str | None = None,
         source_type_filter: SourceType | None = None,
+        source_id_filter: str | None = None,
         top_k: int = 5
     ) -> list[dict[str, Any]]:
         # 1. Generate Query Vector Embedding (384 dimensions)
@@ -50,6 +51,8 @@ class HybridRetrievalService:
 
         if source_type_filter:
             base_stmt = base_stmt.where(SourceModel.source_type == source_type_filter)
+        if source_id_filter:
+            base_stmt = base_stmt.where(SourceModel.id == source_id_filter)
 
         # Lexical retrieval channel
         keywords = [f"%{w}%" for w in query.split() if len(w) > 2]
@@ -82,11 +85,14 @@ class HybridRetrievalService:
                 .join(DocumentModel, PassageModel.document_id == DocumentModel.id)
                 .join(SourceModel, DocumentModel.source_id == SourceModel.id)
                 .where(PassageModel.embedding.is_not(None))
+                .where(PassageModel.embedding_status == EmbeddingIndexStatus.INDEXED)
                 .order_by(distance)
                 .limit(20)
             )
             if source_type_filter:
                 vector_stmt = vector_stmt.where(SourceModel.source_type == source_type_filter)
+            if source_id_filter:
+                vector_stmt = vector_stmt.where(SourceModel.id == source_id_filter)
             vector_result = await self.session.execute(vector_stmt)
             vector_rows = vector_result.all()
         elif not lexical_rows:
@@ -126,6 +132,17 @@ class HybridRetrievalService:
                     "content": passage.content,
                     "ocr_uncertainty": passage.extraction_uncertainty,
                     "source_type": source.source_type.value if hasattr(source.source_type, 'value') else str(source.source_type),
+                    "source_reference_url": source.reference_url,
+                    "citation_string": ", ".join(
+                        part for part in (
+                            source.title,
+                            f"by {source.author}" if source.author else None,
+                            f"(Retrieved from {source.reference_url})"
+                            if source.source_type == SourceType.DISCOVERY_ONLY and source.reference_url
+                            else None,
+                            f"p. {passage.page_number}" if passage.page_number else None,
+                        ) if part
+                    ),
                     "embedding_model": passage.embedding_model or self.embedder.model_version,
                     "retrieval_channels": sorted(channels.get(passage.id, set()))
                 }

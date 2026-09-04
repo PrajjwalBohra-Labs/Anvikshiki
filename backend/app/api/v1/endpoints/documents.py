@@ -9,6 +9,7 @@ from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_use
 from backend.app.api.v1.schemas.dtos import DocumentResponseDTO
 from backend.app.application.use_cases.document_service import DocumentService
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
+from backend.app.core.config import settings
 from backend.app.core.errors import AnvikshikiDomainError
 from backend.app.infrastructure.database.models import DocumentModel, PassageModel
 from backend.app.infrastructure.database.session import get_db
@@ -32,6 +33,8 @@ class DocumentUploadResponse(BaseModel):
     mime_type: str
     total_pages: int | None
     passages_count: int
+    indexed_passages_count: int
+    embedding_status: str
 
 @router.get("/", response_model=list[DocumentResponseDTO])
 async def list_documents(
@@ -48,7 +51,12 @@ async def upload_document(
     db: AsyncSession = Depends(get_db),
     current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
-    content = await file.read()
+    content = await file.read(settings.DOCUMENT_MAX_BYTES + 1)
+    if len(content) > settings.DOCUMENT_MAX_BYTES:
+        raise AnvikshikiDomainError(
+            f"Document exceeds the {settings.DOCUMENT_MAX_BYTES // 1_000_000} MB size limit.",
+            status_code=413,
+        )
     storage = LocalStorageService()
     ingestion_service = DocumentIngestionService(db, storage)
     
@@ -64,7 +72,18 @@ async def upload_document(
         checksum_sha256=doc.checksum_sha256,
         mime_type=doc.mime_type,
         total_pages=doc.total_pages,
-        passages_count=len(passages)
+        passages_count=len(passages),
+        indexed_passages_count=sum(
+            1 for passage in passages if getattr(passage.embedding_status, "value", passage.embedding_status) == "INDEXED"
+        ),
+        embedding_status=(
+            "INDEXED"
+            if passages and all(
+                getattr(passage.embedding_status, "value", passage.embedding_status) == "INDEXED"
+                for passage in passages
+            )
+            else "PARTIAL"
+        ),
     )
 
 @router.get("/{document_id}", response_model=DocumentResponseDTO)

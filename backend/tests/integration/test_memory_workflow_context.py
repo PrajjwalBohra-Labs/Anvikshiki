@@ -83,7 +83,7 @@ async def test_persisted_epistemic_position_enters_workflow_as_separate_context(
         thread_id=thread_id,
     )
 
-    assert result["final_response"] == "context captured"
+    assert "could not be grounded in a verified local passage" in result["final_response"]
     assert '"user_epistemic_positions"' in adapter.prompt
     assert "The stored position is context, not source evidence." in adapter.prompt
     assert '"passages": []' in adapter.prompt
