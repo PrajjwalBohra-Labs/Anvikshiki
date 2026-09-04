@@ -224,6 +224,7 @@ async def run_research(
             domain=payload.domain or "Epistemology",
             thread_id=run.thread_id or run.id,
             run_id=run.id,
+            depth=payload.depth,
         )
         result_payload = engine._result_payload(result_state)
         await service.complete_run(run.id, output_references=result_payload)
@@ -282,6 +283,7 @@ async def stream_research_events(
                 domain=payload.domain or "Epistemology",
                 thread_id=run.thread_id or run.id,
                 run_id=run.id,
+                depth=payload.depth,
             ):
                 sequence += 1
                 public_event = _event_payload(run.id, sequence, event)

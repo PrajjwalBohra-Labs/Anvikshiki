@@ -10,15 +10,12 @@ import type {
   EpistemicPositionUpdateDTO,
   EvidenceTraceDTO,
   HealthDTO,
-<<<<<<< HEAD
   BackgroundJobDTO,
   ProvenanceGraphDTO,
   ResearchExportDTO,
-=======
   NotebookCreateDTO,
   NotebookDTO,
   NotebookUpdateDTO,
->>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
   ResearchQuestionDetailDTO,
   ResearchQuestionSummaryDTO,
   ResearchEventDTO,
@@ -27,7 +24,6 @@ import type {
   ResearchRunRequestDTO,
   SearchResponseDTO,
   PassageDTO,
-  ProvenanceGraphDTO,
   SpecialistAnalysisDTO,
   SourceCreateDTO,
   SourceDTO,
@@ -166,7 +162,6 @@ export function getRunProvenanceGraph(runId: string): Promise<ProvenanceGraphDTO
   return request<ProvenanceGraphDTO>(`/research/runs/${encodeURIComponent(runId)}/provenance/graph`);
 }
 
-<<<<<<< HEAD
 export function exportResearchRun(runId: string): Promise<ResearchExportDTO> {
   return request<ResearchExportDTO>(`/research/runs/${encodeURIComponent(runId)}/export`);
 }
@@ -175,8 +170,6 @@ export function listBackgroundJobs(): Promise<BackgroundJobDTO[]> {
   return request<BackgroundJobDTO[]>('/research/jobs');
 }
 
-=======
->>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 export function getHealth(): Promise<HealthDTO> {
   return requestRoot<HealthDTO>('/health');
 }

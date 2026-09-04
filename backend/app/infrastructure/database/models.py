@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timezone
-<<<<<<< HEAD
 from typing import Any, Optional
 
 from sqlalchemy import (
@@ -18,10 +17,6 @@ from sqlalchemy import (
     event,
 )
 from sqlalchemy import Enum as SQLEnum
-=======
-from typing import List, Optional, Any
-from sqlalchemy import String, Text, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SQLEnum, UniqueConstraint, JSON, Index
->>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.config import RuntimeProfile, settings
@@ -58,18 +53,12 @@ class UserModel(Base):
         String(36), primary_key=True, default=generate_uuid
     )
     username: Mapped[str] = mapped_column(String(128), unique=True, index=True)
-<<<<<<< HEAD
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
     conversations: Mapped[list["ConversationModel"]] = relationship("ConversationModel", back_populates="user", cascade="all, delete-orphan")
     auth_sessions: Mapped[list["AuthSessionModel"]] = relationship("AuthSessionModel", back_populates="user", cascade="all, delete-orphan")
-=======
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    conversations: Mapped[List["ConversationModel"]] = relationship("ConversationModel", back_populates="user", cascade="all, delete-orphan")
-    auth_sessions: Mapped[List["AuthSessionModel"]] = relationship("AuthSessionModel", back_populates="user", cascade="all, delete-orphan")
-    notebooks: Mapped[List["NotebookModel"]] = relationship("NotebookModel", back_populates="user", cascade="all, delete-orphan")
->>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
+    notebooks: Mapped[list["NotebookModel"]] = relationship("NotebookModel", back_populates="user", cascade="all, delete-orphan")
 
 
 class BackgroundJobModel(Base):

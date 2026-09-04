@@ -170,6 +170,34 @@ export interface ResearchResultDTO {
   claims: ValidatedClaimDTO[];
   specialist_analysis: SpecialistAnalysisDTO;
   validation: Record<string, unknown>;
+  web_research?: WebResearchDTO;
+}
+
+export interface WebResearchDTO {
+  status: 'not_requested' | 'not_needed' | 'searched' | 'acquired' | 'search_failed' | 'unavailable' | 'insufficient_evidence' | string;
+  query?: string;
+  discovered_results: WebResearchDiscoveryDTO[];
+  acquired_sources: WebResearchAcquiredSourceDTO[];
+  warnings: string[];
+}
+
+export interface WebResearchDiscoveryDTO {
+  title: string;
+  url: string;
+  canonical_url: string;
+  snippet: string;
+  rank: number;
+  domain: string;
+  classification: string;
+}
+
+export interface WebResearchAcquiredSourceDTO {
+  source_id: string;
+  document_id: string;
+  title: string;
+  url?: string | null;
+  passages_count: number;
+  classification: string;
 }
 
 export interface ResearchRunDetailDTO extends ResearchRunSummaryDTO {
@@ -416,30 +444,6 @@ export interface HealthDTO {
   environment?: string;
 }
 
-<<<<<<< HEAD
-export interface ProvenanceGraphNodeDTO {
-  node_id: string;
-  node_type: string;
-  entity_id: string;
-  label: string;
-  metadata: Record<string, unknown>;
-  created_at: string;
-}
-
-export interface ProvenanceGraphEdgeDTO {
-  edge_id: string;
-  from_node_id: string;
-  to_node_id: string;
-  relationship_type: string;
-  metadata: Record<string, unknown>;
-  created_at: string;
-}
-
-export interface ProvenanceGraphDTO {
-  nodes: ProvenanceGraphNodeDTO[];
-  edges: ProvenanceGraphEdgeDTO[];
-}
-
 export interface ResearchExportDTO {
   schema_version: string;
   format: string;
@@ -460,7 +464,8 @@ export interface BackgroundJobDTO {
   created_at: string;
   started_at?: string | null;
   finished_at?: string | null;
-=======
+}
+
 export interface NotebookDTO {
   notebook_id: string;
   title: string;
@@ -477,7 +482,6 @@ export interface NotebookCreateDTO {
 export interface NotebookUpdateDTO {
   title?: string;
   content?: string;
->>>>>>> eb3e53806e8a5a05b49d42f5fe8100352a92335f
 }
 
 export interface Message {
