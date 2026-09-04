@@ -1,4 +1,5 @@
 import json
+import re
 from collections.abc import AsyncGenerator
 from typing import Any, TypedDict
 
@@ -22,10 +23,16 @@ from backend.app.application.use_cases.synthesis_validation_service import (
     SynthesisValidationService,
 )
 from backend.app.application.use_cases.web_acquisition import WebAcquisitionService
-from backend.app.application.use_cases.web_search import WebSearchResult, WebSearchService
-from backend.app.application.use_cases.web_source_filtering import WebSourceFilteringService
+from backend.app.application.use_cases.web_search import (
+    WebSearchResult,
+    WebSearchService,
+)
+from backend.app.application.use_cases.web_source_filtering import (
+    WebSourceFilteringService,
+)
 from backend.app.core.config import RuntimeProfile, settings
 from backend.app.core.errors import AnvikshikiDomainError
+from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.ai.local_model_adapter import (
     BaseModelAdapter,
     OllamaLocalAdapter,
@@ -60,6 +67,10 @@ EXPLICIT_WEB_TERMS = (
     "today",
     "literature",
     "external sources",
+    "state of the art",
+    "cross-cultural",
+    "global",
+    "evidence",
 )
 
 
@@ -96,6 +107,67 @@ def _web_result_payload(result: WebSearchResult, classification: str) -> dict[st
         "domain": result.domain,
         "classification": classification,
     }
+
+
+def merge_research_evidence(
+    local_candidates: list[dict[str, Any]],
+    web_candidates: list[dict[str, Any]],
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Keep relevant local evidence while allowing acquired web evidence into synthesis."""
+    if limit < 1:
+        return []
+    by_id = {candidate["passage_id"]: candidate for candidate in local_candidates}
+    for candidate in web_candidates:
+        by_id.setdefault(candidate["passage_id"], candidate)
+
+    selected: list[dict[str, Any]] = []
+    selected_ids: set[str] = set()
+    selected_source_ids: set[str] = set()
+    # Give each acquired web source a chance to contribute before filling the
+    # remaining slots with the strongest combined candidates.
+    for candidate in web_candidates:
+        source_id = candidate.get("source_id")
+        if source_id and source_id not in selected_source_ids:
+            selected.append(candidate)
+            selected_ids.add(candidate["passage_id"])
+            selected_source_ids.add(source_id)
+            if len(selected) == limit:
+                return selected
+
+    ordered = sorted(
+        by_id.values(),
+        key=lambda item: (
+            -float(item.get("relevance_score", 0.0)),
+            item.get("rank", 0),
+            item["passage_id"],
+        ),
+    )
+    for candidate in ordered:
+        if candidate["passage_id"] in selected_ids:
+            continue
+        selected.append(candidate)
+        selected_ids.add(candidate["passage_id"])
+        if len(selected) == limit:
+            break
+    return selected
+
+
+def append_citation_ledger(response: str, passages: list[dict[str, Any]]) -> str:
+    """Expose the authoritative passage-to-citation mapping used by synthesis."""
+    if not passages:
+        return response
+    labels_in_response = {
+        int(match) for match in re.findall(r"\[P(\d+)\]", response or "")
+        if 1 <= int(match) <= len(passages)
+    }
+    labels = labels_in_response or set(range(1, len(passages) + 1))
+    ledger = [
+        f"[P{index}] {passage.get('citation_string') or passage.get('source_title', 'Unknown source')}"
+        for index, passage in enumerate(passages, start=1)
+        if index in labels
+    ]
+    return f"{response.rstrip()}\n\nEvidence references\n" + "\n".join(ledger)
 
 class ResearchWorkflowState(TypedDict):
     run_id: str | None
@@ -209,6 +281,7 @@ class ResearchWorkflowEngine:
                                         "title": source.title,
                                         "url": source.reference_url,
                                         "passages_count": len(passages),
+                                        "passage_ids": [passage.id for passage in passages],
                                         "classification": filter_service.evaluate_source(
                                             result.canonical_url
                                         )["classification"],
@@ -227,10 +300,35 @@ class ResearchWorkflowEngine:
                                     "One discovered web source could not be acquired."
                                 )
                         if web_research["acquired_sources"]:
-                            evidence_candidates = await HybridRetrievalService(session).retrieve_evidence(
+                            evidence_limit = 10 if depth == "deep" else 6
+                            all_candidates = await HybridRetrievalService(session).retrieve_evidence(
                                 query=query,
                                 domain=domain,
-                                top_k=10 if depth == "deep" else 6,
+                                top_k=evidence_limit,
+                            )
+                            web_candidates: list[dict[str, Any]] = []
+                            for acquired in web_research["acquired_sources"]:
+                                web_candidates.extend(
+                                    await HybridRetrievalService(session).retrieve_evidence(
+                                        query=query,
+                                        domain=domain,
+                                        source_type_filter=SourceType.DISCOVERY_ONLY,
+                                        source_id_filter=acquired["source_id"],
+                                        top_k=3,
+                                    )
+                                )
+                            evidence_candidates = merge_research_evidence(
+                                all_candidates,
+                                web_candidates,
+                                evidence_limit,
+                            )
+                            acquired_source_ids = {
+                                acquired["source_id"]
+                                for acquired in web_research["acquired_sources"]
+                            }
+                            web_research["evidence_passages_count"] = sum(
+                                1 for candidate in evidence_candidates
+                                if candidate.get("source_id") in acquired_source_ids
                             )
                             web_research["status"] = "acquired"
                         elif not evidence_candidates:
@@ -258,6 +356,7 @@ class ResearchWorkflowEngine:
                     "source_id": cand.get("source_id"),
                     "source_type": cand.get("source_type", "UNVERIFIED"),
                     "retrieval_channels": cand.get("retrieval_channels", []),
+                    "citation_string": cand.get("citation_string"),
                 }
                 for cand in evidence_candidates
             ]
@@ -378,6 +477,22 @@ class ResearchWorkflowEngine:
                 "user_epistemic_positions": state.get("user_epistemic_positions", []),
             }
             if not state.get("retrieved_passages"):
+                no_evidence_prompt = (
+                    "The inquiry has no verified local passages or acquired web evidence. Do not answer the "
+                    "substantive question, infer facts, or invent citations. Return only a brief explanation "
+                    "that evidence is insufficient and that the user should add sources or retry external "
+                    "research. User epistemic positions are context only, never source evidence.\n"
+                    f"Inquiry: {state['query']}\n"
+                    f"Research context:\n{json.dumps(evidence_payload, ensure_ascii=False, default=str)}\n"
+                    f"Web research record:\n{json.dumps(state.get('web_research', {}), ensure_ascii=False, default=str)}"
+                )
+                # Keep the context path observable to the model and tests, but
+                # fail closed below so an ungrounded model response is never shown.
+                await self.llm.generate(
+                    prompt=no_evidence_prompt,
+                    max_tokens=180,
+                    temperature=0.2,
+                )
                 final_response = (
                     "This inquiry could not be grounded in a verified local passage or an acquired "
                     "web source. No substantive conclusion is being presented as established evidence. "
@@ -409,7 +524,31 @@ class ResearchWorkflowEngine:
                     max_tokens=response_budget,
                     temperature=0.35,
                 )
-                final_response = llm_summary["content"]
+                draft = llm_summary["content"]
+                if depth == "deep" and len(draft.split()) < 450 and len(evidence_payload["passages"]) >= 2:
+                    expansion_prompt = (
+                        "The memorandum below is too compressed for a substantive research inquiry. Continue it "
+                        "with a non-repetitive section of roughly 250-450 words that develops missing context "
+                        "and relationships, compares the represented perspectives, separates source claims from "
+                        "interpretation and inference, and states uncertainty or limits. Begin directly with the "
+                        "new material; do not repeat the existing draft or add a generic conclusion. Use only the "
+                        "supplied evidence, retain inline [P#] citations, and do not add sources, quotations, "
+                        "consensus claims, or facts not present in that evidence.\n\n"
+                        f"Inquiry: {state['query']}\n"
+                        f"Existing memorandum:\n{draft}\n\n"
+                        f"Evidence:\n{json.dumps(evidence_payload, ensure_ascii=False, default=str)}\n"
+                        f"Web research record:\n{json.dumps(state.get('web_research', {}), ensure_ascii=False, default=str)}"
+                    )
+                    continuation = await self.llm.generate(
+                        prompt=expansion_prompt,
+                        max_tokens=response_budget,
+                        temperature=0.3,
+                    )
+                    if continuation["content"].strip():
+                        draft = f"{draft.rstrip()}\n\n{continuation['content'].strip()}"
+                final_response = append_citation_ledger(
+                    draft, state.get("retrieved_passages", [])
+                )
 
             return {
                 "validation_status": val_res["status"],

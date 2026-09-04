@@ -1,58 +1,58 @@
 :root {
   color-scheme: dark;
   /* Anvikshiki palette: semantic names are the public design API. */
-  --ink-black: #0d0d0d;
-  --aged-bronze: #5b4636;
-  --walnut-leather: #4b2e19;
-  --dusty-oat: #b49a83;
-  --ash-grey: #a49c92;
-  --burnt-umber: #7e3e28;
-  --twilight-blue: #2c3e50;
-  --olive-smoke: #5e6253;
-  --dusty-plum: #5a3d55;
+  --ink-black: #0b0d0c;
+  --aged-bronze: #665241;
+  --walnut-leather: #49372a;
+  --dusty-oat: #c6ae8e;
+  --ash-grey: #a8aaa0;
+  --burnt-umber: #815446;
+  --twilight-blue: #304a59;
+  --olive-smoke: #69735d;
+  --dusty-plum: #654f68;
 
   --background: var(--ink-black);
-  --surface: #151413;
-  --surface-raised: #1b1917;
-  --surface-hover: #24201d;
-  --surface-overlay: #2a2521;
-  --surface-inset: #111110;
-  --border: rgba(180, 154, 131, 0.28);
-  --border-subtle: rgba(180, 154, 131, 0.15);
-  --border-strong: var(--aged-bronze);
+  --surface: #121615;
+  --surface-raised: #181d1a;
+  --surface-hover: #202520;
+  --surface-overlay: #252a25;
+  --surface-inset: #0e1110;
+  --border: rgba(198, 174, 142, 0.28);
+  --border-subtle: rgba(198, 174, 142, 0.14);
+  --border-strong: #8f7556;
 
-  --text-primary: #c9beb4;
-  --text-secondary: var(--dusty-oat);
-  --text-muted: #8f877f;
-  --text-quiet: #68635d;
+  --text-primary: #c9c8bd;
+  --text-secondary: #e0d3bd;
+  --text-muted: #929b91;
+  --text-quiet: #646e66;
   --accent: var(--dusty-oat);
   --accent-warm: var(--aged-bronze);
   --accent-archival: var(--walnut-leather);
   --accent-cool: var(--twilight-blue);
-  --accent-sage: #78806a;
-  --accent-copper: #9b6f4f;
-  --text-on-accent: #171310;
+  --accent-sage: #859273;
+  --accent-copper: #ad8056;
+  --text-on-accent: #101310;
 
   /* Epistemic semantics. */
   --evidence: var(--dusty-oat);
   --interpretation: var(--dusty-plum);
   --hypothesis: var(--twilight-blue);
   --contradiction: var(--burnt-umber);
-  --scientific: var(--twilight-blue);
+  --scientific: #6b95a0;
   --memory: var(--olive-smoke);
   --warning: var(--burnt-umber);
-  --success: var(--olive-smoke);
-  --validation: var(--olive-smoke);
+  --success: #81956f;
+  --validation: #81956f;
   --uncertainty: var(--olive-smoke);
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
   --font-indic: 'Noto Sans Devanagari', sans-serif;
-  --shadow-deep: 0 18px 46px rgba(0, 0, 0, 0.28);
-  --shadow-inset: inset 0 1px rgba(255, 255, 255, 0.025);
-  --focus-ring: 0 0 0 2px var(--ink-black), 0 0 0 4px var(--dusty-oat);
-  --radius-sm: 2px;
+  --shadow-deep: 0 24px 70px rgba(0, 0, 0, 0.38);
+  --shadow-inset: inset 0 1px rgba(255, 255, 255, 0.035);
+  --focus-ring: 0 0 0 2px var(--ink-black), 0 0 0 4px #a98a63;
+  --radius-sm: 3px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -61,8 +61,9 @@
   --space-6: 32px;
   --motion-fast: 140ms;
   --motion-standard: 200ms;
-  --content-width: 1180px;
+  --content-width: 1220px;
   --reading-width: 760px;
+  --grid-line: rgba(198, 174, 142, .035);
 }
 
 * { box-sizing: border-box; }
@@ -95,3 +96,43 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
     scroll-behavior: auto !important;
   }
 }
+
+/* v2 instrument foundation: the palette is intentionally quiet so the evidence can speak. */
+:root {
+  --ink-black: #090b0a;
+  --surface: #121816;
+  --surface-raised: #18201c;
+  --surface-hover: #202b24;
+  --surface-overlay: #202b24;
+  --surface-inset: #0b100e;
+  --border: rgba(214, 194, 158, .18);
+  --border-subtle: rgba(214, 194, 158, .095);
+  --border-strong: rgba(214, 194, 158, .42);
+  --text-primary: #d2d0c4;
+  --text-secondary: #ede1ca;
+  --text-muted: #9b9f94;
+  --text-quiet: #68736a;
+  --aged-bronze: #8f6b4d;
+  --walnut-leather: #5a4230;
+  --dusty-oat: #d2b88b;
+  --burnt-umber: #975f4c;
+  --twilight-blue: #4d7480;
+  --olive-smoke: #77866d;
+  --dusty-plum: #83677f;
+  --accent-copper: #bd8960;
+  --accent-sage: #96a783;
+  --success: #91a879;
+  --validation: #91a879;
+  --warning: #b58b5c;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: "Source Serif 4", Iowan Old Style, Baskerville, Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --shadow-deep: 0 30px 90px rgba(0, 0, 0, .42);
+  --shadow-inset: inset 0 1px rgba(255, 255, 255, .025);
+  --focus-ring: 0 0 0 2px var(--ink-black), 0 0 0 4px var(--dusty-oat);
+  --radius-sm: 4px;
+  --space-7: 48px;
+  --grid-line: rgba(210, 184, 139, .045);
+}
+
+::selection { color: var(--ink-black); background: var(--dusty-oat); }

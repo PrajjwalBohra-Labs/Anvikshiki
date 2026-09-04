@@ -65,3 +65,51 @@
   .status-editor { grid-template-columns: 1fr; }
   .editor-actions { grid-column: auto; flex-wrap: wrap; }
 }
+
+.memory-page h1 { font-size: clamp(38px, 5vw, 60px); }
+.memory-boundary { border-radius: var(--radius-sm); background: rgba(105, 115, 93, .1); }
+.memory-overview { border-radius: var(--radius-sm); overflow: hidden; }
+.memory-overview > div { min-height: 116px; padding: 18px; background: #121817; }
+.memory-overview strong { font-size: 23px; }
+.memory-filter { padding: 7px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: rgba(105, 115, 93, .045); }
+.memory-filter > .eyebrow { padding-left: 5px; }
+.memory-filter button { border-radius: 999px; }
+.memory-filter button.selected { border-color: rgba(133, 146, 115, .55); background: rgba(105, 115, 93, .18); }
+.understanding-card { border-radius: var(--radius-sm); background: #121817; }
+.understanding-card h2 { font-size: 23px; }
+.confidence-track { border-radius: 999px; background: #0a0d0c; }
+.confidence-track span { border-radius: inherit; background: var(--accent-sage); }
+.position-history { border-color: rgba(105, 115, 93, .24); }
+
+@media (max-width: 650px) {
+  .memory-actions .button { width: auto; }
+  .memory-overview > div { min-height: auto; }
+}
+
+/* Memory v2: accumulated context gets a reading surface and a visible epistemic boundary. */
+.memory-page h1 { font-size: clamp(44px, 7vw, 84px); }
+.memory-title-row { align-items: end; padding-bottom: 5px; border-bottom: 1px solid var(--border-subtle); }
+.memory-title-row .page-lede { margin-bottom: 22px; }
+.memory-actions { padding-top: 0; }
+.memory-boundary { margin-top: 20px; padding: 15px 17px; border-left: 3px solid var(--memory); background: rgba(119,134,109,.08); }
+.memory-composer { border-top: 2px solid var(--memory); }
+.memory-overview { margin-top: 24px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+.memory-overview > div { min-height: 126px; padding: 20px; background: var(--surface); }
+.memory-overview strong { color: var(--text-secondary); font-size: 28px; }
+.memory-filter { padding: 8px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: rgba(119,134,109,.04); }
+.memory-filter button { border-radius: 999px; }
+.memory-filter button.selected { border-color: rgba(150,167,131,.55); background: rgba(119,134,109,.18); }
+.understanding-list { gap: 14px; }
+.understanding-list { position: relative; padding-left: 25px; }
+.understanding-list::before { position: absolute; top: 9px; bottom: 9px; left: 6px; width: 1px; background: linear-gradient(var(--memory), rgba(119,134,109,.08)); content: ''; }
+.understanding-card { gap: 17px; padding: clamp(18px, 3vw, 26px); border-left: 3px solid var(--memory); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-panel); }
+.understanding-card::before { position: absolute; left: -25px; width: 11px; height: 11px; border: 1px solid var(--memory); border-radius: 50%; background: var(--ink-black); content: ''; transform: translateY(4px); }
+.understanding-card { position: relative; }
+.understanding-card h2 { font-size: 25px; }
+.position-statement { max-width: 780px; font-size: 16px; }
+.confidence-track { height: 6px; border-radius: 999px; background: #080c0a; }
+.confidence-track span { border-radius: inherit; background: var(--accent-sage); }
+.understanding-details { margin-top: 2px; }
+.understanding-details > div { padding: 16px; background: var(--surface-inset); }
+.position-history { padding-top: 2px; }
+@media (max-width: 700px) { .memory-title-row { align-items: start; flex-direction: column; } .memory-actions { width: 100%; } }

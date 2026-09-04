@@ -187,6 +187,22 @@ async def test_failure_is_recorded_and_retry_succeeds(indexing_environment):
 
 
 @pytest.mark.asyncio
+async def test_fail_closed_batch_indexing_raises_for_upload_callers(indexing_environment):
+    async with AsyncSessionLocal() as session:
+        _, _, passages = await _passages(session)
+        with pytest.raises(EmbeddingIndexError, match="model unavailable"):
+            await EmbeddingIndexService(
+                session, FakeEmbedder(error=RuntimeError("model unavailable"))
+            ).index_passages(
+                passage_ids=[passages[0].id],
+                raise_on_error=True,
+            )
+
+        await session.refresh(passages[0])
+        assert passages[0].embedding_status == EmbeddingIndexStatus.FAILED
+
+
+@pytest.mark.asyncio
 async def test_batch_order_search_filters_and_provenance(indexing_environment):
     async with AsyncSessionLocal() as session:
         source, document, passages = await _passages(session, count=3)

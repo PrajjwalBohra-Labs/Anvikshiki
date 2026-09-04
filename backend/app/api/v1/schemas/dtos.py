@@ -180,6 +180,7 @@ class ResearchPassageResponseDTO(BaseModel):
     page_number: int | None = None
     source_type: str | None = None
     retrieval_channels: list[str] = []
+    citation_string: str | None = None
 
 class ValidatedClaimResponseDTO(BaseModel):
     claim_id: str | None = None

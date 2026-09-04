@@ -69,6 +69,8 @@ export interface DocumentUploadResponseDTO {
   mime_type: string;
   total_pages?: number | null;
   passages_count: number;
+  indexed_passages_count: number;
+  embedding_status: string;
 }
 
 export interface ResearchRunRequestDTO {
@@ -138,6 +140,7 @@ export interface ResearchPassageDTO {
   page_number?: number | null;
   source_type?: string | null;
   retrieval_channels: string[];
+  citation_string?: string | null;
 }
 
 export interface ValidatedClaimDTO {

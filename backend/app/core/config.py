@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     CACHE_LOCAL_ROOT: str = "data/cached_web"
     EXPORTS_LOCAL_ROOT: str = "data/exports"
     TEMPORARY_LOCAL_ROOT: str = "data/temporary"
+    DOCUMENT_MAX_BYTES: int = Field(default=50_000_000, ge=1_024, le=500_000_000)
 
     # Local AI Inference
     OLLAMA_BASE_URL: str = "http://localhost:11434"

@@ -60,6 +60,7 @@ export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, 
 
   return (
     <div className="app-shell">
+      <div className="shell-atmosphere" aria-hidden="true"><span className="atmosphere-orbit atmosphere-orbit-one" /><span className="atmosphere-orbit atmosphere-orbit-two" /><span className="atmosphere-axis" /></div>
       <a className="skip-link" href="#main-content">Skip to research workspace</a>
       <header className="global-header">
         <button className="icon-button mobile-menu" aria-label="Open navigation" aria-expanded={mobileNavOpen} aria-controls="primary-navigation" onClick={() => setMobileNavOpen(true)}><Menu size={18} /></button>
@@ -105,7 +106,7 @@ export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, 
               {group.items.map(({ id, label, icon: Icon, path }) => {
                 const pathActive = path ? (window.location.pathname === path || window.location.pathname.startsWith(`${path}/`)) : true;
                 const isActive = activeView === id && pathActive;
-                return <button key={`${id}-${label}`} className={"nav-item " + (isActive ? 'active' : '')} onClick={() => path ? navigate(path) : onViewChange(id)} aria-current={isActive ? 'page' : undefined}>
+                return <button key={`${id}-${label}`} type="button" className={"nav-item " + (isActive ? 'active' : '')} onClick={() => { if (path) navigate(path); else onViewChange(id); setMobileNavOpen(false); }} aria-current={isActive ? 'page' : undefined}>
                   <Icon size={16} />{leftOpen && <span>{label}</span>}
                 </button>;
               })}
