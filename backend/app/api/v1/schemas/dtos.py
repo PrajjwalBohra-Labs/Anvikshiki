@@ -209,6 +209,7 @@ class ResearchResultResponseDTO(BaseModel):
     claims: list[ValidatedClaimResponseDTO] = []
     specialist_analysis: SpecialistAnalysisResponseDTO = SpecialistAnalysisResponseDTO()
     validation: dict[str, Any] = {}
+    web_research: dict[str, Any] = {}
 
 class ResearchRunSummaryResponseDTO(BaseModel):
     run_id: str

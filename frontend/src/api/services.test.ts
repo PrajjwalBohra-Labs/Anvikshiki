@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 const client = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock('./client', () => ({ request: client.request, requestBlob: vi.fn(), requestRoot: vi.fn(), streamSSE: vi.fn() }));
 
-import { createEpistemicPosition, createNotebook, getNotebook, getRunProvenanceGraph, updateEpistemicPositionStatus } from './services';
+import { createEpistemicPosition, createNotebook, getNotebook, getRunProvenanceGraph, updateEpistemicPositionStatus, uploadDocument } from './services';
 
 describe('epistemic memory API services', () => {
   it('posts a position through the authenticated API contract', async () => {
@@ -39,5 +39,20 @@ describe('epistemic memory API services', () => {
 
     await getNotebook('notebook/1');
     expect(client.request).toHaveBeenCalledWith('/notebooks/notebook%2F1');
+  });
+
+  it('sends document uploads as authenticated multipart form data', async () => {
+    client.request.mockClear();
+    client.request.mockResolvedValue({ document_id: 'document-1', passages_count: 2 });
+    const file = new File(['Perception is direct awareness.'], 'notes.txt', { type: 'text/plain' });
+
+    await uploadDocument('source-1', file);
+
+    const [endpoint, options] = client.request.mock.calls[0];
+    expect(endpoint).toBe('/documents/upload');
+    expect(options.method).toBe('POST');
+    expect(options.body).toBeInstanceOf(FormData);
+    expect(options.body.get('source_id')).toBe('source-1');
+    expect(options.body.get('file')).toBe(file);
   });
 });

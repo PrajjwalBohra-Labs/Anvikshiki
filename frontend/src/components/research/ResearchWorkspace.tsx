@@ -42,6 +42,7 @@ function ResearchWorkflow({ state }: { state: ResearchStreamState }) {
 
 function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStreamState; evidenceResults: SearchResultDTO[] }) {
   const result = state.result;
+  const webResearch = result?.web_research;
   const passages = result?.retrieved_passages ?? [];
   const sourceCount = new Set(passages.map((passage) => passage.source_id || passage.source_title)).size;
   const claimCount = result?.claims.length ?? 0;
@@ -54,6 +55,7 @@ function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStream
     { label: 'CONCEPTS', value: '-', note: 'not exposed by current run', icon: Layers3, tone: 'hypothesis' },
     { label: 'MEMORY', value: '-', note: 'not exposed by current run', icon: ShieldCheck, tone: 'memory' },
     { label: 'ACTIVITY', value: state.activity.length, note: state.status === 'idle' ? 'awaiting research' : state.status, icon: Terminal, tone: state.status === 'failed' ? 'contradiction' : 'activity' },
+    ...(webResearch ? [{ label: 'WEB', value: webResearch.acquired_sources.length, note: webResearch.status.replace(/_/g, ' '), icon: Search, tone: 'archival' }] : []),
   ];
   return <aside className="intelligence-sidebar" aria-label="Research intelligence">
     <div className="intelligence-top"><div><span className="eyebrow">Intelligence</span><h2>Research signals</h2></div><span className="intelligence-pip" aria-hidden="true" /></div>
@@ -63,6 +65,20 @@ function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStream
     </div>
     <div className="intelligence-trace"><span className="eyebrow">Trace boundary</span><p><span>Source</span><i>-&gt;</i><span>Passage</span><i>-&gt;</i><span>Claim</span></p><small>Only relationships returned by the backend are shown.</small></div>
   </aside>;
+}
+
+function EvidenceUsed({ result }: { result: NonNullable<ResearchStreamState['result']> }) {
+  if (result.retrieved_passages.length === 0) return null;
+  return <section className="synthesis-evidence" aria-label="Evidence used in this synthesis">
+    <div className="eyebrow">Evidence used</div>
+    <p className="muted-copy">These passages were retrieved and persisted by the backend. The model response is not a substitute for reading them.</p>
+    <div className="synthesis-evidence-list">
+      {result.retrieved_passages.slice(0, 5).map((passage, index) => <details key={passage.passage_id}>
+        <summary><span>[P{index + 1}] {passage.source_title}</span><span>{passage.page_number ? `p. ${passage.page_number}` : 'page not reported'}</span></summary>
+        <p>{passage.content}</p>
+      </details>)}
+    </div>
+  </section>;
 }
 
 export function ResearchWorkspace({ userId }: Props) {
@@ -193,7 +209,7 @@ export function ResearchWorkspace({ userId }: Props) {
           <div className="result-panel panel">
             <div className="panel-heading"><span className="eyebrow">Research output</span>{state.validationStatus && <span className="status-label">{state.validationStatus}</span>}{isCancelled && <span className="status-label">CANCELLED</span>}</div>
             {state.finalResponse ? (
-              <article className="synthesis"><div className="eyebrow">Validated workflow output</div><p>{state.finalResponse}</p>{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'}</div>}</article>
+              <article className="synthesis"><div className="eyebrow">Evidence-grounded workflow output</div><p>{state.finalResponse}</p>{state.result?.web_research && <div className="research-source-note">External research: {state.result.web_research.status.replace(/_/g, ' ')}; {state.result.web_research.acquired_sources.length} acquired source{state.result.web_research.acquired_sources.length === 1 ? '' : 's'}.</div>}{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'} / {state.result?.retrieved_passages.length ?? 0} retrieved passage{state.result?.retrieved_passages.length === 1 ? '' : 's'}</div>}{state.result && <EvidenceUsed result={state.result} />}</article>
             ) : (
               <div className="result-waiting"><LoaderCircle className="spin" size={18} /><p>The final synthesis will appear when the backend emits <code>research_completed</code>.</p></div>
             )}

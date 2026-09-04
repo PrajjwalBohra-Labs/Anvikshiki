@@ -47,6 +47,13 @@ function notifyUnauthorized(status: number): void {
   if (status === 401 && typeof window !== 'undefined') window.dispatchEvent(new Event('anvikshiki:auth-expired'));
 }
 
+function networkErrorMessage(error: unknown, resource: string): string {
+  if (error instanceof TypeError && /fetch|network|connect/i.test(error.message)) {
+    return `The Anvikshiki ${resource} is unavailable. Start the backend and PostgreSQL services, then try again.`;
+  }
+  return error instanceof Error ? error.message : `The Anvikshiki ${resource} could not be reached.`;
+}
+
 export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   const headers = authenticatedHeaders(options);
@@ -58,7 +65,7 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
   try {
     response = await fetch(url, { ...options, headers });
   } catch (error) {
-    throw new ApiError(0, error instanceof Error ? error.message : 'Network connection failure');
+    throw new ApiError(0, networkErrorMessage(error, 'API'));
   }
 
   const body = await response.json().catch(() => undefined);
@@ -80,7 +87,7 @@ export async function requestRoot<T>(endpoint: string, options: RequestInit = {}
   try {
     response = await fetch(url, { ...options, headers });
   } catch (error) {
-    throw new ApiError(0, error instanceof Error ? error.message : 'Network connection failure');
+    throw new ApiError(0, networkErrorMessage(error, 'API'));
   }
   const body = await response.json().catch(() => undefined);
   if (!response.ok) {
@@ -111,7 +118,7 @@ export async function streamSSE<T>(
     response = await fetch(url, { ...options, headers, signal });
   } catch (error) {
     if (signal?.aborted) return;
-    throw new ApiError(0, error instanceof Error ? error.message : 'Research stream connection failed.');
+    throw new ApiError(0, networkErrorMessage(error, 'research service'));
   }
 
   if (!response.ok) {
@@ -156,7 +163,7 @@ export async function requestBlob(endpoint: string, options: RequestInit = {}): 
   try {
     response = await fetch(url, { ...options, headers });
   } catch (error) {
-    throw new ApiError(0, error instanceof Error ? error.message : 'Network connection failure');
+    throw new ApiError(0, networkErrorMessage(error, 'API'));
   }
   if (!response.ok) {
     notifyUnauthorized(response.status);

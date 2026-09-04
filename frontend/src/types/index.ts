@@ -170,6 +170,34 @@ export interface ResearchResultDTO {
   claims: ValidatedClaimDTO[];
   specialist_analysis: SpecialistAnalysisDTO;
   validation: Record<string, unknown>;
+  web_research?: WebResearchDTO;
+}
+
+export interface WebResearchDTO {
+  status: 'not_requested' | 'not_needed' | 'searched' | 'acquired' | 'search_failed' | 'unavailable' | 'insufficient_evidence' | string;
+  query?: string;
+  discovered_results: WebResearchDiscoveryDTO[];
+  acquired_sources: WebResearchAcquiredSourceDTO[];
+  warnings: string[];
+}
+
+export interface WebResearchDiscoveryDTO {
+  title: string;
+  url: string;
+  canonical_url: string;
+  snippet: string;
+  rank: number;
+  domain: string;
+  classification: string;
+}
+
+export interface WebResearchAcquiredSourceDTO {
+  source_id: string;
+  document_id: string;
+  title: string;
+  url?: string | null;
+  passages_count: number;
+  classification: string;
 }
 
 export interface ResearchRunDetailDTO extends ResearchRunSummaryDTO {
