@@ -79,7 +79,7 @@ class WebSearchService:
         except AnvikshikiDomainError:
             raise
         except (httpx.RequestError, httpx.HTTPStatusError) as exc:
-            raise AnvikshikiDomainError(f"Web search failed: {exc}", status_code=502) from exc
+            raise AnvikshikiDomainError("Web search is temporarily unavailable.", status_code=502) from exc
 
         soup = BeautifulSoup(response.text, "html.parser")
         results: list[WebSearchResult] = []

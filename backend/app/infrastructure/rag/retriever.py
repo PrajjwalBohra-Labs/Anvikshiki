@@ -60,9 +60,16 @@ class HybridRetriever:
         source_type: SourceType | None = None,
         language: str | None = None,
         top_k: int = 5,
+<<<<<<< HEAD
+        source_id: Optional[str] = None,
+        document_id: Optional[str] = None,
+        document_version_id: Optional[str] = None,
+        owner_id: Optional[str] = None,
+=======
         source_id: str | None = None,
         document_id: str | None = None,
         document_version_id: str | None = None,
+>>>>>>> origin/main
     ) -> RetrievalOutcome:
         results = await self.lexical.search(
             query=query,
@@ -72,6 +79,7 @@ class HybridRetriever:
             source_id=source_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            owner_id=owner_id,
         )
         return RetrievalOutcome(results=results, lexical_count=len(results))
 
@@ -80,9 +88,16 @@ class HybridRetriever:
         query: str,
         source_type: SourceType | None = None,
         top_k: int = 5,
+<<<<<<< HEAD
+        source_id: Optional[str] = None,
+        document_id: Optional[str] = None,
+        document_version_id: Optional[str] = None,
+        owner_id: Optional[str] = None,
+=======
         source_id: str | None = None,
         document_id: str | None = None,
         document_version_id: str | None = None,
+>>>>>>> origin/main
     ) -> RetrievalOutcome:
         try:
             query_vector = await self.embed_client.get_embedding(query)
@@ -93,6 +108,7 @@ class HybridRetriever:
                 source_id=source_id,
                 document_id=document_id,
                 document_version_id=document_version_id,
+                owner_id=owner_id,
             )
             return RetrievalOutcome(results=results, semantic_count=len(results))
         except ValueError:
@@ -109,6 +125,17 @@ class HybridRetriever:
         source_type: SourceType | None = None,
         language: str | None = None,
         top_k: int = 5,
+<<<<<<< HEAD
+        rrf_k: Optional[int] = None,
+        source_id: Optional[str] = None,
+        document_id: Optional[str] = None,
+        document_version_id: Optional[str] = None,
+        lexical_weight: Optional[float] = None,
+        semantic_weight: Optional[float] = None,
+        lexical_candidate_limit: Optional[int] = None,
+        semantic_candidate_limit: Optional[int] = None,
+        owner_id: Optional[str] = None,
+=======
         rrf_k: int | None = None,
         source_id: str | None = None,
         document_id: str | None = None,
@@ -117,6 +144,7 @@ class HybridRetriever:
         semantic_weight: float | None = None,
         lexical_candidate_limit: int | None = None,
         semantic_candidate_limit: int | None = None,
+>>>>>>> origin/main
     ) -> RetrievalOutcome:
         if top_k < 1:
             raise ValueError("top_k must be positive.")
@@ -159,6 +187,7 @@ class HybridRetriever:
                 source_id=source_id,
                 document_id=document_id,
                 document_version_id=document_version_id,
+                owner_id=owner_id,
             )
         except ValueError:
             raise
@@ -173,6 +202,7 @@ class HybridRetriever:
                 source_id=source_id,
                 document_id=document_id,
                 document_version_id=document_version_id,
+                owner_id=owner_id,
             )
         except ValueError:
             raise

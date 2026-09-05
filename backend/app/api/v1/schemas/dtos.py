@@ -125,8 +125,14 @@ class EpistemicPositionResponseDTO(BaseModel):
 class ResearchRunRequestDTO(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
     query: str = Field(..., min_length=3, max_length=10_000)
+<<<<<<< HEAD
+    domain: Optional[str] = Field("Philosophy & Empirical Epistemology", max_length=128)
+    depth: Optional[str] = "standard"
+    include_web: bool = False
+=======
     domain: str | None = Field("Philosophy & Empirical Epistemology", max_length=128)
     depth: str | None = "standard"
+>>>>>>> origin/main
 
 class ResearchResumeRequestDTO(BaseModel):
     research_question_id: str = Field(..., min_length=1, max_length=128)
@@ -209,8 +215,13 @@ class ResearchResultResponseDTO(BaseModel):
     retrieved_passages: list[ResearchPassageResponseDTO] = []
     claims: list[ValidatedClaimResponseDTO] = []
     specialist_analysis: SpecialistAnalysisResponseDTO = SpecialistAnalysisResponseDTO()
+<<<<<<< HEAD
+    validation: Dict[str, Any] = {}
+    web_research: Dict[str, Any] = {}
+=======
     validation: dict[str, Any] = {}
     web_research: dict[str, Any] = {}
+>>>>>>> origin/main
 
 class ResearchRunSummaryResponseDTO(BaseModel):
     run_id: str
@@ -413,8 +424,42 @@ class WebAcquisitionResponseDTO(BaseModel):
 class UserCreateDTO(BaseModel):
     username: str = Field(..., min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.-]+$")
 
+
+class UsernameAuthenticationDTO(UserCreateDTO):
+    """The username is the sole user-facing authentication input."""
+
 class UserResponseDTO(BaseModel):
     user_id: str
     username: str
     created_at: datetime
+<<<<<<< HEAD
+    access_token: Optional[str] = None
+
+
+class BackgroundResearchJobRequestDTO(BaseModel):
+    """Research-only payload for durable background execution."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str = Field(..., min_length=3, max_length=10_000)
+    domain: Optional[str] = Field(default=None, max_length=128)
+    depth: Optional[str] = Field(default="standard", max_length=32)
+    idempotency_key: str = Field(..., min_length=1, max_length=128)
+    include_web: bool = False
+
+
+class BackgroundJobResponseDTO(BaseModel):
+    job_id: str
+    job_type: str
+    research_run_id: Optional[str] = None
+    status: str
+    attempts: int
+    max_attempts: int
+    result: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+=======
     access_token: str | None = None
+>>>>>>> origin/main

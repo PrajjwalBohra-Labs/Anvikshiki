@@ -151,11 +151,15 @@ class AnvikshikiMCPServer:
         try:
             allowed = self.permission_policy(tool_name, arguments)
         except Exception as exc:  # noqa: BLE001 - policy failures fail closed.
+<<<<<<< HEAD
+            logger.warning("mcp_permission_policy_failed", tool_name=tool_name, error_type=type(exc).__name__)
+=======
             logger.warning(
                 "mcp_permission_policy_failed",
                 tool_name=tool_name,
                 error_type=type(exc).__name__,
             )
+>>>>>>> origin/main
             allowed = False
         if not allowed:
             logger.warning("mcp_tool_permission_denied", tool_name=tool_name)
@@ -178,12 +182,17 @@ class AnvikshikiMCPServer:
         except ValueError:
             logger.warning("mcp_tool_security_validation_error", tool_name=tool_name)
             return {"success": False, "error": "Security violation: tool input was rejected."}
+<<<<<<< HEAD
+        except Exception as exc:  # noqa: BLE001 - sanitized MCP failure boundary
+            logger.error("mcp_tool_execution_error", tool_name=tool_name, error_type=type(exc).__name__)
+=======
         except Exception as exc:  # noqa: BLE001 - tool boundary is sanitized.
             logger.error(
                 "mcp_tool_execution_error",
                 tool_name=tool_name,
                 error_type=type(exc).__name__,
             )
+>>>>>>> origin/main
             return {"success": False, "error": "Tool execution failed."}
 
     async def run_stdio(self) -> None:

@@ -12,6 +12,13 @@ from backend.app.application.agents.philosophical_analyst import PhilosophicalAn
 from backend.app.application.agents.scientific_analyst import ScientificAnalyst
 from backend.app.application.agents.source_critic_agent import SourceCriticAgent
 from backend.app.application.memory.epistemic_memory import EpistemicMemoryService
+<<<<<<< HEAD
+from backend.app.application.agents.comparative_analyst import ComparativeAnalyst
+from backend.app.infrastructure.ai.local_model_adapter import BaseModelAdapter, OllamaLocalAdapter
+from backend.app.application.orchestration.durable_checkpointer import DurableDatabaseCheckpointer
+from backend.app.core.config import settings
+from backend.app.application.use_cases.web_research import WebResearchService
+=======
 from backend.app.application.orchestration.durable_checkpointer import (
     DurableDatabaseCheckpointer,
 )
@@ -38,6 +45,7 @@ from backend.app.infrastructure.ai.local_model_adapter import (
     OllamaLocalAdapter,
 )
 from backend.app.infrastructure.database.session import AsyncSessionLocal
+>>>>>>> origin/main
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
 
 logger = structlog.get_logger(__name__)
@@ -173,6 +181,7 @@ class ResearchWorkflowState(TypedDict):
     run_id: str | None
     query: str
     domain: str
+    depth: str
     user_id: str
     retrieved_passages: list[dict[str, Any]]
     extracted_claims: list[dict[str, Any]]
@@ -187,14 +196,20 @@ class ResearchWorkflowState(TypedDict):
     final_response: str
     validation_details: dict[str, Any]
     current_step: str
+<<<<<<< HEAD
+    include_web: bool
+    web_research: Dict[str, Any]
+=======
     research_depth: str
     web_research: dict[str, Any]
 
+>>>>>>> origin/main
 
 class ResearchWorkflowEngine:
     """
     LangGraph research orchestrator:
-    Query -> Hybrid RAG -> Real Passages -> Specialist Agents -> Challenger -> LLM -> Validation.
+    Query -> optional web discovery/acquisition -> Hybrid RAG -> Real Passages
+    -> Specialist Agents -> Challenger -> LLM -> Validation.
     """
     def __init__(self, session_or_factory: Any | None = None, llm_adapter: BaseModelAdapter | None = None):
         if session_or_factory is not None and callable(session_or_factory):
@@ -241,7 +256,12 @@ class ResearchWorkflowEngine:
                 evidence_candidates = await retrieval_service.retrieve_evidence(
                     query=query,
                     domain=domain,
+<<<<<<< HEAD
+                    top_k=5,
+                    owner_id=state["user_id"],
+=======
                     top_k=10 if depth == "deep" else 6,
+>>>>>>> origin/main
                 )
 
                 if should_run_web_research(query, depth, len(evidence_candidates)):
@@ -366,7 +386,45 @@ class ResearchWorkflowEngine:
                 "web_research": web_research,
             }
 
+<<<<<<< HEAD
+        async def web_research_node(state: ResearchWorkflowState) -> Dict[str, Any]:
+            if not state.get("include_web", False):
+                return {
+                    "web_research": {
+                        "requested": False,
+                        "status": "skipped",
+                        "discoveries": [],
+                        "acquisitions": [],
+                    },
+                    "current_step": "web_research_skipped",
+                }
+            if not settings.ENABLE_WEB_RETRIEVAL:
+                return {
+                    "web_research": {
+                        "requested": True,
+                        "status": "disabled",
+                        "error": "Web retrieval is disabled.",
+                        "discoveries": [],
+                        "acquisitions": [],
+                    },
+                    "current_step": "web_research_disabled",
+                }
+            result = await WebResearchService(
+                self.session_factory,
+                storage_factory=LocalStorageService,
+            ).discover_and_acquire(
+                query=state["query"],
+                owner_id=state["user_id"],
+            )
+            return {
+                "web_research": result,
+                "current_step": f"web_research_{result['status']}",
+            }
+
+        async def specialist_analysis_node(state: ResearchWorkflowState) -> Dict[str, Any]:
+=======
         async def specialist_analysis_node(state: ResearchWorkflowState) -> dict[str, Any]:
+>>>>>>> origin/main
             passages = state.get("retrieved_passages", [])
             claims = []
             arguments = []
@@ -472,10 +530,23 @@ class ResearchWorkflowEngine:
                 "objections": state.get("objections", []),
                 "source_criticisms": state.get("criticisms", []),
                 "comparisons": state.get("comparisons", []),
+                "web_research": state.get("web_research", {}),
                 # User positions are context, not evidence. They are kept in a
                 # separate field so synthesis cannot cite them as source claims.
                 "user_epistemic_positions": state.get("user_epistemic_positions", []),
             }
+<<<<<<< HEAD
+            prompt = (
+                "Synthesize this research inquiry strictly from the verified evidence below.\n"
+                f"Query: {state['query']}\n"
+                f"Evidence JSON:\n{json.dumps(evidence_payload, ensure_ascii=False, default=str)}\n"
+                "Preserve passage IDs and source provenance in the answer."
+                " Distinguish acquired web evidence from local evidence; never cite a discovery-only URL as evidence."
+            )
+            depth = (state.get("depth") or "standard").lower()
+            max_tokens = 900 if depth in {"deep", "comprehensive", "long"} else 600
+            llm_summary = await self.llm.generate(prompt=prompt, max_tokens=max_tokens)
+=======
             if not state.get("retrieved_passages"):
                 no_evidence_prompt = (
                     "The inquiry has no verified local passages or acquired web evidence. Do not answer the "
@@ -549,6 +620,7 @@ class ResearchWorkflowEngine:
                 final_response = append_citation_ledger(
                     draft, state.get("retrieved_passages", [])
                 )
+>>>>>>> origin/main
 
             return {
                 "validation_status": val_res["status"],
@@ -559,13 +631,15 @@ class ResearchWorkflowEngine:
             }
 
         builder.add_node("coordinator", coordinator_node)
+        builder.add_node("web_research", web_research_node)
         builder.add_node("retrieval", retrieval_node)
         builder.add_node("specialist_analysis", specialist_analysis_node)
         builder.add_node("challenger", challenger_node)
         builder.add_node("validator", validation_node)
 
         builder.set_entry_point("coordinator")
-        builder.add_edge("coordinator", "retrieval")
+        builder.add_edge("coordinator", "web_research")
+        builder.add_edge("web_research", "retrieval")
         builder.add_edge("retrieval", "specialist_analysis")
         builder.add_edge("specialist_analysis", "challenger")
         builder.add_edge("challenger", "validator")
@@ -591,7 +665,16 @@ class ResearchWorkflowEngine:
                 "challenges": state.get("objections", []),
             },
             "validation": state.get("validation_details", {}),
+<<<<<<< HEAD
+            "web_research": state.get("web_research", {
+                "requested": False,
+                "status": "not_reported",
+                "discoveries": [],
+                "acquisitions": [],
+            }),
+=======
             "web_research": state.get("web_research", {}),
+>>>>>>> origin/main
         }
 
     async def execute_research(
@@ -600,14 +683,22 @@ class ResearchWorkflowEngine:
         user_id: str,
         domain: str = "Epistemology",
         thread_id: str = "default_thread",
+<<<<<<< HEAD
+        run_id: Optional[str] = None,
+        depth: str = "standard",
+        include_web: bool = False,
+    ) -> Dict[str, Any]:
+=======
         run_id: str | None = None,
         depth: str | None = None,
     ) -> dict[str, Any]:
         selected_depth = research_depth_for_query(query, depth)
+>>>>>>> origin/main
         initial_state: ResearchWorkflowState = {
             "run_id": run_id,
             "query": query,
             "domain": domain,
+            "depth": depth,
             "user_id": user_id,
             "retrieved_passages": [],
             "extracted_claims": [],
@@ -622,7 +713,11 @@ class ResearchWorkflowEngine:
             "final_response": "",
             "validation_details": {},
             "current_step": "initialized",
+<<<<<<< HEAD
+            "include_web": include_web,
+=======
             "research_depth": selected_depth,
+>>>>>>> origin/main
             "web_research": {},
         }
         config = {"configurable": {"thread_id": thread_id}}
@@ -634,14 +729,22 @@ class ResearchWorkflowEngine:
         user_id: str,
         domain: str = "Epistemology",
         thread_id: str = "default_thread",
+<<<<<<< HEAD
+        run_id: Optional[str] = None,
+        depth: str = "standard",
+        include_web: bool = False,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+=======
         run_id: str | None = None,
         depth: str | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         selected_depth = research_depth_for_query(query, depth)
+>>>>>>> origin/main
         initial_state: ResearchWorkflowState = {
             "run_id": run_id,
             "query": query,
             "domain": domain,
+            "depth": depth,
             "user_id": user_id,
             "retrieved_passages": [],
             "extracted_claims": [],
@@ -656,7 +759,11 @@ class ResearchWorkflowEngine:
             "final_response": "",
             "validation_details": {},
             "current_step": "initialized",
+<<<<<<< HEAD
+            "include_web": include_web,
+=======
             "research_depth": selected_depth,
+>>>>>>> origin/main
             "web_research": {},
         }
         config = {"configurable": {"thread_id": thread_id}}

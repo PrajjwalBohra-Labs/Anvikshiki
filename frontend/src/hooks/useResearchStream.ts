@@ -34,7 +34,7 @@ export function useResearchStream(userId: string) {
     setState((current) => ({ ...current, status: 'cancelled', error: undefined }));
   }, []);
 
-  const run = useCallback(async (query: string, domain?: string) => {
+  const run = useCallback(async (query: string, domain?: string, includeWeb = false) => {
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
@@ -87,7 +87,7 @@ export function useResearchStream(userId: string) {
     };
 
     try {
-      await startResearch({ user_id: userId, query, domain }, handleEvent, controller.signal);
+      await startResearch({ user_id: userId, query, domain, include_web: includeWeb }, handleEvent, controller.signal);
       if (!completed && !controller.signal.aborted) {
         if (runId && lastEventId) await replayResearchEvents(runId, lastEventId, handleEvent, controller.signal);
         setState((current) => current.status === 'streaming' ? { ...current, status: 'failed', error: 'Research stream ended before completion.' } : current);

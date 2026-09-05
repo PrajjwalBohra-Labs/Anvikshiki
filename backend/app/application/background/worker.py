@@ -55,6 +55,10 @@ class BackgroundJobService:
         domain: str | None,
         depth: str | None,
         idempotency_key: str,
+<<<<<<< HEAD
+        include_web: bool = False,
+=======
+>>>>>>> origin/main
         request_id: str | None = None,
     ) -> tuple[BackgroundJobModel, bool]:
         job_id = deterministic_job_id(user_id, JOB_TYPE_RESEARCH, idempotency_key)
@@ -89,7 +93,11 @@ class BackgroundJobService:
             user_id=user_id,
             job_type=JOB_TYPE_RESEARCH,
             idempotency_key=idempotency_key,
+<<<<<<< HEAD
+            payload={"query": query, "domain": domain, "depth": depth, "include_web": include_web},
+=======
             payload={"query": query, "domain": domain, "depth": depth},
+>>>>>>> origin/main
             status=PENDING,
             attempts=0,
             max_attempts=MAX_ATTEMPTS,
@@ -250,6 +258,11 @@ async def execute_research_job(job: BackgroundJobModel) -> dict[str, Any]:
             domain=str(payload.get("domain") or "Epistemology"),
             thread_id=job.id,
             run_id=job.research_run_id,
+<<<<<<< HEAD
+            depth=str(payload.get("depth") or "standard"),
+            include_web=bool(payload.get("include_web", False)),
+=======
+>>>>>>> origin/main
         )
         result = engine._result_payload(state)
         async with AsyncSessionLocal() as session:

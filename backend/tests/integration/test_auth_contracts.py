@@ -166,3 +166,50 @@ async def test_authenticated_question_discovery_returns_owned_questions(setup_te
             assert detail.json()["constraints"] == ["Use verified sources"]
     finally:
         settings.AUTH_MODE = previous_auth_mode
+
+
+@pytest.mark.asyncio
+async def test_existing_username_authenticates_without_previous_session(setup_test_env):
+    previous_auth_mode = settings.AUTH_MODE
+    settings.AUTH_MODE = "required"
+    try:
+        async with AsyncSessionLocal() as session:
+            user, _ = await UserService(session).create_user("username_login_owner")
+            user_id = user.id
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            login = await client.post(
+                "/api/v1/auth/login", json={"username": "username_login_owner"}
+            )
+            assert login.status_code == 200
+            token = login.json()["access_token"]
+            assert token
+
+            identity = await client.get(
+                "/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert identity.status_code == 200
+            assert identity.json()["user_id"] == user_id
+
+            logout = await client.post(
+                "/api/v1/auth/logout",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert logout.status_code == 204
+            assert (
+                await client.get(
+                    "/api/v1/auth/me",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            ).status_code == 401
+
+            # A fresh client has no local browser state. The username itself
+            # resolves the identity and produces a new independent session.
+            second_login = await client.post(
+                "/api/v1/auth/login", json={"username": "username_login_owner"}
+            )
+            assert second_login.status_code == 200
+            assert second_login.json()["access_token"] != token
+    finally:
+        settings.AUTH_MODE = previous_auth_mode

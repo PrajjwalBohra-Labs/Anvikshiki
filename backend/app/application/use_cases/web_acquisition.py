@@ -98,7 +98,7 @@ class WebAcquisitionService:
             cached["cache_hit"] = True
             return cached
         except (OSError, ValueError, KeyError, json.JSONDecodeError):
-            logger.warning("Ignoring invalid web cache entry", url=canonical_url)
+            logger.warning("Ignoring invalid web cache entry", cache_key=hashlib.sha256(canonical_url.encode("utf-8")).hexdigest())
             return None
 
     async def _write_cache(self, canonical_url: str, record: dict[str, Any], content: bytes) -> None:
@@ -119,7 +119,7 @@ class WebAcquisitionService:
                 await asyncio.to_thread(temporary.unlink, missing_ok=True)
             except OSError:
                 pass
-            logger.warning("Unable to persist web cache entry", url=canonical_url)
+            logger.warning("Unable to persist web cache entry", cache_key=hashlib.sha256(canonical_url.encode("utf-8")).hexdigest())
 
     async def _robots_allowed(self, client: httpx.AsyncClient, url: str) -> bool:
         if not settings.WEB_RESPECT_ROBOTS:
@@ -223,11 +223,11 @@ class WebAcquisitionService:
         except AnvikshikiDomainError:
             raise
         except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as exc:
-            logger.error("Failed to fetch external URL", url=url, error=str(exc))
-            raise AnvikshikiDomainError(f"Failed to retrieve URL {url}: {exc}", status_code=502) from exc
+            logger.error("Failed to fetch external URL", error_type=type(exc).__name__)
+            raise AnvikshikiDomainError("Failed to retrieve the requested URL.", status_code=502) from exc
 
     async def acquire_url(
-        self, url: str, source_title: str | None = None
+        self, url: str, source_title: str | None = None, owner_id: str | None = None
     ) -> tuple[SourceModel, DocumentModel, list[PassageModel]]:
         """Acquire raw bytes, cache them, then use ordinary ingestion/provenance."""
         canonical_url = canonicalize_url(url)
@@ -242,6 +242,7 @@ class WebAcquisitionService:
         content_type = fetched["content_type"]
         extracted = self._metadata_from_content(content, content_type, fetched["final_url"])
         source = SourceModel(
+            user_id=owner_id,
             title=(source_title or extracted["title"])[:512],
             author=extracted.get("author"),
             original_language=extracted.get("language"),
@@ -256,6 +257,7 @@ class WebAcquisitionService:
                 filename=f"web_{checksum}.{'txt' if content_type == 'text/plain' else 'html'}",
                 content=content,
                 mime_type=content_type,
+                owner_id=owner_id,
             )
             document.web_metadata = {
                 "original_url": url,

@@ -55,10 +55,18 @@ class LexicalRetriever:
         language: str | None = None,
         limit: int | None = None,
         offset: int = 0,
+<<<<<<< HEAD
+        source_id: Optional[str] = None,
+        document_id: Optional[str] = None,
+        document_version_id: Optional[str] = None,
+        owner_id: Optional[str] = None,
+    ) -> List[ScoredPassage]:
+=======
         source_id: str | None = None,
         document_id: str | None = None,
         document_version_id: str | None = None,
     ) -> list[ScoredPassage]:
+>>>>>>> origin/main
         """Search authoritative passage text with lexical ranking.
 
         PostgreSQL uses the trigger-maintained ``search_vector`` and
@@ -108,6 +116,10 @@ class LexicalRetriever:
                 stmt = stmt.where(PassageModel.document_id == document_id)
             if document_version_id:
                 stmt = stmt.where(PassageModel.document_version_id == document_version_id)
+            if owner_id:
+                stmt = stmt.where(
+                    or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+                )
             stmt = (
                 stmt.options(selectinload(PassageModel.document).selectinload(DocumentModel.source))
                 .order_by(
@@ -152,6 +164,10 @@ class LexicalRetriever:
             stmt = stmt.where(PassageModel.document_id == document_id)
         if document_version_id:
             stmt = stmt.where(PassageModel.document_version_id == document_version_id)
+        if owner_id:
+            stmt = stmt.where(
+                or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+            )
         stmt = stmt.options(
             selectinload(PassageModel.document).selectinload(DocumentModel.source)
         )

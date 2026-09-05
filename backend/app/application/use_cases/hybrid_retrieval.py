@@ -33,11 +33,19 @@ class HybridRetrievalService:
     async def retrieve_evidence(
         self,
         query: str,
+<<<<<<< HEAD
+        domain: Optional[str] = None,
+        source_type_filter: Optional[SourceType] = None,
+        top_k: int = 5,
+        owner_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+=======
         domain: str | None = None,
         source_type_filter: SourceType | None = None,
         source_id_filter: str | None = None,
         top_k: int = 5
     ) -> list[dict[str, Any]]:
+>>>>>>> origin/main
         # 1. Generate Query Vector Embedding (384 dimensions)
         query_vectors = await self.embedder.embed_texts([query])
         query_vec = query_vectors[0]
@@ -51,8 +59,17 @@ class HybridRetrievalService:
 
         if source_type_filter:
             base_stmt = base_stmt.where(SourceModel.source_type == source_type_filter)
+<<<<<<< HEAD
+        if owner_id:
+            # Legacy/canonical sources without an owner remain shared corpus
+            # material.  Private sources are still restricted to their owner.
+            base_stmt = base_stmt.where(
+                or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+            )
+=======
         if source_id_filter:
             base_stmt = base_stmt.where(SourceModel.id == source_id_filter)
+>>>>>>> origin/main
 
         # Lexical retrieval channel
         keywords = [f"%{w}%" for w in query.split() if len(w) > 2]
@@ -91,8 +108,15 @@ class HybridRetrievalService:
             )
             if source_type_filter:
                 vector_stmt = vector_stmt.where(SourceModel.source_type == source_type_filter)
+<<<<<<< HEAD
+            if owner_id:
+                vector_stmt = vector_stmt.where(
+                    or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+                )
+=======
             if source_id_filter:
                 vector_stmt = vector_stmt.where(SourceModel.id == source_id_filter)
+>>>>>>> origin/main
             vector_result = await self.session.execute(vector_stmt)
             vector_rows = vector_result.all()
         elif not lexical_rows:

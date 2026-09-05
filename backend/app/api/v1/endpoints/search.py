@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user
 from backend.app.application.use_cases.citation_service import CitationService
+from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user
 from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.database.session import get_db
 from backend.app.infrastructure.rag.lexical_retriever import LexicalRetriever
@@ -51,8 +52,13 @@ async def search_passages(
     document_version_id: str | None = None,
     retrieval: Literal["hybrid", "lexical", "semantic"] = Query("hybrid"),
     top_k: int = Query(5, ge=1, le=20),
+<<<<<<< HEAD
+    db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
+=======
     db: AsyncSession = Depends(get_db),  # noqa: B008
     current_user: AuthenticatedPrincipal | None = Depends(get_current_user),  # noqa: B008
+>>>>>>> origin/main
 ):
     """Search the corpus, preserving the existing hybrid default.
 
@@ -76,6 +82,7 @@ async def search_passages(
             source_id=source_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            owner_id=current_user.user_id if current_user else None,
         )
     elif retrieval == "semantic":
         retriever = AdvancedRetriever(db)
@@ -86,6 +93,7 @@ async def search_passages(
             source_id=source_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            owner_id=current_user.user_id if current_user else None,
         )
         scored_passages = outcome.results
         retrieval_status = outcome.status
@@ -99,6 +107,7 @@ async def search_passages(
             source_id=source_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            owner_id=current_user.user_id if current_user else None,
         )
         scored_passages = outcome.results
         retrieval_status = outcome.status

@@ -1,9 +1,13 @@
 import mimetypes
 from datetime import datetime, timezone
+<<<<<<< HEAD
+=======
 from pathlib import Path
+>>>>>>> origin/main
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import or_
 
 from backend.app.application.use_cases.embedding_indexing import (
     EmbeddingIndexError,
@@ -185,8 +189,19 @@ class DocumentIngestionService:
         filename: str,
         content: bytes,
         mime_type: str | None = None,
+<<<<<<< HEAD
+        owner_id: str | None = None,
+    ) -> tuple[DocumentModel, list[PassageModel]]:
+        source_stmt = select(SourceModel).where(SourceModel.id == source_id)
+        if owner_id:
+            source_stmt = source_stmt.where(
+                or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+            )
+        source_result = await self.session.execute(source_stmt)
+=======
     ) -> tuple[DocumentModel, list[PassageModel]]:
         source_result = await self.session.execute(select(SourceModel).where(SourceModel.id == source_id))
+>>>>>>> origin/main
         source = source_result.scalars().first()
         if not source:
             raise AnvikshikiDomainError(f"Source {source_id} not found.", status_code=404)
@@ -223,7 +238,7 @@ class DocumentIngestionService:
             else:
                 parsed_data = TextDocumentParser.parse_text(content)
         except ValueError as exc:
-            raise AnvikshikiDomainError(f"Document extraction failed: {exc}", status_code=422) from exc
+            raise AnvikshikiDomainError("Document extraction failed.", status_code=422) from exc
 
         if not parsed_data:
             raise AnvikshikiDomainError("Document extraction produced no passages.", status_code=422)

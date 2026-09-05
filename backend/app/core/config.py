@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     EMBEDDING_PROVIDER: str = "sentence-transformers"
     EMBEDDING_DIMENSIONS: int = Field(default=384, ge=1, le=4096)
     EMBEDDING_BATCH_SIZE: int = Field(default=32, ge=1, le=512)
+    # Model artifacts are provisioned separately for the local research
+    # instrument.  Do not let a request unexpectedly block on a model-hub
+    # download when the artifact is absent.
+    EMBEDDING_LOCAL_FILES_ONLY: bool = True
     # Conservative PostgreSQL parser for scholarly terminology. ``simple``
     # tokenizes without English stemming or stop words.
     LEXICAL_SEARCH_CONFIG: Literal["simple"] = "simple"
@@ -67,6 +71,7 @@ class Settings(BaseSettings):
     RERANKER_ENABLED: bool = True
     RERANKER_CANDIDATE_MULTIPLIER: int = Field(default=2, ge=1, le=10)
     RERANKER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    RERANKER_LOCAL_FILES_ONLY: bool = True
     
     # Subsystems Toggles
     ENABLE_OCR: bool = True

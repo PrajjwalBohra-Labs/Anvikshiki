@@ -78,6 +78,7 @@ export interface ResearchRunRequestDTO {
   query: string;
   domain?: string;
   depth?: string;
+  include_web?: boolean;
 }
 
 export interface AuthUserDTO {
@@ -173,6 +174,9 @@ export interface ResearchResultDTO {
   claims: ValidatedClaimDTO[];
   specialist_analysis: SpecialistAnalysisDTO;
   validation: Record<string, unknown>;
+<<<<<<< HEAD
+  web_research?: Record<string, unknown>;
+=======
   web_research?: WebResearchDTO;
 }
 
@@ -201,6 +205,7 @@ export interface WebResearchAcquiredSourceDTO {
   url?: string | null;
   passages_count: number;
   classification: string;
+>>>>>>> origin/main
 }
 
 export interface ResearchRunDetailDTO extends ResearchRunSummaryDTO {
@@ -443,6 +448,7 @@ export interface HealthDTO {
   pgvector?: string;
   model_runtime?: string;
   mcp_boundary?: string;
+  database_schema?: string;
   project?: string;
   environment?: string;
 }

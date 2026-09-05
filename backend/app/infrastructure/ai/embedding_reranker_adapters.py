@@ -27,7 +27,10 @@ class LocalSentenceTransformerEmbeddingAdapter:
         if self._model is None:
             try:
                 from sentence_transformers import SentenceTransformer
-                self._model = SentenceTransformer(self.model_name)
+                self._model = SentenceTransformer(
+                    self.model_name,
+                    local_files_only=runtime_settings.EMBEDDING_LOCAL_FILES_ONLY,
+                )
             except Exception as e:
                 if runtime_settings.RUNTIME_PROFILE == RuntimeProfile.TEST:
                     logger.warning("Embedding model unavailable in isolated test profile", error=str(e))
@@ -43,6 +46,10 @@ class LocalSentenceTransformerEmbeddingAdapter:
         
         model = await asyncio.to_thread(self._get_model)
         if model is not None:
+<<<<<<< HEAD
+            embeddings = model.encode(texts, normalize_embeddings=True)
+            vectors = [emb.tolist() if hasattr(emb, "tolist") else list(emb) for emb in embeddings]
+=======
             # sentence-transformers performs synchronous CPU work. Keep it
             # off the FastAPI/worker event loop so long model calls cannot
             # starve health checks or unrelated requests.
@@ -50,6 +57,7 @@ class LocalSentenceTransformerEmbeddingAdapter:
                 model.encode, texts, normalize_embeddings=True
             )
             vectors = [emb.tolist() for emb in embeddings]
+>>>>>>> origin/main
             if any(len(vector) != self.dimensions for vector in vectors):
                 raise RuntimeError(
                     f"Embedding model '{self.model_name}' returned a dimension other than "
@@ -88,7 +96,10 @@ class LocalCrossEncoderRerankerAdapter:
         if self._model is None:
             try:
                 from sentence_transformers import CrossEncoder
-                self._model = CrossEncoder(self.model_name)
+                self._model = CrossEncoder(
+                    self.model_name,
+                    local_files_only=runtime_settings.RERANKER_LOCAL_FILES_ONLY,
+                )
             except Exception as e:
                 if runtime_settings.RUNTIME_PROFILE == RuntimeProfile.TEST:
                     logger.warning("Cross-encoder unavailable in isolated test profile", error=str(e))

@@ -47,6 +47,7 @@ async def acquire_web_source(
     source, document, _ = await WebAcquisitionService(db, LocalStorageService()).acquire_url(
         url=payload.url,
         source_title=payload.source_title,
+        owner_id=current_user.user_id if current_user else None,
     )
     document_payload = await DocumentService(db).describe_document(document)
     return WebAcquisitionResponseDTO(

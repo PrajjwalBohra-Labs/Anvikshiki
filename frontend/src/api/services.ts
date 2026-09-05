@@ -135,6 +135,10 @@ export function getResearchRun(runId: string): Promise<ResearchRunDetailDTO> {
   return request<ResearchRunDetailDTO>(`/research/runs/${encodeURIComponent(runId)}`);
 }
 
+export function exportResearchRun(runId: string, format: 'json' | 'markdown' = 'json'): Promise<Blob> {
+  return requestBlob(`/research/runs/${encodeURIComponent(runId)}/export?format=${format}`);
+}
+
 export function listResearchQuestions(options: { limit?: number; offset?: number } = {}): Promise<ResearchQuestionSummaryDTO[]> {
   const params = new URLSearchParams();
   if (options.limit !== undefined) params.set('limit', String(options.limit));
