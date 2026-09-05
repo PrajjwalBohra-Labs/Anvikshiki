@@ -4,23 +4,22 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, event
 
+from backend.app.application.use_cases.user_service import UserService
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalSentenceTransformerEmbeddingAdapter,
 )
 from backend.app.infrastructure.database.models import (
+    AuthSessionModel,
     ClaimModel,
     DocumentModel,
     EvidenceLinkModel,
     PassageModel,
-    AuthSessionModel,
     SourceCriticismModel,
     SourceModel,
     UserModel,
 )
-from backend.app.application.use_cases.user_service import UserService
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
 from backend.app.main import app
-
 
 pytestmark = pytest.mark.postgres
 

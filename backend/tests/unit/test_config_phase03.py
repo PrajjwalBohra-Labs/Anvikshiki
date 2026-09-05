@@ -1,6 +1,8 @@
-﻿import pytest
+import pytest
 from pydantic import ValidationError
-from backend.app.core.config import Settings, RuntimeProfile
+
+from backend.app.core.config import RuntimeProfile, Settings
+
 
 def test_default_configuration_loads():
     settings = Settings()

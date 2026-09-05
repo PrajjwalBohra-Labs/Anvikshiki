@@ -5,9 +5,15 @@ describe('application routing', () => {
   it('parses deep research, document, and notebook URLs', () => {
     expect(parseRoute('/research/runs/run-42')).toEqual({ name: 'research-run', id: 'run-42' });
     expect(parseRoute('/library/documents/doc-7')).toEqual({ name: 'library-document', id: 'doc-7' });
+    expect(parseRoute('/knowledge-graph/run-9')).toEqual({ name: 'knowledge-graph-run', id: 'run-9' });
     expect(parseRoute('/knowledge-graph/run-42')).toEqual({ name: 'knowledge-graph-run', id: 'run-42' });
     expect(parseRoute('/knowledge-graph/%E0%A4%A')).toEqual({ name: 'knowledge-graph-run', id: '%E0%A4%A' });
     expect(parseRoute('/notebook/notebook-42')).toEqual({ name: 'notebook-entry', id: 'notebook-42' });
+  });
+
+  it('supports integrated knowledge and notebook index routes', () => {
+    expect(parseRoute('/knowledge-graph')).toEqual({ name: 'knowledge-graph' });
+    expect(parseRoute('/notebook')).toEqual({ name: 'notebook' });
   });
 
   it('maps protected record routes to the correct shell section', () => {

@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,5 +29,5 @@ class UserService:
         token = await AuthService(self.session).issue_session(user)
         return user, token
 
-    async def get_user(self, user_id: str) -> Optional[UserModel]:
+    async def get_user(self, user_id: str) -> UserModel | None:
         return await self.session.get(UserModel, user_id)

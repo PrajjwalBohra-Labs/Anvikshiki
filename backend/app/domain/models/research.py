@@ -1,19 +1,21 @@
-﻿from typing import List, Optional
-from pydantic import BaseModel, Field
-from backend.app.domain.models.source import generate_id, utc_now
 from datetime import datetime
+
+from pydantic import BaseModel, Field
+
+from backend.app.domain.models.source import generate_id, utc_now
+
 
 class Concept(BaseModel):
     id: str = Field(default_factory=generate_id)
     term: str
-    original_language_term: Optional[str] = None
-    definitions: List[str] = Field(default_factory=list)
+    original_language_term: str | None = None
+    definitions: list[str] = Field(default_factory=list)
 
 class ResearchQuestion(BaseModel):
     id: str = Field(default_factory=generate_id)
     user_id: str
     main_question: str
-    sub_questions: List[str] = Field(default_factory=list)
+    sub_questions: list[str] = Field(default_factory=list)
     status: str = "open"
     created_at: datetime = Field(default_factory=utc_now)
 

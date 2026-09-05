@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, ArrowRight, CircleDot, Database, FileSearch, LoaderCircle, Network, Share2 } from 'lucide-react';
-import { getRunProvenanceGraph, listResearchRuns } from '../../api/services';
 import { ApiError } from '../../api/client';
+import { getRunProvenanceGraph, listResearchRuns } from '../../api/services';
 import { navigate } from '../../routing';
 import type { ProvenanceEdgeDTO, ProvenanceGraphDTO, ProvenanceNodeDTO, ResearchRunSummaryDTO } from '../../types';
 import './KnowledgeGraphPage.css';
@@ -35,8 +35,7 @@ function displayValue(value: unknown): string {
   if (typeof value === 'string') return value;
   if (value === undefined) return 'Not reported';
   try {
-    const serialized = JSON.stringify(value);
-    return serialized ?? 'Not reported';
+    return JSON.stringify(value) ?? 'Not reported';
   } catch {
     return 'Structured metadata';
   }
@@ -46,8 +45,8 @@ function nodeGroupLabel(nodeType: string): string {
   return nodeType.replace(/_/g, ' ');
 }
 
-function GraphNode({ node, selected, onSelect }: { node: ProvenanceNodeDTO; selected: boolean; onSelect: () => void }) {
-  return <button type="button" className={`graph-node ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={onSelect}>
+function GraphNode({ node, selected, contextual, onSelect }: { node: ProvenanceNodeDTO; selected: boolean; contextual: boolean; onSelect: () => void }) {
+  return <button type="button" className={`graph-node ${selected ? 'selected' : ''} ${contextual ? 'contextual' : ''}`} aria-pressed={selected} onClick={onSelect}>
     <span className="graph-node-type">{nodeGroupLabel(node.node_type)}</span>
     <strong>{node.label}</strong>
     <small>{node.entity_id}</small>
@@ -62,8 +61,8 @@ function NodeDetail({ node }: { node: ProvenanceNodeDTO }) {
   </aside>;
 }
 
-function GraphEdges({ edges, nodesById }: { edges: ProvenanceEdgeDTO[]; nodesById: Map<string, ProvenanceNodeDTO> }) {
-  return <section className="graph-edges panel" aria-label="Graph relationships"><div className="panel-heading"><span className="eyebrow">Relationships</span><span className="muted-copy">{edges.length} returned</span></div>{edges.length === 0 ? <p className="muted-copy section-pad">No graph relationships were returned.</p> : <ol>{edges.map((edge) => <li key={edge.edge_id}><span className="edge-endpoint">{nodesById.get(edge.from_node_id)?.label ?? edge.from_node_id}</span><ArrowRight size={14} aria-hidden="true" /><span className="edge-relation">{nodeGroupLabel(edge.relationship_type)}</span><ArrowRight size={14} aria-hidden="true" /><span className="edge-endpoint">{nodesById.get(edge.to_node_id)?.label ?? edge.to_node_id}</span><small>{edge.edge_id} · {formatDate(edge.created_at)}</small></li>)}</ol>}</section>;
+function GraphEdges({ edges, nodesById, selectedId }: { edges: ProvenanceEdgeDTO[]; nodesById: Map<string, ProvenanceNodeDTO>; selectedId: string | null }) {
+  return <section className="graph-edges panel" aria-label="Graph relationships"><div className="panel-heading"><span className="eyebrow">Relationships</span><span className="muted-copy">{edges.length} returned</span></div>{edges.length === 0 ? <p className="muted-copy section-pad">No graph relationships were returned.</p> : <ol>{edges.map((edge) => { const connected = !selectedId || edge.from_node_id === selectedId || edge.to_node_id === selectedId; return <li className={connected ? 'connected' : 'dimmed'} key={edge.edge_id}><span className="edge-endpoint">{nodesById.get(edge.from_node_id)?.label ?? edge.from_node_id}</span><ArrowRight size={14} aria-hidden="true" /><span className="edge-relation">{nodeGroupLabel(edge.relationship_type)}</span><ArrowRight size={14} aria-hidden="true" /><span className="edge-endpoint">{nodesById.get(edge.to_node_id)?.label ?? edge.to_node_id}</span><small>{edge.edge_id} / {formatDate(edge.created_at)}</small></li>; })}</ol>}</section>;
 }
 
 function GraphCanvas({ graph }: { graph: ProvenanceGraphDTO }) {
@@ -80,17 +79,18 @@ function GraphCanvas({ graph }: { graph: ProvenanceGraphDTO }) {
     return [...grouped.entries()].sort(([left], [right]) => (order.get(left) ?? NODE_GROUP_ORDER.length) - (order.get(right) ?? NODE_GROUP_ORDER.length));
   }, [graph.nodes]);
   const selectedNode = selectedId ? nodesById.get(selectedId) : undefined;
+  const connectedIds = useMemo(() => new Set(graph.edges.flatMap((edge) => edge.from_node_id === selectedId || edge.to_node_id === selectedId ? [edge.from_node_id, edge.to_node_id] : [])), [graph.edges, selectedId]);
   return <>
     <div className="graph-layout">
-      <section className="graph-canvas panel" aria-label="Knowledge graph nodes"><div className="panel-heading"><span className="eyebrow">Graph map</span><span className="muted-copy">{graph.nodes.length} nodes · {graph.edges.length} edges</span></div>{graph.nodes.length === 0 ? <p className="muted-copy section-pad">The backend returned an empty graph.</p> : <div className="graph-groups">{groups.map(([type, nodes]) => <section className="graph-group" key={type}><div className="graph-group-heading"><span>{nodeGroupLabel(type)}</span><small>{nodes.length}</small></div><div className="graph-node-list">{nodes.map((node) => <GraphNode key={node.node_id} node={node} selected={node.node_id === selectedId} onSelect={() => setSelectedId(node.node_id)} />)}</div></section>)}</div>}</section>
+      <section className="graph-canvas panel" aria-label="Knowledge graph nodes"><div className="panel-heading"><span className="graph-map-title"><span className="graph-map-mark" aria-hidden="true"><img src="/anvikshiki-logo.png" alt="" /></span><span className="eyebrow">Graph map</span></span><span className="muted-copy">{graph.nodes.length} nodes / {graph.edges.length} edges</span></div>{graph.nodes.length === 0 ? <p className="muted-copy section-pad">The backend returned an empty graph.</p> : <div className="graph-groups">{groups.map(([type, nodes]) => <section className="graph-group" key={type}><div className="graph-group-heading"><span>{nodeGroupLabel(type)}</span><small>{nodes.length}</small></div><div className="graph-node-list">{nodes.map((node) => <GraphNode key={node.node_id} node={node} selected={node.node_id === selectedId} contextual={!selectedId || connectedIds.has(node.node_id)} onSelect={() => setSelectedId(node.node_id)} />)}</div></section>)}</div>}</section>
       {selectedNode && <NodeDetail node={selectedNode} />}
     </div>
-    <GraphEdges edges={graph.edges} nodesById={nodesById} />
+    <GraphEdges edges={graph.edges} nodesById={nodesById} selectedId={selectedId} />
   </>;
 }
 
 function RunChooser({ runs }: { runs: ResearchRunSummaryDTO[] }) {
-  return <div className="graph-run-list">{runs.map((run) => <button className="record-card" type="button" key={run.run_id} onClick={() => navigate(`/knowledge-graph/${encodeURIComponent(run.run_id)}`)}><span className="record-icon"><FileSearch size={17} /></span><span className="record-main"><strong>{run.query}</strong><small>{run.domain || 'Domain not reported'} · Started {formatDate(run.started_at)}</small></span><span className="status-chip">{run.status}</span><ArrowRight size={15} /></button>)}</div>;
+  return <div className="graph-run-list">{runs.map((run) => <button className="record-card" type="button" key={run.run_id} onClick={() => navigate(`/knowledge-graph/${encodeURIComponent(run.run_id)}`)}><span className="record-icon"><FileSearch size={17} /></span><span className="record-main"><strong>{run.query}</strong><small>{run.domain || 'Domain not reported'} / Started {formatDate(run.started_at)}</small></span><span className="status-chip">{run.status}</span><ArrowRight size={15} /></button>)}</div>;
 }
 
 export function KnowledgeGraphPage({ runId }: { runId?: string }) {

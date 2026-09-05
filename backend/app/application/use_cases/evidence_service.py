@@ -1,10 +1,15 @@
-﻿from typing import List, Optional, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from backend.app.infrastructure.database.models import EvidenceLinkModel, PassageModel, ClaimModel
-from backend.app.domain.models.enums import RelationType
-from backend.app.core.errors import AnvikshikiDomainError
+from typing import Any
+
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.core.errors import AnvikshikiDomainError
+from backend.app.domain.models.enums import RelationType
+from backend.app.infrastructure.database.models import (
+    ClaimModel,
+    EvidenceLinkModel,
+    PassageModel,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -50,7 +55,7 @@ class EvidenceService:
         logger.info("Evidence relation established", claim_id=claim_id, passage_id=passage_id, relation=relation_type)
         return evidence_link
 
-    async def trace_evidence_source(self, evidence_link_id: str) -> Dict[str, Any]:
+    async def trace_evidence_source(self, evidence_link_id: str) -> dict[str, Any]:
         """Traces an evidence link back through its passage and document to its root source."""
         link = await self.session.get(EvidenceLinkModel, evidence_link_id)
         if not link:

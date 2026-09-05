@@ -1,6 +1,7 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from backend.app.application.use_cases.research_run_service import ResearchRunService
 from backend.app.domain.models.enums import ClaimType, RelationType, SourceType
 from backend.app.infrastructure.database.models import (
     ClaimModel,
@@ -12,7 +13,6 @@ from backend.app.infrastructure.database.models import (
     UserModel,
 )
 from backend.app.infrastructure.database.session import AsyncSessionLocal, Base, engine
-from backend.app.application.use_cases.research_run_service import ResearchRunService
 from backend.app.main import app
 
 

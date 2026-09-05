@@ -15,3 +15,37 @@
 .command-help span { color: var(--text-secondary); }
 @media (max-width: 650px) { .command-backdrop { padding: 9vh 12px 20px; } .command-dialog { width: 100%; } }
 @media (max-width: 420px) { .command-backdrop { align-items: flex-start; padding: 55px 8px 12px; } .command-input-row { padding: 13px 12px; } .command-results { max-height: 52vh; } .command-help { gap: 5px; padding: 9px 11px; font-size: 8px; } }
+
+.command-backdrop { align-items: flex-start; padding-top: 11vh; background: rgba(4, 7, 6, .78); backdrop-filter: blur(10px); animation: backdrop-in 180ms ease both; }
+.command-dialog { border-color: var(--line-strong); border-radius: 6px; background: #111815; box-shadow: var(--shadow-deep); animation: palette-in 240ms cubic-bezier(.2,.8,.2,1) both; }
+.command-input-row { min-height: 64px; padding: 15px 18px; background: rgba(210,184,139,.035); }
+.command-input { font-size: 18px; }
+.command-input-row kbd { border-color: var(--border); border-radius: 3px; }
+.command-results { padding: 10px; }
+.command-group + .command-group { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--border-subtle); }
+.command-group-label { padding: 4px 12px 6px; color: var(--text-quiet); font: 9px var(--font-mono); letter-spacing: .16em; text-transform: uppercase; }
+.command-option { min-height: 48px; padding: 0 12px; border-radius: var(--radius-sm); transition: background var(--motion-fast) ease, border-color var(--motion-fast) ease, transform var(--motion-fast) ease; }
+.command-option:hover, .command-option.is-selected { border-color: var(--line); background: rgba(210,184,139,.1); transform: translateX(2px); }
+.command-option > svg:first-child { color: var(--dusty-oat); }
+.command-help { padding: 12px 18px; background: rgba(9,11,10,.35); }
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes palette-in { from { opacity: 0; transform: translateY(-12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.command-backdrop { align-items: flex-start; padding-top: 11vh; background: rgba(4, 7, 6, .78); backdrop-filter: blur(10px); animation: backdrop-in 180ms ease both; }
+.command-dialog { border-color: var(--line-strong); border-radius: 6px; background: #111815; box-shadow: var(--shadow-deep); animation: palette-in 240ms cubic-bezier(.2,.8,.2,1) both; }
+.command-input-row { min-height: 64px; padding: 15px 18px; background: rgba(210,184,139,.035); }
+.command-input { font-size: 18px; }
+.command-input-row kbd { border-color: var(--border); border-radius: 3px; }
+.command-results { padding: 10px; }
+.command-option { min-height: 48px; padding: 0 12px; border-radius: var(--radius-sm); transition: background var(--motion-fast) ease, border-color var(--motion-fast) ease, transform var(--motion-fast) ease; }
+.command-option:hover, .command-option.is-selected { border-color: var(--line); background: rgba(210,184,139,.1); transform: translateX(2px); }
+.command-option > svg:first-child { color: var(--dusty-oat); }
+.command-help { padding: 12px 18px; background: rgba(9,11,10,.35); }
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes palette-in { from { opacity: 0; transform: translateY(-12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.command-backdrop { backdrop-filter: blur(7px); background: rgba(6, 9, 8, .76); }
+.command-dialog { border-color: rgba(198, 174, 142, .32); border-radius: 4px; background: #121615; box-shadow: var(--shadow-deep); }
+.command-results { padding: 9px; }
+.command-option { min-height: 46px; border-radius: var(--radius-sm); }
+.command-option:hover, .command-option.is-selected { background: rgba(198, 174, 142, .1); border-color: rgba(198, 174, 142, .28); }

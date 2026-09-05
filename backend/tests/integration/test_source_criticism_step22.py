@@ -1,8 +1,12 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
+import pytest
+
+from backend.app.application.use_cases.source_criticism_service import (
+    SourceCriticismEngine,
+)
+from backend.app.domain.models.enums import EvidenceStatus, SourceType
 from backend.app.infrastructure.database.models import SourceModel
-from backend.app.domain.models.enums import SourceType, EvidenceStatus
-from backend.app.application.use_cases.source_criticism_service import SourceCriticismEngine
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():

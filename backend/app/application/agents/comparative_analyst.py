@@ -1,6 +1,7 @@
-﻿from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
+
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger(__name__)
 
@@ -17,11 +18,11 @@ class ComparativeAnalyst:
         self,
         primary_source_id: str,
         secondary_source_id: str,
-        claims_to_compare: List[Dict[str, Any]],
-        interpretations: List[Dict[str, Any]],
-        terminology_map: Dict[str, str],
-        methodological_notes: List[str]
-    ) -> Dict[str, Any]:
+        claims_to_compare: list[dict[str, Any]],
+        interpretations: list[dict[str, Any]],
+        terminology_map: dict[str, str],
+        methodological_notes: list[str]
+    ) -> dict[str, Any]:
         """
         Produces a structured comparison across sources, claims, interpretations, 
         agreements, contradictions, terminology, and methodology, ensuring strict evidence linkage.

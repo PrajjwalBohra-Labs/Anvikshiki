@@ -50,7 +50,10 @@ async def create_background_research_job(
         domain=payload.domain,
         depth=payload.depth,
         idempotency_key=payload.idempotency_key,
+<<<<<<< HEAD
         include_web=payload.include_web,
+=======
+>>>>>>> origin/main
         request_id=getattr(request.state, "request_id", None),
     )
     return _response(job)

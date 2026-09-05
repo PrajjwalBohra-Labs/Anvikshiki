@@ -1,7 +1,11 @@
-from typing import List, Dict, Any, Optional
+import asyncio
+from typing import Any
+
 import structlog
+
 from backend.app.config.settings import config
-from backend.app.core.config import RuntimeProfile, settings as runtime_settings
+from backend.app.core.config import RuntimeProfile
+from backend.app.core.config import settings as runtime_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -9,7 +13,7 @@ class LocalSentenceTransformerEmbeddingAdapter:
     """
     Authoritative local embedding adapter ensuring dimension consistency (384-dim).
     """
-    def __init__(self, model_name: Optional[str] = None):
+    def __init__(self, model_name: str | None = None):
         self.model_name = model_name or config.embedding.model_name
         self.dimensions = config.embedding.dimensions
         self.model_version = (
@@ -36,14 +40,24 @@ class LocalSentenceTransformerEmbeddingAdapter:
                 ) from e
         return self._model
 
-    async def embed_texts(self, texts: List[str]) -> List[List[float]]:
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
         
-        model = self._get_model()
+        model = await asyncio.to_thread(self._get_model)
         if model is not None:
+<<<<<<< HEAD
             embeddings = model.encode(texts, normalize_embeddings=True)
             vectors = [emb.tolist() if hasattr(emb, "tolist") else list(emb) for emb in embeddings]
+=======
+            # sentence-transformers performs synchronous CPU work. Keep it
+            # off the FastAPI/worker event loop so long model calls cannot
+            # starve health checks or unrelated requests.
+            embeddings = await asyncio.to_thread(
+                model.encode, texts, normalize_embeddings=True
+            )
+            vectors = [emb.tolist() for emb in embeddings]
+>>>>>>> origin/main
             if any(len(vector) != self.dimensions for vector in vectors):
                 raise RuntimeError(
                     f"Embedding model '{self.model_name}' returned a dimension other than "
@@ -69,7 +83,7 @@ class LocalCrossEncoderRerankerAdapter:
     """
     Genuine local Cross-Encoder evaluating (Query, Candidate Passage) pairs.
     """
-    def __init__(self, model_name: Optional[str] = None):
+    def __init__(self, model_name: str | None = None):
         self.model_name = model_name or config.reranker.model_name
         self.model_version = (
             f"{self.model_name}@v1.0"
@@ -95,14 +109,15 @@ class LocalCrossEncoderRerankerAdapter:
                 ) from e
         return self._model
 
-    async def rerank(self, query: str, candidate_passages: List[str], top_k: int = 5) -> List[Dict[str, Any]]:
+    async def rerank(self, query: str, candidate_passages: list[str], top_k: int = 5) -> list[dict[str, Any]]:
         if not candidate_passages:
             return []
 
-        model = self._get_model()
+        model = await asyncio.to_thread(self._get_model)
         if model is not None:
             pairs = [[query, passage] for passage in candidate_passages]
-            scores = model.predict(pairs)
+            # Cross-encoder inference is also synchronous CPU work.
+            scores = await asyncio.to_thread(model.predict, pairs)
             results = [
                 {"passage": passage, "relevance_score": float(score), "rank": 0}
                 for passage, score in zip(candidate_passages, scores)

@@ -1,10 +1,15 @@
-﻿import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel
+import pytest
+
 from backend.app.domain.models.enums import SourceType
-from backend.app.infrastructure.rag.retriever import HybridRetriever
+from backend.app.infrastructure.database.models import (
+    DocumentModel,
+    PassageModel,
+    SourceModel,
+)
+from backend.app.infrastructure.database.session import Base, engine
 from backend.app.infrastructure.llm.embedding_client import LocalEmbeddingClient
+from backend.app.infrastructure.rag.retriever import HybridRetriever
+
 
 @pytest.fixture
 async def setup_test_env():

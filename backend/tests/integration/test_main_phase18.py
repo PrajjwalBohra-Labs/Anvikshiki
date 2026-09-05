@@ -1,7 +1,9 @@
-﻿import pytest
-from httpx import AsyncClient, ASGITransport
-from backend.app.main import app
+import pytest
+from httpx import ASGITransport, AsyncClient
+
 from backend.app.core.config import settings
+from backend.app.main import app
+
 
 @pytest.mark.asyncio
 async def test_health_check_endpoint():
@@ -16,6 +18,7 @@ async def test_health_check_endpoint():
 @pytest.mark.asyncio
 async def test_domain_error_exception_handler():
     from fastapi import APIRouter
+
     from backend.app.core.errors import AnvikshikiDomainError
     
     # Register a temporary route that raises a DomainError

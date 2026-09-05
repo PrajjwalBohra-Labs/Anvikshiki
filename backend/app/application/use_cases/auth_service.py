@@ -3,7 +3,6 @@
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -32,7 +31,7 @@ class AuthService:
         await self.session.commit()
         return token
 
-    async def authenticate(self, token: str) -> Optional[UserModel]:
+    async def authenticate(self, token: str) -> UserModel | None:
         token_hash = _hash_token(token)
         result = await self.session.execute(
             select(AuthSessionModel)

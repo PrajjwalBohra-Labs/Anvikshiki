@@ -1,6 +1,8 @@
-﻿import pytest
-from backend.app.application.use_cases.web_source_filtering import WebSourceFilteringService
+from backend.app.application.use_cases.web_source_filtering import (
+    WebSourceFilteringService,
+)
 from backend.app.domain.models.enums import SourceType
+
 
 def test_web_source_filtering_checkpoints():
     service = WebSourceFilteringService()

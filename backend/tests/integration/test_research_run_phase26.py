@@ -1,6 +1,8 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
+import pytest
+
 from backend.app.application.use_cases.research_run_service import ResearchRunService
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():

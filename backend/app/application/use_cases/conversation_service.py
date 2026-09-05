@@ -1,8 +1,11 @@
-﻿from typing import List, Dict, Any, Optional, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
+
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
 from backend.app.infrastructure.database.models import ConversationModel, MessageModel
-import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -14,7 +17,7 @@ class ConversationService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create_conversation(self, user_id: str, title: Optional[str] = None) -> ConversationModel:
+    async def create_conversation(self, user_id: str, title: str | None = None) -> ConversationModel:
         conversation = ConversationModel(user_id=user_id, title=title or "New Research Dialogue")
         self.session.add(conversation)
         await self.session.commit()
@@ -27,8 +30,8 @@ class ConversationService:
         conversation_id: str,
         role: str,
         content: str,
-        research_run_id: Optional[str] = None,
-        citations_payload: Optional[List[Dict[str, Any]]] = None
+        research_run_id: str | None = None,
+        citations_payload: list[dict[str, Any]] | None = None
     ) -> MessageModel:
         message = MessageModel(
             conversation_id=conversation_id,
@@ -43,7 +46,7 @@ class ConversationService:
         logger.info("Message added with context links", message_id=message.id, conversation_id=conversation_id)
         return message
 
-    async def get_conversation_history(self, conversation_id: str) -> Optional[Dict[str, Any]]:
+    async def get_conversation_history(self, conversation_id: str) -> dict[str, Any] | None:
         conv = await self.session.get(ConversationModel, conversation_id)
         if not conv:
             return None
@@ -69,7 +72,7 @@ class ConversationService:
             ]
         }
 
-    async def get_conversation_owner(self, conversation_id: str) -> Optional[str]:
+    async def get_conversation_owner(self, conversation_id: str) -> str | None:
         conversation = await self.session.get(ConversationModel, conversation_id)
         return conversation.user_id if conversation else None
 

@@ -6,9 +6,9 @@ metadata in this module are derived state that can be regenerated safely.
 
 import hashlib
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Iterable, List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,7 +36,7 @@ class EmbeddingIndexResult:
     passage_id: str
     status: EmbeddingIndexStatus
     reused: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class EmbeddingIndexService:
@@ -45,7 +45,7 @@ class EmbeddingIndexService:
     def __init__(
         self,
         session: AsyncSession,
-        embedder: Optional[LocalSentenceTransformerEmbeddingAdapter] = None,
+        embedder: LocalSentenceTransformerEmbeddingAdapter | None = None,
     ):
         self.session = session
         self.embedder = embedder or LocalSentenceTransformerEmbeddingAdapter()
@@ -117,10 +117,10 @@ class EmbeddingIndexService:
         )
 
     async def _index_batch(
-        self, passages: List[PassageModel], raise_on_error: bool = False
-    ) -> List[EmbeddingIndexResult]:
-        pending: List[tuple[PassageModel, str, str, str]] = []
-        results: List[EmbeddingIndexResult] = []
+        self, passages: list[PassageModel], raise_on_error: bool = False
+    ) -> list[EmbeddingIndexResult]:
+        pending: list[tuple[PassageModel, str, str, str]] = []
+        results: list[EmbeddingIndexResult] = []
         for passage in passages:
             content_hash = self.content_fingerprint(passage.content)
             if self._is_current(passage, content_hash):
@@ -135,8 +135,10 @@ class EmbeddingIndexService:
             if not passage.content.strip():
                 result = await self._mark_failed(passage.id, "Passage content is empty.")
                 results.append(result)
-                if raise_on_error:
-                    raise EmbeddingIndexError(result.error)
+                # Empty OCR placeholders are retained as explicit partial
+                # extraction records, but cannot produce a meaningful vector.
+                # Provider and dimension failures still raise for fail-closed
+                # upload callers below.
                 continue
             passage.embedding_status = EmbeddingIndexStatus.INDEXING
             passage.embedding = None
@@ -188,7 +190,7 @@ class EmbeddingIndexService:
 
     async def index_passage(
         self, passage_id: str, force: bool = False
-    ) -> Optional[EmbeddingIndexResult]:
+    ) -> EmbeddingIndexResult | None:
         passage = await self.session.get(PassageModel, passage_id)
         if passage is None:
             return None
@@ -199,19 +201,25 @@ class EmbeddingIndexService:
 
     async def index_passages(
         self,
-        passage_ids: Optional[Iterable[str]] = None,
-        document_id: Optional[str] = None,
-        document_version_id: Optional[str] = None,
-        batch_size: Optional[int] = None,
-    ) -> List[EmbeddingIndexResult]:
-        """Index passages in stable batches; failed batches remain retryable."""
+        passage_ids: Iterable[str] | None = None,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+        batch_size: int | None = None,
+        raise_on_error: bool = False,
+    ) -> list[EmbeddingIndexResult]:
+        """Index passages in stable batches; failed batches remain retryable.
+
+        Callers that promise an indexed document to a user can opt into a
+        fail-closed result. Background repair jobs retain the default,
+        best-effort behavior so one failed batch does not stop other work.
+        """
         if not any((passage_ids is not None, document_id, document_version_id)):
             raise ValueError("An indexing scope is required.")
         batch_limit = batch_size or settings.EMBEDDING_BATCH_SIZE
         if batch_limit < 1:
             raise ValueError("batch_size must be positive.")
         ids = list(passage_ids) if passage_ids is not None else None
-        results: List[EmbeddingIndexResult] = []
+        results: list[EmbeddingIndexResult] = []
         offset = 0
         while True:
             stmt = select(PassageModel)
@@ -231,7 +239,7 @@ class EmbeddingIndexService:
             rows = (await self.session.execute(stmt)).scalars().all()
             if not rows:
                 break
-            results.extend(await self._index_batch(rows))
+            results.extend(await self._index_batch(rows, raise_on_error=raise_on_error))
             offset += len(rows)
             if len(rows) < batch_limit:
                 break
@@ -239,13 +247,13 @@ class EmbeddingIndexService:
 
     async def search(
         self,
-        query: Optional[str] = None,
-        query_vector: Optional[List[float]] = None,
-        source_type: Optional[SourceType] = None,
-        document_id: Optional[str] = None,
-        document_version_id: Optional[str] = None,
+        query: str | None = None,
+        query_vector: list[float] | None = None,
+        source_type: SourceType | None = None,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
         limit: int = 10,
-    ) -> List[ScoredPassage]:
+    ) -> list[ScoredPassage]:
         """Search current indexed vectors while retaining passage provenance."""
         if query_vector is None:
             if not query or not query.strip():

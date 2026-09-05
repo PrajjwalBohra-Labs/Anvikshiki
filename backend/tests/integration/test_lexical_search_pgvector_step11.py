@@ -1,14 +1,15 @@
-from uuid import uuid4
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, event, or_, select, text
 
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
-from backend.app.main import app
+from backend.app.application.use_cases.user_service import UserService
 from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.database.models import (
+    AuthSessionModel,
     DocumentModel,
     DocumentVersionModel,
     EvidenceLinkModel,
@@ -17,13 +18,31 @@ from backend.app.infrastructure.database.models import (
     ProvenanceEdgeModel,
     ProvenanceNodeModel,
     SourceModel,
+    UserModel,
 )
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
 from backend.app.infrastructure.rag.lexical_retriever import LexicalRetriever
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
-
+from backend.app.main import app
 
 pytestmark = pytest.mark.postgres
+
+
+async def _create_authenticated_test_user() -> tuple[str, str]:
+    async with AsyncSessionLocal() as session:
+        user, token = await UserService(session).create_user(
+            f"lexical_test_{uuid4().hex[:12]}"
+        )
+        return user.id, token
+
+
+async def _delete_authenticated_test_user(user_id: str) -> None:
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            delete(AuthSessionModel).where(AuthSessionModel.user_id == user_id)
+        )
+        await session.execute(delete(UserModel).where(UserModel.id == user_id))
+        await session.commit()
 
 
 @pytest.mark.asyncio
@@ -154,12 +173,14 @@ async def test_lexical_search_api_contract_and_filters():
         )
         session.add(passage)
         await session.commit()
-        source_id, document_id, passage_id = source.id, document.id, passage.id
+    source_id, document_id, passage_id = source.id, document.id, passage.id
+    user_id, token = await _create_authenticated_test_user()
 
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(
                 "/api/v1/search/",
+                headers={"Authorization": f"Bearer {token}"},
                 params={
                     "query": "vyapti",
                     "retrieval": "lexical",
@@ -182,13 +203,19 @@ async def test_lexical_search_api_contract_and_filters():
             assert "Lexical API source" in result["citation_string"]
 
             assert (await client.get(
-                "/api/v1/search/", params={"query": "absent-term", "retrieval": "lexical"}
+                "/api/v1/search/",
+                headers={"Authorization": f"Bearer {token}"},
+                params={"query": "absent-term", "retrieval": "lexical"}
             )).json()["total_results"] == 0
             assert (await client.get(
-                "/api/v1/search/", params={"query": "   ", "retrieval": "lexical"}
+                "/api/v1/search/",
+                headers={"Authorization": f"Bearer {token}"},
+                params={"query": "   ", "retrieval": "lexical"}
             )).status_code == 422
             assert (await client.get(
-                "/api/v1/search/", params={"query": "x" * 1001, "retrieval": "lexical"}
+                "/api/v1/search/",
+                headers={"Authorization": f"Bearer {token}"},
+                params={"query": "x" * 1001, "retrieval": "lexical"}
             )).status_code == 422
     finally:
         async with AsyncSessionLocal() as session:
@@ -199,6 +226,7 @@ async def test_lexical_search_api_contract_and_filters():
             await session.execute(delete(DocumentModel).where(DocumentModel.id == document_id))
             await session.execute(delete(SourceModel).where(SourceModel.id == source_id))
             await session.commit()
+        await _delete_authenticated_test_user(user_id)
 
 
 @pytest.mark.asyncio
@@ -236,11 +264,13 @@ async def test_real_tarka_samgraha_corpus_lexical_search():
         ).scalars().one()
         source_id, document_id, version_id = source.id, document.id, version.id
         passage_ids = [passage.id for passage in passages]
+    user_id, token = await _create_authenticated_test_user()
 
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(
                 "/api/v1/search/",
+                headers={"Authorization": f"Bearer {token}"},
                 params={
                     "query": "anumana",
                     "retrieval": "lexical",
@@ -295,3 +325,4 @@ async def test_real_tarka_samgraha_corpus_lexical_search():
             await session.execute(delete(DocumentModel).where(DocumentModel.id == document_id))
             await session.execute(delete(SourceModel).where(SourceModel.id == source_id))
             await session.commit()
+        await _delete_authenticated_test_user(user_id)

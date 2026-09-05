@@ -1,9 +1,16 @@
-﻿from typing import List, Optional, Dict, Any
+from datetime import datetime, timezone
+from typing import Any
+from uuid import uuid4
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from backend.app.infrastructure.database.models import ResearchQuestionModel, ResearchRunModel, ResearchStepModel
-from datetime import datetime, timezone
-from uuid import uuid4
+
+from backend.app.infrastructure.database.models import (
+    ResearchQuestionModel,
+    ResearchRunModel,
+    ResearchStepModel,
+)
+
 
 class ResearchRunService:
     """
@@ -16,8 +23,8 @@ class ResearchRunService:
     async def create_question(
         self,
         query: str,
-        user_id: Optional[str] = None,
-        domain: Optional[str] = None,
+        user_id: str | None = None,
+        domain: str | None = None,
     ) -> ResearchQuestionModel:
         question = ResearchQuestionModel(
             user_id=user_id,
@@ -36,11 +43,11 @@ class ResearchRunService:
     async def create_run(
         self,
         query: str,
-        user_id: Optional[str] = None,
-        research_question_id: Optional[str] = None,
-        domain: Optional[str] = None,
-        depth: Optional[str] = None,
-        thread_id: Optional[str] = None,
+        user_id: str | None = None,
+        research_question_id: str | None = None,
+        domain: str | None = None,
+        depth: str | None = None,
+        thread_id: str | None = None,
     ) -> ResearchRunModel:
         run = ResearchRunModel(
             query=query,
@@ -62,11 +69,11 @@ class ResearchRunService:
 
     async def list_runs(
         self,
-        user_id: Optional[str] = None,
-        status: Optional[str] = None,
+        user_id: str | None = None,
+        status: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> List[ResearchRunModel]:
+    ) -> list[ResearchRunModel]:
         stmt = select(ResearchRunModel).order_by(ResearchRunModel.started_at.desc())
         if user_id is not None:
             stmt = stmt.where(ResearchRunModel.user_id == user_id)
@@ -80,7 +87,7 @@ class ResearchRunService:
         user_id: str,
         limit: int = 50,
         offset: int = 0,
-    ) -> List[ResearchQuestionModel]:
+    ) -> list[ResearchQuestionModel]:
         stmt = (
             select(ResearchQuestionModel)
             .where(ResearchQuestionModel.user_id == user_id)
@@ -91,13 +98,13 @@ class ResearchRunService:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_owned_question(self, question_id: str, user_id: str) -> Optional[ResearchQuestionModel]:
+    async def get_owned_question(self, question_id: str, user_id: str) -> ResearchQuestionModel | None:
         question = await self.session.get(ResearchQuestionModel, question_id)
         if question is None or question.user_id != user_id:
             return None
         return question
 
-    async def list_question_run_ids(self, question_id: str, user_id: str) -> List[str]:
+    async def list_question_run_ids(self, question_id: str, user_id: str) -> list[str]:
         stmt = (
             select(ResearchRunModel.id)
             .where(
@@ -109,7 +116,7 @@ class ResearchRunService:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_owned_run(self, run_id: str, user_id: Optional[str] = None) -> Optional[ResearchRunModel]:
+    async def get_owned_run(self, run_id: str, user_id: str | None = None) -> ResearchRunModel | None:
         run = await self.session.get(ResearchRunModel, run_id)
         if run is None or (user_id is not None and run.user_id != user_id):
             return None
@@ -121,7 +128,7 @@ class ResearchRunService:
         step_name: str,
         step_type: str,
         status: str = "SUCCESS",
-        payload: Optional[Dict[str, Any]] = None
+        payload: dict[str, Any] | None = None
     ) -> ResearchStepModel:
         step = ResearchStepModel(
             run_id=run_id,
@@ -139,9 +146,9 @@ class ResearchRunService:
         self,
         run_id: str,
         step_name: str,
-        step_type: Optional[str] = None,
+        step_type: str | None = None,
         status: str = "SUCCESS",
-        payload: Optional[Dict[str, Any]] = None,
+        payload: dict[str, Any] | None = None,
     ) -> ResearchStepModel:
         return await self.add_step(
             run_id,
@@ -154,7 +161,7 @@ class ResearchRunService:
     async def record_event(
         self,
         run_id: str,
-        event: Dict[str, Any],
+        event: dict[str, Any],
         sequence: int,
     ) -> ResearchStepModel:
         event_id = f"{run_id}:{sequence}"
@@ -181,7 +188,7 @@ class ResearchRunService:
         await self.session.refresh(step)
         return step
 
-    async def list_events(self, run_id: str, after_sequence: int = 0) -> List[ResearchStepModel]:
+    async def list_events(self, run_id: str, after_sequence: int = 0) -> list[ResearchStepModel]:
         stmt = (
             select(ResearchStepModel)
             .where(
@@ -194,7 +201,7 @@ class ResearchRunService:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def fail_run(self, run_id: str, error_message: str) -> Optional[ResearchRunModel]:
+    async def fail_run(self, run_id: str, error_message: str) -> ResearchRunModel | None:
         run = await self.session.get(ResearchRunModel, run_id)
         if run:
             run.status = "FAILED"
@@ -204,7 +211,7 @@ class ResearchRunService:
             await self.session.refresh(run)
         return run
 
-    async def cancel_run(self, run_id: str) -> Optional[ResearchRunModel]:
+    async def cancel_run(self, run_id: str) -> ResearchRunModel | None:
         run = await self.session.get(ResearchRunModel, run_id)
         if run:
             run.status = "CANCELLED"
@@ -213,7 +220,7 @@ class ResearchRunService:
             await self.session.refresh(run)
         return run
 
-    async def complete_run(self, run_id: str, output_references: Optional[Dict[str, Any]] = None) -> Optional[ResearchRunModel]:
+    async def complete_run(self, run_id: str, output_references: dict[str, Any] | None = None) -> ResearchRunModel | None:
         run = await self.session.get(ResearchRunModel, run_id)
         if run:
             run.status = "COMPLETED"
@@ -223,7 +230,7 @@ class ResearchRunService:
             await self.session.refresh(run)
         return run
 
-    async def get_run_details(self, run_id: str) -> Optional[Dict[str, Any]]:
+    async def get_run_details(self, run_id: str) -> dict[str, Any] | None:
         run = await self.session.get(ResearchRunModel, run_id)
         if not run:
             return None

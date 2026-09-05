@@ -1,6 +1,9 @@
-﻿from typing import List, Optional, Dict, Any
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.infrastructure.database.models import ResearchQuestionModel
+
 
 class ResearchQuestionService:
     """
@@ -13,11 +16,11 @@ class ResearchQuestionService:
     async def create_question(
         self,
         main_question: str,
-        subquestions: Optional[List[str]] = None,
-        scope: Optional[str] = None,
-        domain: Optional[str] = None,
-        constraints: Optional[List[str]] = None,
-        user_position: Optional[str] = None
+        subquestions: list[str] | None = None,
+        scope: str | None = None,
+        domain: str | None = None,
+        constraints: list[str] | None = None,
+        user_position: str | None = None
     ) -> ResearchQuestionModel:
         rq = ResearchQuestionModel(
             main_question=main_question,
@@ -34,7 +37,7 @@ class ResearchQuestionService:
         await self.session.refresh(rq)
         return rq
 
-    async def update_research_history(self, question_id: str, history_entry: Dict[str, Any]) -> Optional[ResearchQuestionModel]:
+    async def update_research_history(self, question_id: str, history_entry: dict[str, Any]) -> ResearchQuestionModel | None:
         rq = await self.session.get(ResearchQuestionModel, question_id)
         if rq:
             history = list(rq.research_history) if rq.research_history else []

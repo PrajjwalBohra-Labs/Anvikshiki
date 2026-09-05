@@ -1,9 +1,15 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
-from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel
-from backend.app.domain.models.enums import SourceType
-from backend.app.infrastructure.rag.lexical_retriever import LexicalRetriever
+import pytest
+
 from backend.app.core.config import settings
+from backend.app.domain.models.enums import SourceType
+from backend.app.infrastructure.database.models import (
+    DocumentModel,
+    PassageModel,
+    SourceModel,
+)
+from backend.app.infrastructure.database.session import Base, engine
+from backend.app.infrastructure.rag.lexical_retriever import LexicalRetriever
+
 
 @pytest.fixture
 async def setup_test_env():

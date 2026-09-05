@@ -1,7 +1,6 @@
 """Shared HTTP authentication and ownership helpers."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,9 +18,9 @@ class AuthenticatedPrincipal:
 
 
 async def get_current_user(
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
     db: AsyncSession = Depends(get_db),
-) -> Optional[AuthenticatedPrincipal]:
+) -> AuthenticatedPrincipal | None:
     # This mode is set only by the isolated test harness. There is no
     # unauthenticated fallback in development or production.
     if (
@@ -45,7 +44,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user: Optional[UserModel] = await AuthService(db).authenticate(token)
+    user: UserModel | None = await AuthService(db).authenticate(token)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -56,8 +55,8 @@ async def get_current_user(
 
 
 def resolve_user_id(
-    principal: Optional[AuthenticatedPrincipal],
-    requested_user_id: Optional[str],
+    principal: AuthenticatedPrincipal | None,
+    requested_user_id: str | None,
 ) -> str:
     if principal is None:
         if not requested_user_id:

@@ -69,6 +69,8 @@ export interface DocumentUploadResponseDTO {
   mime_type: string;
   total_pages?: number | null;
   passages_count: number;
+  indexed_passages_count: number;
+  embedding_status: string;
 }
 
 export interface ResearchRunRequestDTO {
@@ -139,6 +141,7 @@ export interface ResearchPassageDTO {
   page_number?: number | null;
   source_type?: string | null;
   retrieval_channels: string[];
+  citation_string?: string | null;
 }
 
 export interface ValidatedClaimDTO {
@@ -171,7 +174,38 @@ export interface ResearchResultDTO {
   claims: ValidatedClaimDTO[];
   specialist_analysis: SpecialistAnalysisDTO;
   validation: Record<string, unknown>;
+<<<<<<< HEAD
   web_research?: Record<string, unknown>;
+=======
+  web_research?: WebResearchDTO;
+}
+
+export interface WebResearchDTO {
+  status: 'not_requested' | 'not_needed' | 'searched' | 'acquired' | 'search_failed' | 'unavailable' | 'insufficient_evidence' | string;
+  query?: string;
+  discovered_results: WebResearchDiscoveryDTO[];
+  acquired_sources: WebResearchAcquiredSourceDTO[];
+  warnings: string[];
+}
+
+export interface WebResearchDiscoveryDTO {
+  title: string;
+  url: string;
+  canonical_url: string;
+  snippet: string;
+  rank: number;
+  domain: string;
+  classification: string;
+}
+
+export interface WebResearchAcquiredSourceDTO {
+  source_id: string;
+  document_id: string;
+  title: string;
+  url?: string | null;
+  passages_count: number;
+  classification: string;
+>>>>>>> origin/main
 }
 
 export interface ResearchRunDetailDTO extends ResearchRunSummaryDTO {
@@ -417,6 +451,28 @@ export interface HealthDTO {
   database_schema?: string;
   project?: string;
   environment?: string;
+}
+
+export interface ResearchExportDTO {
+  schema_version: string;
+  format: string;
+  research_run: ResearchRunDetailDTO;
+  claims: ClaimEvidenceDTO[];
+  provenance: EvidenceTraceDTO[];
+}
+
+export interface BackgroundJobDTO {
+  job_id: string;
+  job_type: string;
+  research_run_id?: string | null;
+  status: string;
+  attempts: number;
+  max_attempts: number;
+  result_payload?: Record<string, unknown> | null;
+  error_message?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
 }
 
 export interface NotebookDTO {

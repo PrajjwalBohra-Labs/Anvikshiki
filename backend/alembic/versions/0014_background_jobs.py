@@ -49,4 +49,7 @@ def downgrade() -> None:
     op.drop_index("ix_background_jobs_status", table_name="background_jobs")
     op.drop_index("ix_background_jobs_user_id", table_name="background_jobs")
     op.drop_table("background_jobs")
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main

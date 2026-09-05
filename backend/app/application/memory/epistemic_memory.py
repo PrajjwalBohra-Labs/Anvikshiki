@@ -1,8 +1,13 @@
-﻿from typing import List, Dict, Any, Optional
+from typing import Any
+
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from backend.app.infrastructure.database.models import EpistemicPositionModel, EpistemicHistoryModel
-import structlog
+
+from backend.app.infrastructure.database.models import (
+    EpistemicHistoryModel,
+    EpistemicPositionModel,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -20,8 +25,8 @@ class EpistemicMemoryService:
         claim_statement: str,
         position: str,
         confidence: float = 1.0,
-        supporting_evidence: Optional[List[Dict[str, Any]]] = None,
-        counterarguments: Optional[List[Dict[str, Any]]] = None,
+        supporting_evidence: list[dict[str, Any]] | None = None,
+        counterarguments: list[dict[str, Any]] | None = None,
         status: str = "tentative"
     ) -> EpistemicPositionModel:
         valid_statuses = {"tentative", "accepted", "rejected", "contested", "under investigation", "unresolved"}
@@ -47,7 +52,7 @@ class EpistemicMemoryService:
         self,
         position_id: str,
         new_status: str,
-        change_reason: Optional[str] = None
+        change_reason: str | None = None
     ) -> EpistemicPositionModel:
         valid_statuses = {"tentative", "accepted", "rejected", "contested", "under investigation", "unresolved"}
         if new_status not in valid_statuses:
@@ -74,7 +79,7 @@ class EpistemicMemoryService:
 
         return pos
 
-    async def get_user_positions(self, user_id: str) -> List[Dict[str, Any]]:
+    async def get_user_positions(self, user_id: str) -> list[dict[str, Any]]:
         stmt = select(EpistemicPositionModel).where(EpistemicPositionModel.user_id == user_id)
         result = await self.session.execute(stmt)
         positions = result.scalars().all()

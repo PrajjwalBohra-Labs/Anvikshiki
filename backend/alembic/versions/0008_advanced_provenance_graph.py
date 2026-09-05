@@ -6,7 +6,6 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-
 revision: str = "0008_advanced_provenance_graph"
 down_revision: str | None = "0007_ocr_page_metadata"
 branch_labels: str | Sequence[str] | None = None

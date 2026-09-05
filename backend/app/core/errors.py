@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import structlog
+=======
+﻿import structlog
+>>>>>>> origin/main
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
@@ -21,6 +25,7 @@ async def domain_error_handler(request: Request, exc: AnvikshikiDomainError):
         status_code=exc.status_code,
         error_type=type(exc).__name__,
     )
+<<<<<<< HEAD
     # 503 messages are deliberately limited to safe service-state guidance
     # (for example, a local model is not provisioned).  Other 5xx responses
     # remain opaque so database/driver internals never cross the API boundary.
@@ -32,6 +37,12 @@ async def domain_error_handler(request: Request, exc: AnvikshikiDomainError):
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": message, "type": "domain_error"},
+=======
+    message = exc.message if exc.status_code < 500 else "An internal server error occurred."
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": message, "type": "domain_error"}
+>>>>>>> origin/main
     )
 
 
@@ -43,5 +54,9 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+<<<<<<< HEAD
         content={"error": "An internal server error occurred.", "type": "internal_error"},
+=======
+        content={"error": "An internal server error occurred.", "type": "internal_error"}
+>>>>>>> origin/main
     )

@@ -1,9 +1,12 @@
-﻿from typing import List, Optional, Dict, Any
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from backend.app.infrastructure.database.models import ClaimModel, EvidenceLinkModel
+
 from backend.app.domain.models.enums import ClaimType, RelationType
+from backend.app.infrastructure.database.models import ClaimModel, EvidenceLinkModel
+
 
 class ClaimService:
     """
@@ -16,7 +19,7 @@ class ClaimService:
         self,
         statement: str,
         claim_type: ClaimType,
-        provenance_id: Optional[str] = None,
+        provenance_id: str | None = None,
         confidence: float = 1.0,
         lifecycle_status: str = "ACTIVE"
     ) -> ClaimModel:
@@ -50,7 +53,7 @@ class ClaimService:
         await self.session.refresh(evidence)
         return evidence
 
-    async def get_claim_with_evidence(self, claim_id: str) -> Dict[str, Any]:
+    async def get_claim_with_evidence(self, claim_id: str) -> dict[str, Any]:
         claim = await self.session.get(ClaimModel, claim_id)
         if not claim:
             return {}
@@ -65,7 +68,7 @@ class ClaimService:
             "evidence_links": evidence_links
         }
 
-    async def list_claims_for_run(self, run_id: str) -> List[Dict[str, Any]]:
+    async def list_claims_for_run(self, run_id: str) -> list[dict[str, Any]]:
         stmt = (
             select(ClaimModel)
             .where(ClaimModel.research_run_id == run_id)

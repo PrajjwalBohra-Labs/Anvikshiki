@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import delete, event
 
+from backend.app.domain.models.enums import SourceType
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalSentenceTransformerEmbeddingAdapter,
 )
@@ -14,8 +15,6 @@ from backend.app.infrastructure.database.models import (
 )
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
 from backend.app.infrastructure.rag.semantic_retriever import SemanticRetriever
-from backend.app.domain.models.enums import SourceType
-
 
 pytestmark = pytest.mark.postgres
 

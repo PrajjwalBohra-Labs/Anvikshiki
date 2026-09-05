@@ -1,6 +1,5 @@
 import re
 import unicodedata
-from typing import List, Optional
 
 from sqlalchemy import desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,14 +22,14 @@ class ScoredPassage:
         passage: PassageModel,
         score: float,
         retrieval_method: str = "unknown",
-        lexical_score: Optional[float] = None,
-        semantic_score: Optional[float] = None,
-        lexical_rank: Optional[int] = None,
-        semantic_rank: Optional[int] = None,
-        normalized_lexical_score: Optional[float] = None,
-        normalized_semantic_score: Optional[float] = None,
-        hybrid_score: Optional[float] = None,
-        rerank_score: Optional[float] = None,
+        lexical_score: float | None = None,
+        semantic_score: float | None = None,
+        lexical_rank: int | None = None,
+        semantic_rank: int | None = None,
+        normalized_lexical_score: float | None = None,
+        normalized_semantic_score: float | None = None,
+        hybrid_score: float | None = None,
+        rerank_score: float | None = None,
     ):
         self.passage = passage
         self.score = float(score)
@@ -52,15 +51,22 @@ class LexicalRetriever:
     async def search(
         self,
         query: str,
-        source_type: Optional[SourceType] = None,
-        language: Optional[str] = None,
-        limit: Optional[int] = None,
+        source_type: SourceType | None = None,
+        language: str | None = None,
+        limit: int | None = None,
         offset: int = 0,
+<<<<<<< HEAD
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
         owner_id: Optional[str] = None,
     ) -> List[ScoredPassage]:
+=======
+        source_id: str | None = None,
+        document_id: str | None = None,
+        document_version_id: str | None = None,
+    ) -> list[ScoredPassage]:
+>>>>>>> origin/main
         """Search authoritative passage text with lexical ranking.
 
         PostgreSQL uses the trigger-maintained ``search_vector`` and

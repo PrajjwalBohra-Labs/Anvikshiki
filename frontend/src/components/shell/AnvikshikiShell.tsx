@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileSearch, FileText, Library, LogOut, Menu, MessageCircle, Network, NotebookPen, Settings, Share2, X } from 'lucide-react';
+import { Activity, BookOpen, ChevronLeft, ChevronRight, CircleHelp, FileSearch, FileText, Library, LogOut, Menu, MessageCircle, Network, NotebookPen, Search, Settings, Share2, X } from 'lucide-react';
 import { Command } from 'lucide-react';
 import { COMMAND_PALETTE_SHORTCUT } from '../../commands/registry';
 import { navigate } from '../../routing';
@@ -12,7 +12,8 @@ interface NavItem { id: AppView; label: string; icon: typeof CircleHelp; path?: 
 const navGroups: { mode: WorkspaceModeId; label: string; items: NavItem[] }[] = [
   { mode: 'investigation', label: 'Investigation', items: [
     { id: 'inquiry', label: 'Research', icon: CircleHelp },
-    { id: 'history', label: 'Research runs', icon: FileSearch },
+    { id: 'history', label: 'Research runs', icon: FileSearch, path: '/research/runs' },
+    { id: 'history', label: 'Background work', icon: Activity, path: '/research/jobs' },
     { id: 'questions', label: 'Questions', icon: CircleHelp },
   ] },
   { mode: 'library', label: 'Library', items: [
@@ -59,19 +60,21 @@ export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, 
 
   return (
     <div className="app-shell">
+      <div className="shell-atmosphere" aria-hidden="true"><span className="atmosphere-orbit atmosphere-orbit-one" /><span className="atmosphere-orbit atmosphere-orbit-two" /><span className="atmosphere-axis" /></div>
       <a className="skip-link" href="#main-content">Skip to research workspace</a>
       <header className="global-header">
         <button className="icon-button mobile-menu" aria-label="Open navigation" aria-expanded={mobileNavOpen} aria-controls="primary-navigation" onClick={() => setMobileNavOpen(true)}><Menu size={18} /></button>
         <div className="header-title"><span className="eyebrow">Environment for inquiry</span><strong>ANVIKSHIKI</strong></div>
         <div className="header-context"><span className="header-rule" aria-hidden="true" /><span>Private intellectual workstation</span></div>
         <div className="header-status"><span className="status-dot" aria-hidden="true" /><span>LOCAL SESSION</span></div>
+        <button className="icon-button palette-trigger" aria-label="Open command palette" onClick={() => onOpenCommandPalette?.()}><Search size={16} /><span>Ctrl+K</span></button>
       </header>
 
       {mobileNavOpen && <button className="mobile-scrim" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
       <div className="shell-body">
         <aside className={"left-sidebar " + (leftOpen ? 'is-open ' : 'is-collapsed ') + (mobileNavOpen ? 'mobile-open' : '')}>
           <div className="brand-lockup">
-            <div className="brand-mark" aria-hidden="true">A</div>
+            <div className="brand-mark"><img src="/anvikshiki-logo.png" alt="" /></div>
             {leftOpen && <div><strong>ANVIKSHIKI</strong><span>Research instrument</span></div>}
             <button className="icon-button sidebar-close" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><X size={17} /></button>
           </div>
@@ -103,7 +106,7 @@ export function AnvikshikiShell({ activeView, onViewChange, userName, onLogout, 
               {group.items.map(({ id, label, icon: Icon, path }) => {
                 const pathActive = path ? (window.location.pathname === path || window.location.pathname.startsWith(`${path}/`)) : true;
                 const isActive = activeView === id && pathActive;
-                return <button key={`${id}-${label}`} className={"nav-item " + (isActive ? 'active' : '')} onClick={() => path ? navigate(path) : onViewChange(id)} aria-current={isActive ? 'page' : undefined}>
+                return <button key={`${id}-${label}`} type="button" className={"nav-item " + (isActive ? 'active' : '')} onClick={() => { if (path) navigate(path); else onViewChange(id); setMobileNavOpen(false); }} aria-current={isActive ? 'page' : undefined}>
                   <Icon size={16} />{leftOpen && <span>{label}</span>}
                 </button>;
               })}

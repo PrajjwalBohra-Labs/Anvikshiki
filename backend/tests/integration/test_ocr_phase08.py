@@ -1,11 +1,14 @@
-﻿import pytest
-from unittest.mock import patch, MagicMock
-from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
-from backend.app.application.use_cases.ingestion import DocumentIngestionService
-from backend.app.infrastructure.database.models import SourceModel, DocumentModel, PassageModel
-from backend.app.domain.models.enums import SourceType
-from backend.app.infrastructure.database.session import engine, Base
+from unittest.mock import patch
+
 import fitz
+import pytest
+
+from backend.app.application.use_cases.ingestion import DocumentIngestionService
+from backend.app.domain.models.enums import SourceType
+from backend.app.infrastructure.database.models import SourceModel
+from backend.app.infrastructure.database.session import Base, engine
+from backend.app.infrastructure.ocr.tesseract_service import TesseractOcrService
+
 
 @pytest.fixture
 async def setup_test_env(tmp_path, monkeypatch):
@@ -21,7 +24,7 @@ async def setup_test_env(tmp_path, monkeypatch):
 
 def generate_blank_pdf() -> bytes:
     doc = fitz.open()
-    page = doc.new_page()
+    doc.new_page()
     pdf_bytes = doc.write()
     doc.close()
     return pdf_bytes

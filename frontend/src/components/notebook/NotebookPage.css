@@ -25,3 +25,41 @@
 @media (max-width: 900px) { .notebook-page { padding: 25px 24px 42px; } }
 @media (max-width: 650px) { .notebook-page { padding: 22px 16px 34px; } .notebook-toolbar { align-items: flex-start; flex-wrap: wrap; } .notebook-toolbar .eyebrow { width: 100%; order: -1; margin-left: 0; } .notebook-editor-footer { align-items: stretch; flex-direction: column; } }
 @media (max-width: 420px) { .notebook-page h1 { font-size: 30px; } .notebook-actions .button, .notebook-create > .button, .notebook-editor-footer .button { width: 100%; justify-content: center; } .notebook-list-preview { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; } .button-danger { margin-left: 0; } }
+
+.notebook-page { max-width: 1040px; padding-top: 48px; }
+.notebook-page h1 { font-size: clamp(38px, 5vw, 60px); }
+.notebook-create, .notebook-editor { padding: 20px; border-radius: var(--radius-sm); background: #121615; }
+.notebook-create { border-top: 2px solid var(--accent-copper); }
+.notebook-create input, .notebook-editor input, .notebook-create textarea, .notebook-editor textarea { border-color: rgba(198, 174, 142, .2); background: #0e1210; }
+.notebook-create textarea, .notebook-editor textarea { font-size: 16px; line-height: 1.72; }
+.notebook-list { gap: 10px; }
+.notebook-list-item { padding: 18px; border-radius: var(--radius-sm); background: #121817; transition: transform var(--motion-standard) ease, border-color var(--motion-standard) ease, background var(--motion-standard) ease; }
+.notebook-list-item:hover, .notebook-list-item:focus-visible { transform: translateY(-2px); border-color: rgba(198, 174, 142, .4); background: #171e1a; }
+.notebook-list-title { font-size: 21px; color: var(--text-secondary); }
+.notebook-list-preview { color: #a0aaa0; font-family: var(--font-serif); font-size: 14px; line-height: 1.5; }
+.notebook-toolbar { margin-bottom: 27px; }
+.notebook-editor-footer { padding-top: 12px; border-top: 1px solid var(--border-subtle); }
+.notebook-empty { padding: 24px; border-left: 2px solid var(--memory); }
+
+@media (max-width: 650px) {
+  .notebook-page { padding-top: 32px; }
+  .notebook-create, .notebook-editor { padding: 16px; }
+}
+
+/* Notebook v2: a quiet writing desk with metadata kept at the edges. */
+.notebook-page { max-width: 1120px; padding: clamp(30px, 5vw, 68px) clamp(16px, 4vw, 54px) 80px; animation: page-enter 500ms cubic-bezier(.2,.8,.2,1) both; }
+.notebook-page h1 { margin: 16px 0 12px; color: var(--text-secondary); font-size: clamp(44px, 7vw, 82px); letter-spacing: -.055em; line-height: .92; }
+.notebook-actions { margin: 28px 0; }
+.notebook-create, .notebook-editor { gap: 12px; padding: 22px; border-top: 2px solid var(--accent-copper); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-panel); }
+.notebook-create input, .notebook-editor input, .notebook-create textarea, .notebook-editor textarea { border-color: var(--border); background: var(--surface-inset); }
+.notebook-create textarea, .notebook-editor textarea { min-height: 220px; font-size: 17px; line-height: 1.78; }
+.notebook-list { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; counter-reset: notebook-entry; }
+.notebook-list-item { min-height: 180px; align-content: start; padding: 21px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--surface); transition: transform var(--motion-standard) ease, border-color var(--motion-standard) ease, background var(--motion-standard) ease; }
+.notebook-list-item::before { counter-increment: notebook-entry; content: 'FIELD NOTE ' counter(notebook-entry, decimal-leading-zero); color: var(--text-quiet); font: 9px var(--font-mono); letter-spacing: .14em; }
+.notebook-list-item:hover, .notebook-list-item:focus-visible { transform: translateY(-3px); border-color: var(--line-strong); background: var(--surface-raised); }
+.notebook-list-title { color: var(--text-secondary); font-size: 23px; }
+.notebook-list-preview { overflow: hidden; color: var(--text-muted); font-family: var(--font-serif); font-size: 15px; line-height: 1.55; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.notebook-list-date { margin-top: auto; padding-top: 14px; color: var(--text-quiet); }
+.notebook-editor-footer { padding-top: 16px; }
+.notebook-empty { padding: 30px; border-left: 3px solid var(--memory); border-radius: var(--radius-sm); background: rgba(119,134,109,.06); }
+@media (max-width: 700px) { .notebook-list { grid-template-columns: 1fr; } .notebook-editor-footer { align-items: stretch; flex-direction: column; } .notebook-editor-footer .button { width: 100%; } }

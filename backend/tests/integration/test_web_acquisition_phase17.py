@@ -1,7 +1,6 @@
-﻿from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.application.use_cases.web_acquisition import WebAcquisitionService
 from backend.app.domain.models.enums import SourceType

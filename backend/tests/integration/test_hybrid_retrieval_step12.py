@@ -1,11 +1,10 @@
-from types import SimpleNamespace
 import asyncio
+from types import SimpleNamespace
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from backend.app.core.config import RuntimeProfile, settings
-from backend.app.main import app
 from backend.app.infrastructure.database.models import (
     DocumentModel,
     PassageModel,
@@ -14,8 +13,12 @@ from backend.app.infrastructure.database.models import (
 from backend.app.infrastructure.database.session import AsyncSessionLocal, Base, engine
 from backend.app.infrastructure.llm.embedding_client import LocalEmbeddingClient
 from backend.app.infrastructure.rag.lexical_retriever import ScoredPassage
+from backend.app.infrastructure.rag.reranker import (
+    AdvancedRetriever,
+    LocalRerankerClient,
+)
 from backend.app.infrastructure.rag.retriever import HybridRetriever, RetrievalOutcome
-from backend.app.infrastructure.rag.reranker import AdvancedRetriever, LocalRerankerClient
+from backend.app.main import app
 
 
 def _passage(identifier: str, order: int, content: str = "documentary text"):

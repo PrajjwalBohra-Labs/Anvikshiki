@@ -1,6 +1,8 @@
-﻿import pytest
-from backend.app.infrastructure.database.session import engine, Base
+import pytest
+
 from backend.app.application.agents.research_agent import ResearchAgent
+from backend.app.infrastructure.database.session import Base, engine
+
 
 @pytest.fixture
 async def setup_test_env():

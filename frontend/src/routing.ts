@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export type Route =
-  | { name: 'research' | 'research-new' | 'research-runs' | 'research-questions' | 'library' | 'library-sources' | 'library-documents' | 'memory' | 'knowledge-graph' | 'notebook' | 'dialogue' | 'settings' | 'not-found' }
+  | { name: 'research' | 'research-new' | 'research-runs' | 'research-questions' | 'research-jobs' | 'library' | 'library-sources' | 'library-documents' | 'memory' | 'knowledge-graph' | 'notebook' | 'dialogue' | 'settings' | 'not-found' }
   | { name: 'research-run' | 'library-document' | 'knowledge-graph-run' | 'notebook-entry'; id: string };
 
 function decodeRouteSegment(segment: string): string {
@@ -11,7 +11,6 @@ function decodeRouteSegment(segment: string): string {
     return segment;
   }
 }
-
 export function parseRoute(pathname: string): Route {
   const path = pathname.replace(/\/+$/, '') || '/research';
   const run = path.match(/^\/research\/runs\/([^/]+)$/);
@@ -27,14 +26,15 @@ export function parseRoute(pathname: string): Route {
     '/research/new': 'research-new',
     '/research/runs': 'research-runs',
     '/research/questions': 'research-questions',
+    '/research/jobs': 'research-jobs',
     '/library': 'library',
     '/library/sources': 'library-sources',
     '/library/documents': 'library-documents',
     '/memory': 'memory',
-    '/knowledge-graph': 'knowledge-graph',
-    '/notebook': 'notebook',
     '/dialogue': 'dialogue',
     '/settings': 'settings',
+    '/knowledge-graph': 'knowledge-graph',
+    '/notebook': 'notebook',
   };
   return routes[path] ? { name: routes[path] } : { name: 'not-found' };
 }

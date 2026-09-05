@@ -15,6 +15,7 @@ const stageLabels: Record<string, string> = {
   specialist_analysis: 'Running specialist analysis',
   challenger: 'Examining challenges',
   validator: 'Validating synthesis',
+  synthesis: 'Composing the synthesis',
 };
 
 const workflowStages = [
@@ -30,7 +31,7 @@ const workflowStages = [
 function ResearchWorkflow({ state }: { state: ResearchStreamState }) {
   const lastNode = [...state.activity].reverse().find((item) => item.node)?.node;
   return <section className="workflow-panel" aria-label="Research workflow">
-    <div className="workflow-heading"><span className="eyebrow">Investigation path</span><span className="muted-copy">Question → synthesis</span></div>
+    <div className="workflow-heading"><span className="workflow-sigil" aria-hidden="true"><img src="/anvikshiki-logo.png" alt="" /></span><span className="eyebrow">Investigation path</span><span className="muted-copy">Question to synthesis</span></div>
     <ol className="workflow-strip">
       {workflowStages.map((stage) => {
         const present = state.activity.some((item) => item.node === stage.node);
@@ -44,18 +45,20 @@ function ResearchWorkflow({ state }: { state: ResearchStreamState }) {
 
 function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStreamState; evidenceResults: SearchResultDTO[] }) {
   const result = state.result;
+  const webResearch = result?.web_research;
   const passages = result?.retrieved_passages ?? [];
   const sourceCount = new Set(passages.map((passage) => passage.source_id || passage.source_title)).size;
   const claimCount = result?.claims.length ?? 0;
   const analysisCount = result ? Object.values(result.specialist_analysis).reduce((total, group) => total + group.length, 0) : 0;
   const categories = [
     { label: 'EVIDENCE', value: passages.length || evidenceResults.length, note: passages.length ? 'retrieved passages' : evidenceResults.length ? 'lookup passages' : 'not reported', icon: BookOpen, tone: 'evidence' },
-    { label: 'SOURCES', value: sourceCount || '—', note: sourceCount ? 'represented in result' : 'not reported', icon: Database, tone: 'archival' },
-    { label: 'CLAIMS', value: claimCount || '—', note: claimCount ? 'returned claims' : 'not reported', icon: CheckCircle2, tone: 'interpretation' },
-    { label: 'ARGUMENTS', value: analysisCount || '—', note: analysisCount ? 'specialist fields' : 'not reported', icon: GitBranch, tone: 'scientific' },
-    { label: 'CONCEPTS', value: '—', note: 'not exposed by current run', icon: Layers3, tone: 'hypothesis' },
-    { label: 'MEMORY', value: '—', note: 'not exposed by current run', icon: ShieldCheck, tone: 'memory' },
+    { label: 'SOURCES', value: sourceCount || '-', note: sourceCount ? 'represented in result' : 'not reported', icon: Database, tone: 'archival' },
+    { label: 'CLAIMS', value: claimCount || '-', note: claimCount ? 'returned claims' : 'not reported', icon: CheckCircle2, tone: 'interpretation' },
+    { label: 'ARGUMENTS', value: analysisCount || '-', note: analysisCount ? 'specialist fields' : 'not reported', icon: GitBranch, tone: 'scientific' },
+    { label: 'CONCEPTS', value: '-', note: 'not exposed by current run', icon: Layers3, tone: 'hypothesis' },
+    { label: 'MEMORY', value: '-', note: 'not exposed by current run', icon: ShieldCheck, tone: 'memory' },
     { label: 'ACTIVITY', value: state.activity.length, note: state.status === 'idle' ? 'awaiting research' : state.status, icon: Terminal, tone: state.status === 'failed' ? 'contradiction' : 'activity' },
+    ...(webResearch ? [{ label: 'WEB', value: webResearch.acquired_sources.length, note: webResearch.status.replace(/_/g, ' '), icon: Search, tone: 'archival' }] : []),
   ];
   return <aside className="intelligence-sidebar" aria-label="Research intelligence">
     <div className="intelligence-top"><div><span className="eyebrow">Intelligence</span><h2>Research signals</h2></div><span className="intelligence-pip" aria-hidden="true" /></div>
@@ -63,8 +66,23 @@ function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStream
     <div className="intelligence-list">
       {categories.map(({ label, value, note, icon: Icon, tone }) => <div className={`intelligence-item ${tone}`} key={label}><Icon size={14} /><div><strong>{label}</strong><small>{note}</small></div><b>{value}</b></div>)}
     </div>
-    <div className="intelligence-trace"><span className="eyebrow">Trace boundary</span><p><span>Source</span><i>→</i><span>Passage</span><i>→</i><span>Claim</span></p><small>Only relationships returned by the backend are shown.</small></div>
+    <div className="intelligence-trace"><span className="eyebrow">Trace boundary</span><p><span>Source</span><i>-&gt;</i><span>Passage</span><i>-&gt;</i><span>Claim</span></p><small>Only relationships returned by the backend are shown.</small></div>
   </aside>;
+}
+
+function EvidenceUsed({ result }: { result: NonNullable<ResearchStreamState['result']> }) {
+  if (result.retrieved_passages.length === 0) return null;
+  return <section className="synthesis-evidence" aria-label="Evidence used in this synthesis">
+    <div className="eyebrow">Evidence used</div>
+    <p className="muted-copy">These passages were retrieved and persisted by the backend. The model response is not a substitute for reading them.</p>
+    <div className="synthesis-evidence-list">
+      {result.retrieved_passages.slice(0, 5).map((passage, index) => <details key={passage.passage_id}>
+        <summary><span className="evidence-identity"><span className="evidence-artifact" aria-hidden="true">P{index + 1}</span><span>{passage.source_title}</span></span><span>{passage.page_number ? `p. ${passage.page_number}` : 'page not reported'}</span></summary>
+        <p>{passage.content}</p>
+        {passage.citation_string && <small className="muted-copy">{passage.citation_string}</small>}
+      </details>)}
+    </div>
+  </section>;
 }
 
 export function ResearchWorkspace({ userId }: Props) {
@@ -127,18 +145,20 @@ export function ResearchWorkspace({ userId }: Props) {
   };
 
   return (
-    <div className="research-page">
-      <section className="research-intro">
-        <div className="eyebrow">Inquiry / Research mode</div>
-        <h1>What are you investigating?</h1>
-        <p>Ask a question that deserves sources, arguments, and uncertainty made visible.</p>
+    <div className={`research-page ${query.trim() && !isRunning ? 'is-formulating' : ''} ${isRunning ? 'is-investigating' : ''} ${state.result ? 'has-synthesis' : ''}`}>
+      <div className="research-atmosphere" aria-hidden="true"><span /><span /><span /></div>
+      <section className="research-intro" aria-labelledby="research-heading">
+        <div className="research-intro-top"><span className="eyebrow">Inquiry / Research mode</span><span className="research-coordinate">ANV / 01</span></div>
+        <h1 id="research-heading">What are you<br /><em>investigating?</em></h1>
+        <div className="research-intro-foot"><p>Ask a question that deserves sources, arguments, and uncertainty made visible.</p><span className="intro-rule" aria-hidden="true" /></div>
       </section>
 
       <div className="research-cockpit">
         <div className="research-core">
 
       <form className="inquiry-form" onSubmit={submit}>
-        <label htmlFor="research-question" className="eyebrow">Research question</label>
+        <div className="inquiry-form-heading"><span className="eyebrow">01 / Compose inquiry</span><span className="inquiry-hint">A precise question opens the archive</span></div>
+        <label htmlFor="research-question" className="question-label"><span className="eyebrow">Research question</span><span className="question-count">{query.length.toLocaleString()} / 10,000</span></label>
         <textarea
           id="research-question"
           value={query}
@@ -176,7 +196,7 @@ export function ResearchWorkspace({ userId }: Props) {
 
       {state.status === 'idle' && (
         <section className="workspace-empty" aria-label="Research guidance">
-          <div className="empty-symbol"><CircleDot size={23} /></div>
+          <div className="empty-symbol"><img src="/anvikshiki-logo.png" alt="" /><CircleDot size={13} /></div>
           <div><h2>Nothing is being investigated</h2><p>The workspace will show only activity and results returned by the research engine.</p></div>
         </section>
       )}
@@ -198,9 +218,13 @@ export function ResearchWorkspace({ userId }: Props) {
           </div>
 
           <div className="result-panel panel">
-            <div className="panel-heading"><span className="eyebrow">Research output</span>{state.validationStatus && <span className="status-label">{state.validationStatus}</span>}{isCancelled && <span className="status-label">CANCELLED</span>}</div>
+            <div className="panel-heading"><span className="result-heading"><span className="result-sigil" aria-hidden="true" /><span className="eyebrow">Research output</span></span>{state.validationStatus && <span className="status-label">{state.validationStatus}</span>}{isCancelled && <span className="status-label">CANCELLED</span>}</div>
             {state.finalResponse ? (
+<<<<<<< HEAD
               <article className="synthesis"><div className="eyebrow">Validated workflow output</div><p>{state.finalResponse}</p>{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'}</div>}{typeof state.result?.web_research?.status === 'string' && state.result.web_research.status !== 'skipped' && <div className="result-meta">Web research: {state.result.web_research.status}</div>}</article>
+=======
+              <article className="synthesis"><div className="eyebrow">Evidence-grounded workflow output</div><p>{state.finalResponse}</p>{state.result?.web_research && <div className="research-source-note">External research: {state.result.web_research.status.replace(/_/g, ' ')}; {state.result.web_research.acquired_sources.length} acquired source{state.result.web_research.acquired_sources.length === 1 ? '' : 's'}.</div>}{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'} / {state.result?.retrieved_passages.length ?? 0} retrieved passage{state.result?.retrieved_passages.length === 1 ? '' : 's'}</div>}{state.result && <EvidenceUsed result={state.result} />}</article>
+>>>>>>> origin/main
             ) : (
               <div className="result-waiting"><LoaderCircle className="spin" size={18} /><p>The final synthesis will appear when the backend emits <code>research_completed</code>.</p></div>
             )}
@@ -212,7 +236,7 @@ export function ResearchWorkspace({ userId }: Props) {
       )}
 
       <section className="evidence-explorer panel">
-        <div className="panel-heading"><span className="eyebrow">Evidence lookup</span><span className="muted-copy">Hybrid search returned by backend</span></div>
+        <div className="panel-heading"><span className="eyebrow">03 / Evidence desk</span><span className="muted-copy">Hybrid search returned by backend</span></div>
         <form className="evidence-search" onSubmit={searchEvidence}>
           <label htmlFor="evidence-query" className="sr-only">Search indexed evidence</label>
           <input id="evidence-query" value={evidenceQuery} onChange={(event) => setEvidenceQuery(event.target.value)} placeholder="Search indexed passages..." />
@@ -223,7 +247,7 @@ export function ResearchWorkspace({ userId }: Props) {
         <div className="evidence-results">
           {evidenceResults.map((result) => (
             <article className="evidence-card" key={result.passage_id}>
-              <div className="evidence-card-heading"><span className="eyebrow">Passage / {result.source_title}</span><span className="evidence-score">{result.relevance_score.toFixed(3)}</span></div>
+              <div className="evidence-card-heading"><span className="evidence-identity"><span className="evidence-artifact" aria-hidden="true">P</span><span className="eyebrow">Passage / {result.source_title}</span></span><span className="evidence-score">{result.relevance_score.toFixed(3)}</span></div>
               <p>{result.content}</p>
               <footer><span>{result.page_number ? 'Page ' + result.page_number : 'Page not reported'}</span><span>{result.citation_string}</span></footer>
             </article>
@@ -231,8 +255,8 @@ export function ResearchWorkspace({ userId }: Props) {
         </div>
       </section>
 
-      <section className="dialogue-panel panel">
-        <div className="panel-heading"><span className="eyebrow">Reflective dialogue</span><MessageCircle size={16} /></div>
+      <section className={`dialogue-panel panel dialogue-mode-${dialogueMode}`}>
+        <div className="panel-heading"><span className="eyebrow">04 / Reflective dialogue</span><MessageCircle size={16} /></div>
         <p className="panel-intro">Continue examining a question through the backend dialogue engine. This is a separate turn, not a fabricated extension of the research stream.</p>
         <form className="dialogue-form" onSubmit={submitDialogue}>
           <label htmlFor="dialogue-mode" className="sr-only">Dialogue mode</label>
@@ -249,7 +273,7 @@ export function ResearchWorkspace({ userId }: Props) {
           <button className="button button-primary" type="submit" disabled={dialogueLoading || !dialogueInput.trim()}>{dialogueLoading ? <LoaderCircle className="spin" size={14} /> : <MessageCircle size={14} />} Send</button>
         </form>
         {dialogueError && <div className="error-callout" role="alert"><AlertTriangle size={16} /><span>{dialogueError}</span></div>}
-        {dialogueTurn && <article className="dialogue-response"><div className="eyebrow">{dialogueTurn.dialogue_mode} response{dialogueTurn.source_title ? ' · ' + dialogueTurn.source_title : ''}</div><p>{dialogueTurn.response_text}</p><div className="dialogue-flags"><span>{dialogueTurn.evidence_linked ? 'Evidence linked' : 'No evidence linked'}</span><span>{dialogueTurn.preserves_uncertainty ? 'Uncertainty preserved' : 'Uncertainty not reported'}</span>{dialogueTurn.disagrees_with_user && <span>Challenges the premise</span>}</div></article>}
+        {dialogueTurn && <article className="dialogue-response"><div className="eyebrow">{dialogueTurn.dialogue_mode} response{dialogueTurn.source_title ? ' / ' + dialogueTurn.source_title : ''}</div><p>{dialogueTurn.response_text}</p><div className="dialogue-flags"><span>{dialogueTurn.evidence_linked ? 'Evidence linked' : 'No evidence linked'}</span><span>{dialogueTurn.preserves_uncertainty ? 'Uncertainty preserved' : 'Uncertainty not reported'}</span>{dialogueTurn.disagrees_with_user && <span>Challenges the premise</span>}</div></article>}
       </section>
         </div>
         <IntelligenceSidebar state={state} evidenceResults={evidenceResults} />

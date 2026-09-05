@@ -5,6 +5,7 @@ from httpx import ASGITransport, AsyncClient
 from starlette.requests import Request
 from structlog.testing import capture_logs
 
+from backend.app.core.config import settings
 from backend.app.core.errors import (
     AnvikshikiDomainError,
     domain_error_handler,
@@ -67,7 +68,8 @@ async def test_request_observability_emits_safe_structured_event():
 
 
 @pytest.mark.asyncio
-async def test_unauthenticated_auth_boundary_remains_rejected():
+async def test_unauthenticated_auth_boundary_remains_rejected(monkeypatch):
+    monkeypatch.setattr(settings, "AUTH_MODE", "required")
     async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as client:
         response = await client.get("/api/v1/auth/me")
 

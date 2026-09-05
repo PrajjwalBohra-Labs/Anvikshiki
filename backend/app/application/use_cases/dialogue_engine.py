@@ -1,7 +1,13 @@
-﻿from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.infrastructure.database.models import PassageModel, DocumentModel, SourceModel
+from typing import Any
+
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.infrastructure.database.models import (
+    DocumentModel,
+    PassageModel,
+    SourceModel,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -19,9 +25,9 @@ class DialogueEngine:
         self,
         user_utterance: str,
         dialogue_mode: str = "socratic",  # socratic, challenge, explanation, analogy, counterexample, debate, etc.
-        evidence_passage_id: Optional[str] = None,
+        evidence_passage_id: str | None = None,
         user_mastery_demonstrated: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generates a dialogue turn ensuring evidence linkage, uncertainty preservation, 
         meaningful follow-up questioning, and principled disagreement when warranted.
@@ -50,8 +56,8 @@ class DialogueEngine:
 
         if dialogue_mode == "socratic":
             response_text = (
-                f"Consider the core premise of your position. If perception is restricted to direct sense contact, "
-                f"how do you account for inferential cognition (Anumana)? What textual basis supports this?"
+                "Consider the core premise of your position. If perception is restricted to direct sense contact, "
+                "how do you account for inferential cognition (Anumana)? What textual basis supports this?"
             )
         elif dialogue_mode == "challenge" or dialogue_mode == "debate":
             disagrees = True
@@ -63,8 +69,8 @@ class DialogueEngine:
         elif dialogue_mode == "counterexample":
             disagrees = True
             response_text = (
-                f"Let us test that universal claim against a recognized counterexample in the tradition. "
-                f"Does this rule hold when illusory perception (Bhranti) occurs?"
+                "Let us test that universal claim against a recognized counterexample in the tradition. "
+                "Does this rule hold when illusory perception (Bhranti) occurs?"
             )
         else:
             response_text = (

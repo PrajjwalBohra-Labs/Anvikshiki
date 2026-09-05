@@ -1,7 +1,12 @@
-﻿import pytest
-from backend.app.domain.models.enums import SourceType, ClaimType, RelationType, PramanaType
-from backend.app.domain.models.source import Source, Document, Passage
-from backend.app.domain.models.reasoning import Claim, Evidence, Argument
+from backend.app.domain.models.enums import (
+    ClaimType,
+    PramanaType,
+    RelationType,
+    SourceType,
+)
+from backend.app.domain.models.reasoning import Argument, Claim, Evidence
+from backend.app.domain.models.source import Document, Passage, Source
+
 
 def test_source_and_passage_creation():
     source = Source(title="Nyaya Sutras", source_type=SourceType.PRIMARY)

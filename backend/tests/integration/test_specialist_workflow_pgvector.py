@@ -3,7 +3,9 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import delete, event, select
 
-from backend.app.application.orchestration.research_workflow import ResearchWorkflowEngine
+from backend.app.application.orchestration.research_workflow import (
+    ResearchWorkflowEngine,
+)
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalSentenceTransformerEmbeddingAdapter,
 )
@@ -18,7 +20,6 @@ from backend.app.infrastructure.database.models import (
     SourceModel,
 )
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
-
 
 pytestmark = pytest.mark.postgres
 

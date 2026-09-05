@@ -1,10 +1,15 @@
-﻿from typing import Dict, Any, Optional
+from typing import Any
+
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
 from backend.app.infrastructure.database.models import (
-    ResearchQuestionModel, ResearchRunModel, ResearchStepModel, EpistemicPositionModel
+    EpistemicPositionModel,
+    ResearchQuestionModel,
+    ResearchRunModel,
+    ResearchStepModel,
 )
-import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -21,7 +26,7 @@ class ResearchContinuityService:
         self,
         research_question_id: str,
         user_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Resumes a previous investigation by assembling all contextual state, findings,
         evidence trails, positions, timelines, and next suggested steps.

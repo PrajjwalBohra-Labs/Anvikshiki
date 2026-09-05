@@ -1,6 +1,7 @@
-from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
+
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger(__name__)
 
@@ -8,12 +9,12 @@ class ScientificAnalyst:
     """
     Evaluates empirical studies, methodology, and replication metrics.
     """
-    def __init__(self, session: Optional[AsyncSession] = None):
+    def __init__(self, session: AsyncSession | None = None):
         self.session = session
 
     async def analyze_study(
-        self, study_data: Optional[Dict[str, Any]] = None, **study_fields: Any
-    ) -> Dict[str, Any]:
+        self, study_data: dict[str, Any] | None = None, **study_fields: Any
+    ) -> dict[str, Any]:
         """Return a structured empirical assessment without inventing study facts."""
         data = {**(study_data or {}), **study_fields}
         study_type = data.get("study_type", "EMPIRICAL")

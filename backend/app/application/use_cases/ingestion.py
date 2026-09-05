@@ -1,12 +1,20 @@
 import mimetypes
 from datetime import datetime, timezone
+<<<<<<< HEAD
+=======
+from pathlib import Path
+>>>>>>> origin/main
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import or_
 
-from backend.app.application.use_cases.embedding_indexing import EmbeddingIndexService
+from backend.app.application.use_cases.embedding_indexing import (
+    EmbeddingIndexError,
+    EmbeddingIndexService,
+)
 from backend.app.application.use_cases.provenance import ProvenanceService
+from backend.app.core.config import settings
 from backend.app.core.errors import AnvikshikiDomainError
 from backend.app.infrastructure.database.models import (
     DocumentModel,
@@ -48,6 +56,18 @@ class DocumentIngestionService:
                 f"Unsupported document MIME type: {resolved or 'unknown'}.", status_code=415
             )
         return resolved
+
+    @staticmethod
+    def _validate_file_signature(filename: str, content: bytes, mime_type: str) -> None:
+        extension = Path(filename).suffix.lower()
+        if extension == ".pdf" and b"%PDF-" not in content[:1024]:
+            raise AnvikshikiDomainError(
+                "The uploaded .pdf file does not contain a valid PDF header.", status_code=422
+            )
+        if mime_type == "application/pdf" and b"%PDF-" not in content[:1024]:
+            raise AnvikshikiDomainError(
+                "The uploaded file was declared as a PDF but is not a valid PDF.", status_code=422
+            )
 
     @staticmethod
     def _extraction_metadata(
@@ -169,6 +189,7 @@ class DocumentIngestionService:
         filename: str,
         content: bytes,
         mime_type: str | None = None,
+<<<<<<< HEAD
         owner_id: str | None = None,
     ) -> tuple[DocumentModel, list[PassageModel]]:
         source_stmt = select(SourceModel).where(SourceModel.id == source_id)
@@ -177,13 +198,23 @@ class DocumentIngestionService:
                 or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
             )
         source_result = await self.session.execute(source_stmt)
+=======
+    ) -> tuple[DocumentModel, list[PassageModel]]:
+        source_result = await self.session.execute(select(SourceModel).where(SourceModel.id == source_id))
+>>>>>>> origin/main
         source = source_result.scalars().first()
         if not source:
             raise AnvikshikiDomainError(f"Source {source_id} not found.", status_code=404)
 
         if not content or not content.strip():
             raise AnvikshikiDomainError("Document content cannot be empty.", status_code=422)
+        if len(content) > settings.DOCUMENT_MAX_BYTES:
+            raise AnvikshikiDomainError(
+                f"Document exceeds the {settings.DOCUMENT_MAX_BYTES // 1_000_000} MB size limit.",
+                status_code=413,
+            )
         resolved_mime_type = self._resolve_mime_type(filename, mime_type)
+        self._validate_file_signature(filename, content, resolved_mime_type)
 
         metadata = await self.storage.store_original(content, filename, mime_type=resolved_mime_type)
         existing_result = await self.session.execute(
@@ -306,9 +337,29 @@ class DocumentIngestionService:
                 passage_models,
             )
             await self.session.commit()
-            await EmbeddingIndexService(self.session).index_passages(
-                passage_ids=[passage.id for passage in passage_models]
-            )
+            try:
+                index_results = await EmbeddingIndexService(self.session).index_passages(
+                    passage_ids=[passage.id for passage in passage_models],
+                    raise_on_error=True,
+                )
+            except EmbeddingIndexError as exc:
+                raise AnvikshikiDomainError(
+                    f"Document was stored and parsed, but embedding generation failed: {exc}",
+                    status_code=503,
+                ) from exc
+            non_empty_passage_ids = {
+                passage.id for passage in passage_models if passage.content.strip()
+            }
+            indexed_by_id = {result.passage_id: result for result in index_results}
+            if any(
+                indexed_by_id.get(passage_id) is None
+                or indexed_by_id[passage_id].status.value != "INDEXED"
+                for passage_id in non_empty_passage_ids
+            ):
+                raise AnvikshikiDomainError(
+                    "Document indexing did not produce an embedding for every non-empty passage.",
+                    status_code=503,
+                )
             await self.session.refresh(new_document)
             for passage in passage_models:
                 await self.session.refresh(passage)
