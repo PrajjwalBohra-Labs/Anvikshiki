@@ -63,6 +63,7 @@ class HybridRetriever:
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
+        owner_id: Optional[str] = None,
     ) -> RetrievalOutcome:
         results = await self.lexical.search(
             query=query,
@@ -72,6 +73,7 @@ class HybridRetriever:
             source_id=source_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            owner_id=owner_id,
         )
         return RetrievalOutcome(results=results, lexical_count=len(results))
 
@@ -83,6 +85,7 @@ class HybridRetriever:
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
+        owner_id: Optional[str] = None,
     ) -> RetrievalOutcome:
         try:
             query_vector = await self.embed_client.get_embedding(query)
@@ -93,6 +96,7 @@ class HybridRetriever:
                 source_id=source_id,
                 document_id=document_id,
                 document_version_id=document_version_id,
+                owner_id=owner_id,
             )
             return RetrievalOutcome(results=results, semantic_count=len(results))
         except ValueError:
@@ -117,6 +121,7 @@ class HybridRetriever:
         semantic_weight: Optional[float] = None,
         lexical_candidate_limit: Optional[int] = None,
         semantic_candidate_limit: Optional[int] = None,
+        owner_id: Optional[str] = None,
     ) -> RetrievalOutcome:
         if top_k < 1:
             raise ValueError("top_k must be positive.")
@@ -159,6 +164,7 @@ class HybridRetriever:
                 source_id=source_id,
                 document_id=document_id,
                 document_version_id=document_version_id,
+                owner_id=owner_id,
             )
         except ValueError:
             raise
@@ -173,6 +179,7 @@ class HybridRetriever:
                 source_id=source_id,
                 document_id=document_id,
                 document_version_id=document_version_id,
+                owner_id=owner_id,
             )
         except ValueError:
             raise

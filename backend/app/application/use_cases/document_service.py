@@ -1,13 +1,13 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from backend.app.core.config import settings
 from backend.app.core.errors import AnvikshikiDomainError
-from backend.app.infrastructure.database.models import DocumentModel, PassageModel
+from backend.app.infrastructure.database.models import DocumentModel, PassageModel, SourceModel
 
 
 class DocumentService:
@@ -16,16 +16,28 @@ class DocumentService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def list_documents(self, source_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        stmt = select(DocumentModel).order_by(DocumentModel.created_at.desc())
+    async def list_documents(
+        self, source_id: Optional[str] = None, owner_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        stmt = select(DocumentModel).join(SourceModel).order_by(DocumentModel.created_at.desc())
         if source_id:
             stmt = stmt.where(DocumentModel.source_id == source_id)
+        if owner_id:
+            stmt = stmt.where(or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None)))
         result = await self.session.execute(stmt)
         documents = result.scalars().all()
         return [await self.describe_document(document) for document in documents]
 
-    async def get_document(self, document_id: str) -> Optional[DocumentModel]:
-        return await self.session.get(DocumentModel, document_id)
+    async def get_document(
+        self, document_id: str, owner_id: Optional[str] = None
+    ) -> Optional[DocumentModel]:
+        stmt = select(DocumentModel).where(DocumentModel.id == document_id)
+        if owner_id:
+            stmt = stmt.join(SourceModel).where(
+                or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+            )
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
 
     async def describe_document(self, document: DocumentModel) -> Dict[str, Any]:
         count_result = await self.session.execute(

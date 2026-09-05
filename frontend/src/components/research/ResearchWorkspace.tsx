@@ -10,6 +10,7 @@ interface Props { userId: string; }
 
 const stageLabels: Record<string, string> = {
   coordinator: 'Question understood',
+  web_research: 'Discovering and acquiring web sources',
   retrieval: 'Retrieving indexed evidence',
   specialist_analysis: 'Running specialist analysis',
   challenger: 'Examining challenges',
@@ -18,6 +19,7 @@ const stageLabels: Record<string, string> = {
 
 const workflowStages = [
   { label: 'Question', node: 'coordinator' },
+  { label: 'Web sources', node: 'web_research' },
   { label: 'Retrieval', node: 'retrieval' },
   { label: 'Specialist analysis', node: 'specialist_analysis' },
   { label: 'Challenge', node: 'challenger' },
@@ -68,6 +70,7 @@ function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStream
 export function ResearchWorkspace({ userId }: Props) {
   const [query, setQuery] = useState('');
   const [domain, setDomain] = useState('Philosophy & Empirical Epistemology');
+  const [includeWeb, setIncludeWeb] = useState(false);
   const [evidenceQuery, setEvidenceQuery] = useState('');
   const [evidenceResults, setEvidenceResults] = useState<SearchResultDTO[]>([]);
   const [evidenceError, setEvidenceError] = useState('');
@@ -83,7 +86,7 @@ export function ResearchWorkspace({ userId }: Props) {
     event.preventDefault();
     const normalized = query.trim();
     if (normalized.length < 3 || !userId) return;
-    await run(normalized, domain);
+    await run(normalized, domain, includeWeb);
   };
 
   const isRunning = state.status === 'streaming';
@@ -154,6 +157,10 @@ export function ResearchWorkspace({ userId }: Props) {
               <option>Neuroscience and Cognition</option>
             </select>
           </label>
+          <label className="web-control" htmlFor="research-web">
+            <span className="eyebrow">External sources</span>
+            <span><input id="research-web" type="checkbox" checked={includeWeb} onChange={(event) => setIncludeWeb(event.target.checked)} disabled={isRunning} /> Include web discovery and acquisition</span>
+          </label>
           <div className="inquiry-actions">
             {!userId && <span className="configuration-note">Configure a valid backend user ID in Settings.</span>}
             {isRunning ? (
@@ -193,7 +200,7 @@ export function ResearchWorkspace({ userId }: Props) {
           <div className="result-panel panel">
             <div className="panel-heading"><span className="eyebrow">Research output</span>{state.validationStatus && <span className="status-label">{state.validationStatus}</span>}{isCancelled && <span className="status-label">CANCELLED</span>}</div>
             {state.finalResponse ? (
-              <article className="synthesis"><div className="eyebrow">Validated workflow output</div><p>{state.finalResponse}</p>{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'}</div>}</article>
+              <article className="synthesis"><div className="eyebrow">Validated workflow output</div><p>{state.finalResponse}</p>{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'}</div>}{typeof state.result?.web_research?.status === 'string' && state.result.web_research.status !== 'skipped' && <div className="result-meta">Web research: {state.result.web_research.status}</div>}</article>
             ) : (
               <div className="result-waiting"><LoaderCircle className="spin" size={18} /><p>The final synthesis will appear when the backend emits <code>research_completed</code>.</p></div>
             )}

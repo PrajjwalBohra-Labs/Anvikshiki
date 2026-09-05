@@ -9,6 +9,7 @@ from backend.app.infrastructure.database.session import get_db
 from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
+from backend.app.application.use_cases.embedding_indexing import EmbeddingIndexError
 from backend.app.application.use_cases.document_service import DocumentService
 from backend.app.api.v1.schemas.dtos import DocumentResponseDTO
 from backend.app.infrastructure.database.models import DocumentModel, PassageModel
@@ -39,7 +40,10 @@ async def list_documents(
     db: AsyncSession = Depends(get_db),
     current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
-    return await DocumentService(db).list_documents(source_id=source_id)
+    return await DocumentService(db).list_documents(
+        source_id=source_id,
+        owner_id=current_user.user_id if current_user else None,
+    )
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document(
@@ -52,12 +56,20 @@ async def upload_document(
     storage = LocalStorageService()
     ingestion_service = DocumentIngestionService(db, storage)
     
-    doc, passages = await ingestion_service.ingest_file(
-        source_id=source_id,
-        filename=file.filename or "document.txt",
-        content=content,
-        mime_type=file.content_type,
-    )
+    try:
+        doc, passages = await ingestion_service.ingest_file(
+            source_id=source_id,
+            filename=file.filename or "document.txt",
+            content=content,
+            mime_type=file.content_type,
+            owner_id=current_user.user_id if current_user else None,
+        )
+    except EmbeddingIndexError as exc:
+        raise AnvikshikiDomainError(
+            "Document was parsed and stored, but embedding/indexing is unavailable. "
+            "Provision the configured local model before retrying indexing.",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        ) from exc
     
     return DocumentUploadResponse(
         document_id=doc.id,
@@ -74,7 +86,9 @@ async def get_document(
     current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
     service = DocumentService(db)
-    document = await service.get_document(document_id)
+    document = await service.get_document(
+        document_id, owner_id=current_user.user_id if current_user else None
+    )
     if not document:
         raise AnvikshikiDomainError(f"Document {document_id} not found.", status_code=404)
     return await service.describe_document(document)
@@ -86,7 +100,9 @@ async def serve_document(
     current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
     service = DocumentService(db)
-    document = await service.get_document(document_id)
+    document = await service.get_document(
+        document_id, owner_id=current_user.user_id if current_user else None
+    )
     if not document:
         raise AnvikshikiDomainError(f"Document {document_id} not found.", status_code=404)
     path = service.resolve_file_path(document)
@@ -102,8 +118,10 @@ async def get_document_passages(
     db: AsyncSession = Depends(get_db),
     current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
 ):
-    doc_result = await db.execute(select(DocumentModel).where(DocumentModel.id == document_id))
-    doc = doc_result.scalars().first()
+    service = DocumentService(db)
+    doc = await service.get_document(
+        document_id, owner_id=current_user.user_id if current_user else None
+    )
     if not doc:
         raise AnvikshikiDomainError(f"Document {document_id} not found.", status_code=404)
         

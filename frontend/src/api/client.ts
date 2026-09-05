@@ -1,6 +1,11 @@
 import { getAccessToken } from '../auth/session';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+function defaultApiBaseUrl(): string {
+  if (typeof window === 'undefined') return 'http://localhost:8000/api/v1';
+  return `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
+}
+
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl();
 
 export class ApiError extends Error {
   constructor(
@@ -58,7 +63,7 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
   try {
     response = await fetch(url, { ...options, headers });
   } catch (error) {
-    throw new ApiError(0, error instanceof Error ? error.message : 'Network connection failure');
+    throw new ApiError(0, `The Anvikshiki API is unreachable at ${new URL(API_BASE_URL).origin}. Start the backend and check the network address.`);
   }
 
   const body = await response.json().catch(() => undefined);

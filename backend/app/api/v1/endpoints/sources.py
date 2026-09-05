@@ -1,6 +1,7 @@
 ﻿from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import or_
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 from backend.app.infrastructure.database.session import get_db
@@ -28,13 +29,21 @@ async def create_source(
     db: AsyncSession = Depends(get_db),
     current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
-    source = SourceModel(**payload.model_dump())
+    source = SourceModel(**payload.model_dump(), user_id=current_user.user_id if current_user else None)
     db.add(source)
     await db.commit()
     await db.refresh(source)
     return source
 
 @router.get("/", response_model=List[SourceResponse])
-async def list_sources(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(SourceModel))
+async def list_sources(
+    db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
+):
+    stmt = select(SourceModel)
+    if current_user is not None:
+        stmt = stmt.where(
+            or_(SourceModel.user_id == current_user.user_id, SourceModel.user_id.is_(None))
+        )
+    result = await db.execute(stmt)
     return result.scalars().all()

@@ -24,7 +24,11 @@ async def get_current_user(
 ) -> Optional[AuthenticatedPrincipal]:
     # This mode is set only by the isolated test harness. There is no
     # unauthenticated fallback in development or production.
-    if settings.RUNTIME_PROFILE == RuntimeProfile.TEST and settings.AUTH_MODE == "test":
+    if (
+        settings.RUNTIME_PROFILE == RuntimeProfile.TEST
+        and settings.AUTH_MODE == "test"
+        and not authorization
+    ):
         return None
 
     if not authorization or not authorization.startswith("Bearer "):

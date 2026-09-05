@@ -59,6 +59,7 @@ class LexicalRetriever:
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
+        owner_id: Optional[str] = None,
     ) -> List[ScoredPassage]:
         """Search authoritative passage text with lexical ranking.
 
@@ -109,6 +110,10 @@ class LexicalRetriever:
                 stmt = stmt.where(PassageModel.document_id == document_id)
             if document_version_id:
                 stmt = stmt.where(PassageModel.document_version_id == document_version_id)
+            if owner_id:
+                stmt = stmt.where(
+                    or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+                )
             stmt = (
                 stmt.options(selectinload(PassageModel.document).selectinload(DocumentModel.source))
                 .order_by(
@@ -153,6 +158,10 @@ class LexicalRetriever:
             stmt = stmt.where(PassageModel.document_id == document_id)
         if document_version_id:
             stmt = stmt.where(PassageModel.document_version_id == document_version_id)
+        if owner_id:
+            stmt = stmt.where(
+                or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+            )
         stmt = stmt.options(
             selectinload(PassageModel.document).selectinload(DocumentModel.source)
         )

@@ -1,6 +1,7 @@
 ﻿import math
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import or_
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from backend.app.infrastructure.database.models import (
@@ -37,6 +38,7 @@ class SemanticRetriever:
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
         source_id: Optional[str] = None,
+        owner_id: Optional[str] = None,
     ) -> List[ScoredPassage]:
         """
         Performs semantic vector search across passage embeddings.
@@ -73,6 +75,10 @@ class SemanticRetriever:
             stmt = stmt.where(PassageModel.document_version_id == document_version_id)
         if source_id:
             stmt = stmt.where(DocumentModel.source_id == source_id)
+        if owner_id:
+            stmt = stmt.where(
+                or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+            )
             
         # Eager load provenance to prevent N+1 serialization delays
         stmt = stmt.options(selectinload(PassageModel.document).selectinload(DocumentModel.source))
@@ -101,6 +107,10 @@ class SemanticRetriever:
                 stmt = stmt.where(PassageModel.document_version_id == document_version_id)
             if source_id:
                 stmt = stmt.where(DocumentModel.source_id == source_id)
+            if owner_id:
+                stmt = stmt.where(
+                    or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+                )
             result = await self.session.execute(stmt)
             return [
                 ScoredPassage(

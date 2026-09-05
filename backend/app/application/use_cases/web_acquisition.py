@@ -227,7 +227,7 @@ class WebAcquisitionService:
             raise AnvikshikiDomainError("Failed to retrieve the requested URL.", status_code=502) from exc
 
     async def acquire_url(
-        self, url: str, source_title: str | None = None
+        self, url: str, source_title: str | None = None, owner_id: str | None = None
     ) -> tuple[SourceModel, DocumentModel, list[PassageModel]]:
         """Acquire raw bytes, cache them, then use ordinary ingestion/provenance."""
         canonical_url = canonicalize_url(url)
@@ -242,6 +242,7 @@ class WebAcquisitionService:
         content_type = fetched["content_type"]
         extracted = self._metadata_from_content(content, content_type, fetched["final_url"])
         source = SourceModel(
+            user_id=owner_id,
             title=(source_title or extracted["title"])[:512],
             author=extracted.get("author"),
             original_language=extracted.get("language"),
@@ -256,6 +257,7 @@ class WebAcquisitionService:
                 filename=f"web_{checksum}.{'txt' if content_type == 'text/plain' else 'html'}",
                 content=content,
                 mime_type=content_type,
+                owner_id=owner_id,
             )
             document.web_metadata = {
                 "original_url": url,

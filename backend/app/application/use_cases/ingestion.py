@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import or_
 
 from backend.app.application.use_cases.embedding_indexing import EmbeddingIndexService
 from backend.app.application.use_cases.provenance import ProvenanceService
@@ -168,8 +169,14 @@ class DocumentIngestionService:
         filename: str,
         content: bytes,
         mime_type: str | None = None,
+        owner_id: str | None = None,
     ) -> tuple[DocumentModel, list[PassageModel]]:
-        source_result = await self.session.execute(select(SourceModel).where(SourceModel.id == source_id))
+        source_stmt = select(SourceModel).where(SourceModel.id == source_id)
+        if owner_id:
+            source_stmt = source_stmt.where(
+                or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
+            )
+        source_result = await self.session.execute(source_stmt)
         source = source_result.scalars().first()
         if not source:
             raise AnvikshikiDomainError(f"Source {source_id} not found.", status_code=404)

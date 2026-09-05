@@ -18,7 +18,7 @@ router = APIRouter(prefix="/notebooks", tags=["Notebooks"])
 
 def _require_principal(current_user: Optional[AuthenticatedPrincipal]) -> AuthenticatedPrincipal:
     if current_user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication is required.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer authentication is required.")
     return current_user
 
 

@@ -45,6 +45,13 @@ class AuthService:
         auth_session = result.scalars().first()
         return auth_session.user if auth_session else None
 
+    async def authenticate_username(self, username: str) -> Optional[UserModel]:
+        """Resolve an existing local identity for username-only auth."""
+        result = await self.session.execute(
+            select(UserModel).where(UserModel.username == username)
+        )
+        return result.scalars().first()
+
     async def revoke(self, token: str) -> bool:
         result = await self.session.execute(
             select(AuthSessionModel).where(AuthSessionModel.token_hash == _hash_token(token))

@@ -16,7 +16,10 @@ async def clean_database():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("origin", ["http://localhost:5173", "http://127.0.0.1:5173"])
+@pytest.mark.parametrize(
+    "origin",
+    ["http://localhost:5173", "http://127.0.0.1:5173", "http://192.168.1.38:5173"],
+)
 async def test_users_preflight_allows_local_frontend_origins(origin: str):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.options(

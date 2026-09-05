@@ -1,9 +1,9 @@
 import asyncio
 import json
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.v1.schemas.dtos import (
@@ -164,6 +164,57 @@ async def get_research_run(
     return await _detail(service, run)
 
 
+@router.get("/runs/{run_id}/export")
+async def export_research_run(
+    run_id: str,
+    format: Literal["json", "markdown"] = Query(default="json"),
+    user_id: Optional[str] = Query(default=None, min_length=1, max_length=128),
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[AuthenticatedPrincipal] = Depends(get_current_user),
+):
+    """Export only the authenticated user's persisted research record."""
+    service = ResearchRunService(db)
+    run = await _owned_run(service, run_id, resolve_user_id(current_user, user_id))
+    detail = await _detail(service, run)
+    filename = f"anvikshiki-research-{run.id}"
+    if format == "json":
+        from fastapi.encoders import jsonable_encoder
+        from fastapi.responses import JSONResponse
+
+        return JSONResponse(
+            content=jsonable_encoder(detail.model_dump(mode="json")),
+            headers={"Content-Disposition": f'attachment; filename="{filename}.json"'},
+        )
+
+    result = _result(run)
+    lines = [
+        f"# {run.query}",
+        "",
+        f"- Status: {run.status}",
+        f"- Domain: {run.domain or 'Not reported'}",
+        "",
+        "## Synthesis",
+        "",
+        (result.final_response if result else "No completed synthesis is available."),
+        "",
+        "## Evidence",
+        "",
+    ]
+    if result and result.retrieved_passages:
+        for passage in result.retrieved_passages:
+            citation = passage.source_title
+            if passage.page_number is not None:
+                citation += f", page {passage.page_number}"
+            lines.extend([f"### {citation}", "", passage.content, ""])
+    else:
+        lines.append("No retrieved evidence was persisted for this run.")
+    return PlainTextResponse(
+        "\n".join(lines),
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="{filename}.md"'},
+    )
+
+
 @router.get("/runs/{run_id}/events")
 async def replay_research_events(
     run_id: str,
@@ -211,9 +262,11 @@ async def run_research(
         result_state = await engine.execute_research(
             query=payload.query,
             user_id=owner_id,
-            domain=payload.domain or "Epistemology",
-            thread_id=run.thread_id or run.id,
-            run_id=run.id,
+        domain=payload.domain or "Epistemology",
+        thread_id=run.thread_id or run.id,
+        run_id=run.id,
+        depth=payload.depth or "standard",
+        include_web=payload.include_web,
         )
         result_payload = engine._result_payload(result_state)
         await service.complete_run(run.id, output_references=result_payload)
@@ -272,6 +325,8 @@ async def stream_research_events(
                 domain=payload.domain or "Epistemology",
                 thread_id=run.thread_id or run.id,
                 run_id=run.id,
+                depth=payload.depth or "standard",
+                include_web=payload.include_web,
             ):
                 sequence += 1
                 public_event = _event_payload(run.id, sequence, event)

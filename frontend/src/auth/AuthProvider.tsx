@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { request } from '../api/client';
+import { ApiError, request } from '../api/client';
 import { clearSession, getSession, saveSession, type StoredSession } from './session';
 import type { AuthUserDTO, UserResponseDTO } from '../types';
 
@@ -29,8 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           saveSession(next);
           setSession(next);
         }
-      } catch {
-        if (active) { clearSession(); setSession(null); setError('Your local session expired. Create a new session to continue.'); }
+      } catch (reason) {
+        if (active) {
+          if (reason instanceof ApiError && reason.status === 401) {
+            clearSession();
+            setSession(null);
+            setError('Your session is no longer valid. Enter your username to authenticate again.');
+          } else {
+            setError(reason instanceof Error ? reason.message : 'The backend could not validate the local session.');
+          }
+        }
       } finally {
         if (active) setInitializing(false);
       }
@@ -48,7 +56,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register: async (username: string) => {
       setError('');
       try {
-        const response = await request<UserResponseDTO>('/users', { method: 'POST', body: JSON.stringify({ username }) });
+        let response: UserResponseDTO;
+        try {
+          response = await request<UserResponseDTO>('/auth/login', { method: 'POST', body: JSON.stringify({ username }) });
+        } catch (reason) {
+          if (!(reason instanceof ApiError) || reason.status !== 404) throw reason;
+          response = await request<UserResponseDTO>('/users', { method: 'POST', body: JSON.stringify({ username }) });
+        }
         if (!response.access_token) throw new Error('The backend did not return a session token.');
         const next = { accessToken: response.access_token, user: { user_id: response.user_id, username: response.username } };
         saveSession(next);

@@ -94,6 +94,7 @@ class AdvancedRetriever(HybridRetriever):
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
+        owner_id: Optional[str] = None,
     ) -> List[ScoredPassage]:
         outcome = await self.retrieve_and_rerank_with_metadata(
             query=query,
@@ -103,6 +104,7 @@ class AdvancedRetriever(HybridRetriever):
             source_id=source_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            owner_id=owner_id,
         )
         return outcome.results
 
@@ -115,6 +117,7 @@ class AdvancedRetriever(HybridRetriever):
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
+        owner_id: Optional[str] = None,
     ) -> RetrievalOutcome:
         outcome = await self.hybrid_retrieve_with_metadata(
             query=query,
@@ -124,6 +127,7 @@ class AdvancedRetriever(HybridRetriever):
             source_id=source_id,
             document_id=document_id,
             document_version_id=document_version_id,
+            owner_id=owner_id,
         )
         if not outcome.results:
             return outcome

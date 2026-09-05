@@ -21,7 +21,14 @@ async def domain_error_handler(request: Request, exc: AnvikshikiDomainError):
         status_code=exc.status_code,
         error_type=type(exc).__name__,
     )
-    message = exc.message if exc.status_code < 500 else "An internal server error occurred."
+    # 503 messages are deliberately limited to safe service-state guidance
+    # (for example, a local model is not provisioned).  Other 5xx responses
+    # remain opaque so database/driver internals never cross the API boundary.
+    message = (
+        exc.message
+        if exc.status_code < 500 or exc.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        else "An internal server error occurred."
+    )
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": message, "type": "domain_error"},
