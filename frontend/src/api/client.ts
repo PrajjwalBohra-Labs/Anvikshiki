@@ -70,11 +70,7 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
   try {
     response = await fetch(url, { ...options, headers });
   } catch (error) {
-<<<<<<< HEAD
-    throw new ApiError(0, `The Anvikshiki API is unreachable at ${new URL(API_BASE_URL).origin}. Start the backend and check the network address.`);
-=======
     throw new ApiError(0, networkErrorMessage(error, 'API'));
->>>>>>> origin/main
   }
 
   const body = await response.json().catch(() => undefined);

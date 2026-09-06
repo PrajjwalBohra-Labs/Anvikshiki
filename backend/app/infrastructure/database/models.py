@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from sqlalchemy import (
     DDL,
@@ -53,7 +53,6 @@ class UserModel(Base):
         String(36), primary_key=True, default=generate_uuid
     )
     username: Mapped[str] = mapped_column(String(128), unique=True, index=True)
-<<<<<<< HEAD
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     conversations: Mapped[List["ConversationModel"]] = relationship("ConversationModel", back_populates="user", cascade="all, delete-orphan")
     auth_sessions: Mapped[List["AuthSessionModel"]] = relationship("AuthSessionModel", back_populates="user", cascade="all, delete-orphan")
@@ -63,18 +62,6 @@ class UserModel(Base):
 
 class BackgroundJobModel(Base):
     """Durable, user-owned work item for background research execution."""
-=======
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False
-    )
-    conversations: Mapped[list["ConversationModel"]] = relationship("ConversationModel", back_populates="user", cascade="all, delete-orphan")
-    auth_sessions: Mapped[list["AuthSessionModel"]] = relationship("AuthSessionModel", back_populates="user", cascade="all, delete-orphan")
-    notebooks: Mapped[list["NotebookModel"]] = relationship("NotebookModel", back_populates="user", cascade="all, delete-orphan")
-
-
-class BackgroundJobModel(Base):
-    """Durable, user-owned work item for the Step 63 worker."""
->>>>>>> origin/main
 
     __tablename__ = "background_jobs"
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -84,31 +71,18 @@ class BackgroundJobModel(Base):
     job_type: Mapped[str] = mapped_column(String(64), nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
-<<<<<<< HEAD
     research_run_id: Mapped[Optional[str]] = mapped_column(
-=======
-    research_run_id: Mapped[str | None] = mapped_column(
->>>>>>> origin/main
         String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=True, index=True
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="PENDING", index=True)
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
-<<<<<<< HEAD
     result_payload: Mapped[Optional[dict]] = mapped_column(JSON)
     error_message: Mapped[Optional[str]] = mapped_column(String(256))
     request_id: Mapped[Optional[str]] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-=======
-    result_payload: Mapped[dict | None] = mapped_column(JSON)
-    error_message: Mapped[str | None] = mapped_column(String(256))
-    request_id: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
->>>>>>> origin/main
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
@@ -280,14 +254,7 @@ class PassageModel(Base):
         # A row constructed by legacy callers with a vector is already a
         # usable derived index entry. Canonical ingestion explicitly sets
         # PENDING before invoking EmbeddingIndexService.
-<<<<<<< HEAD
         SQLEnum(EmbeddingIndexStatus), default=EmbeddingIndexStatus.INDEXED, nullable=False, index=True
-=======
-        SQLEnum(EmbeddingIndexStatus),
-        default=EmbeddingIndexStatus.INDEXED,
-        nullable=False,
-        index=True,
->>>>>>> origin/main
     )
     embedding_error: Mapped[str | None] = mapped_column(Text)
     embedding: Mapped[Any | None] = mapped_column(
@@ -296,14 +263,8 @@ class PassageModel(Base):
     # Derived search state. ``content`` remains authoritative. The 0010
     # migration maintains this tsvector with a PostgreSQL trigger; SQLite
     # test databases use text and the retriever's compatibility path.
-<<<<<<< HEAD
     search_vector: Mapped[Optional[Any]] = mapped_column(
         TSVECTOR() if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST else Text,
-        index=True,
-=======
-    search_vector: Mapped[Any | None] = mapped_column(
-        TSVECTOR() if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST else Text
->>>>>>> origin/main
     )
 
     __table_args__ = (

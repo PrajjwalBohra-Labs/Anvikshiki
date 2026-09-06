@@ -1,10 +1,7 @@
-<<<<<<< HEAD
 ﻿from fastapi import APIRouter, status
 from pydantic import BaseModel
 from backend.app.core.config import settings
 from backend.app.core.runtime_health import probe_runtime
-=======
->>>>>>> origin/main
 import structlog
 from fastapi import APIRouter, status
 from pydantic import BaseModel

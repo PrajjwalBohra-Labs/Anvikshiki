@@ -1,5 +1,6 @@
 import re
 import unicodedata
+from typing import List, Optional
 
 from sqlalchemy import desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,18 +56,11 @@ class LexicalRetriever:
         language: str | None = None,
         limit: int | None = None,
         offset: int = 0,
-<<<<<<< HEAD
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
         owner_id: Optional[str] = None,
     ) -> List[ScoredPassage]:
-=======
-        source_id: str | None = None,
-        document_id: str | None = None,
-        document_version_id: str | None = None,
-    ) -> list[ScoredPassage]:
->>>>>>> origin/main
         """Search authoritative passage text with lexical ranking.
 
         PostgreSQL uses the trigger-maintained ``search_vector`` and

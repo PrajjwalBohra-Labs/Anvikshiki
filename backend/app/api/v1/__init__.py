@@ -1,6 +1,9 @@
 from fastapi import APIRouter
 
 from backend.app.api.v1.background_jobs import router as background_jobs_router
+from backend.app.api.v1.epistemic import router as epistemic_router
+from backend.app.api.v1.research import router as research_router
+from backend.app.api.v1.endpoints.web import router as web_router
 from backend.app.api.v1.conversations import router as conversations_router
 from backend.app.api.v1.dialogue import router as dialogue_router
 from backend.app.api.v1.endpoints.auth import router as auth_router
@@ -12,15 +15,9 @@ from backend.app.api.v1.endpoints.reasoning import router as reasoning_router
 from backend.app.api.v1.endpoints.search import router as search_router
 from backend.app.api.v1.endpoints.sources import router as sources_router
 from backend.app.api.v1.endpoints.users import router as users_router
-<<<<<<< HEAD
 from backend.app.api.v1.endpoints.auth import router as auth_router
 from backend.app.api.v1.endpoints.notebooks import router as notebooks_router
 from backend.app.api.v1.background_jobs import router as background_jobs_router
-=======
-from backend.app.api.v1.endpoints.web import router as web_router
-from backend.app.api.v1.epistemic import router as epistemic_router
-from backend.app.api.v1.research import router as research_router
->>>>>>> origin/main
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(conversations_router, prefix="/conversations", tags=["Conversations"])
