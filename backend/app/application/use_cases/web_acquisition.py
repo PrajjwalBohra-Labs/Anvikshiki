@@ -158,12 +158,22 @@ class WebAcquisitionService:
             node = soup.find("meta", attrs={"name": name})
             return node.get("content", "").strip() or None if node else None
 
+        def property_meta(name: str) -> str | None:
+            node = soup.find("meta", attrs={"property": name})
+            return node.get("content", "").strip() or None if node else None
+
         canonical_link = soup.find("link", rel=lambda value: value and "canonical" in value)
         return {
             "title": title or final_url,
             "language": soup.html.get("lang") if soup.html else None,
-            "author": meta("author"),
+            "author": meta("author") or meta("citation_author"),
             "description": meta("description"),
+            "publication": meta("citation_journal") or meta("publisher") or property_meta("og:site_name"),
+            "published_date": (
+                meta("citation_publication_date")
+                or meta("date")
+                or property_meta("article:published_time")
+            ),
             "canonical_document_url": urljoin(final_url, canonical_link.get("href")) if canonical_link else None,
         }
 
@@ -244,7 +254,7 @@ class WebAcquisitionService:
         source = SourceModel(
             user_id=owner_id,
             title=(source_title or extracted["title"])[:512],
-            author=extracted.get("author"),
+            author=extracted.get("author") or extracted.get("citation_author"),
             original_language=extracted.get("language"),
             source_type=SourceType.DISCOVERY_ONLY,
             reference_url=canonical_url,
@@ -270,6 +280,8 @@ class WebAcquisitionService:
                 "response_headers": fetched["response_headers"],
                 "extracted_title": extracted["title"],
                 "description": extracted.get("description"),
+                "publication": extracted.get("publication"),
+                "published_date": extracted.get("published_date"),
                 "canonical_document_url": extracted.get("canonical_document_url"),
                 "source_classification": SourceType.DISCOVERY_ONLY.value,
             }

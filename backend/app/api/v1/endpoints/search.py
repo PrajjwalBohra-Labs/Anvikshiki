@@ -52,22 +52,14 @@ async def search_passages(
     document_version_id: str | None = None,
     retrieval: Literal["hybrid", "lexical", "semantic"] = Query("hybrid"),
     top_k: int = Query(5, ge=1, le=20),
-<<<<<<< HEAD
     db: AsyncSession = Depends(get_db),
     current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
-=======
-    db: AsyncSession = Depends(get_db),  # noqa: B008
-    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),  # noqa: B008
->>>>>>> origin/main
 ):
     """Search the corpus, preserving the existing hybrid default.
 
     ``retrieval=lexical`` exposes the Step 11 PostgreSQL lexical branch;
     existing frontend consumers continue using the hybrid default.
     """
-    # Test-profile compatibility remains isolated to get_current_user;
-    # deployed profiles fail closed before any corpus access occurs.
-    del current_user
     if not query.strip():
         raise HTTPException(status_code=422, detail="Search query cannot be empty.")
 

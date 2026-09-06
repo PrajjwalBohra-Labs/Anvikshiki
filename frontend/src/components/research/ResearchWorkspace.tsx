@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { AlertTriangle, BookOpen, Check, CheckCircle2, CircleDot, Database, GitBranch, Layers3, LoaderCircle, MessageCircle, Search, ShieldCheck, Square, Terminal } from 'lucide-react';
 import { useResearchStream, type ResearchStreamState } from '../../hooks/useResearchStream';
 import { executeDialogue, searchPassages } from '../../api/services';
 import { navigate } from '../../routing';
-import type { DialogueTurnDTO, SearchResultDTO } from '../../types';
+import type { DialogueTurnDTO, ResearchPassageDTO, ResearchResultDTO, SearchResultDTO } from '../../types';
 import './ResearchWorkspace.css';
 
 interface Props { userId: string; }
@@ -70,24 +70,85 @@ function IntelligenceSidebar({ state, evidenceResults }: { state: ResearchStream
   </aside>;
 }
 
-function EvidenceUsed({ result }: { result: NonNullable<ResearchStreamState['result']> }) {
+function citationLabel(index: number): string {
+  return `P${index + 1}`;
+}
+
+function renderInlineResearchText(text: string, onCitation: (label: string) => void): ReactNode[] {
+  return text.split(/(\[P\d+\])/g).map((part, index) => {
+    const match = part.match(/^\[(P\d+)\]$/);
+    if (!match) return <span key={`${part}-${index}`}>{part}</span>;
+    return <a className="inline-citation" href={`#research-evidence-${match[1]}`} onClick={() => onCitation(match[1])} key={`${part}-${index}`}>{part}</a>;
+  });
+}
+
+function ResearchAnswer({ text, onCitation }: { text: string; onCitation: (label: string) => void }) {
+  const blocks = text.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+  return <div className="research-answer">
+    {blocks.map((block, index) => {
+      const heading = block.match(/^(#{1,3})\s+(.+)$/);
+      if (heading) {
+        const Heading = heading[1].length === 1 ? 'h2' : 'h3';
+        return <Heading key={`${heading[2]}-${index}`}>{renderInlineResearchText(heading[2], onCitation)}</Heading>;
+      }
+      return <p key={`${block.slice(0, 24)}-${index}`}>{renderInlineResearchText(block.replace(/\n/g, ' '), onCitation)}</p>;
+    })}
+  </div>;
+}
+
+function EvidenceUsed({ result, focusedLabel }: { result: NonNullable<ResearchStreamState['result']>; focusedLabel?: string }) {
+  useEffect(() => {
+    if (!focusedLabel) return;
+    document.getElementById(`research-evidence-${focusedLabel}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [focusedLabel]);
   if (result.retrieved_passages.length === 0) return null;
   return <section className="synthesis-evidence" aria-label="Evidence used in this synthesis">
     <div className="eyebrow">Evidence used</div>
-    <p className="muted-copy">These passages were retrieved and persisted by the backend. The model response is not a substitute for reading them.</p>
+    <p className="muted-copy">Expand a passage to inspect the text, location, source type, and reason it belongs in this answer.</p>
     <div className="synthesis-evidence-list">
-      {result.retrieved_passages.slice(0, 5).map((passage, index) => <details key={passage.passage_id}>
-        <summary><span className="evidence-identity"><span className="evidence-artifact" aria-hidden="true">P{index + 1}</span><span>{passage.source_title}</span></span><span>{passage.page_number ? `p. ${passage.page_number}` : 'page not reported'}</span></summary>
+      {result.retrieved_passages.map((passage, index) => <details id={`research-evidence-${citationLabel(index)}`} open={focusedLabel === citationLabel(index)} key={passage.passage_id}>
+        <summary><span className="evidence-identity"><span className="evidence-artifact" aria-hidden="true">{citationLabel(index)}</span><span>{passage.source_title}</span></span><span>{passage.page_number ? `p. ${passage.page_number}` : passage.section_heading || 'location not reported'}</span></summary>
         <p>{passage.content}</p>
-        {passage.citation_string && <small className="muted-copy">{passage.citation_string}</small>}
+        <div className="evidence-detail-meta">
+          <span>{passage.source_classification || passage.source_type || 'Source type not reported'}</span>
+          {passage.author && <span>{passage.author}</span>}
+          {passage.publication && <span>{passage.publication}{passage.publication_year ? `, ${passage.publication_year}` : ''}</span>}
+          {passage.citation_string && <span>{passage.citation_string}</span>}
+        </div>
       </details>)}
     </div>
+  </section>;
+}
+
+function ResearchSources({ result }: { result: ResearchResultDTO }) {
+  const sources = result.retrieved_passages.reduce<ResearchPassageDTO[]>((items, passage) => {
+    const key = passage.source_id || passage.source_title;
+    if (!items.some((item) => (item.source_id || item.source_title) === key)) items.push(passage);
+    return items;
+  }, []);
+  const web = result.web_research;
+  return <section className="research-sources panel" aria-label="Sources used in this research">
+    <div className="panel-heading"><span className="eyebrow">Sources</span><span className="muted-copy">Human-readable references</span></div>
+    {sources.length === 0 ? <p className="section-pad muted-copy">No source was used as evidence in this run.</p> : <div className="source-list">
+      {sources.map((source, index) => <article className="source-card" key={source.source_id || source.source_title}>
+        <div className="source-card-index">[{index + 1}]</div>
+        <div className="source-card-main">
+          <div className="source-card-heading"><h3>{source.source_title}</h3><span className="source-type">{source.source_classification || source.source_type || 'UNVERIFIED'}</span></div>
+          <p className="source-byline">{source.author || 'Author not reported'}{source.publication ? ` · ${source.publication}` : ''}{source.publication_year ? ` · ${source.publication_year}` : ''}</p>
+          <p className="source-relevance">Relevant evidence: {source.section_heading || (source.page_number ? `page ${source.page_number}` : 'retrieved passage')}</p>
+          {source.source_reference_url ? <a className="source-link" href={source.source_reference_url} target="_blank" rel="noreferrer">Open canonical source <span aria-hidden="true">↗</span></a> : <span className="source-local">Indexed local source</span>}
+        </div>
+      </article>)}
+    </div>}
+    {web && web.status === 'unavailable' && <div className="web-status-note" role="status"><strong>Live web research unavailable in this run.</strong><span>{web.warnings?.[0] || 'Only indexed local sources are shown.'}</span></div>}
+    {web && web.status !== 'not_requested' && web.status !== 'unavailable' && <div className="web-status-note"><strong>Live research</strong><span>{web.search_queries?.length || web.research_directions?.length || 0} research directions · {web.discovered_results.length} discoveries · {web.acquired_sources.length} acquired sources</span></div>}
   </section>;
 }
 
 export function ResearchWorkspace({ userId }: Props) {
   const [query, setQuery] = useState('');
   const [domain, setDomain] = useState('Philosophy & Empirical Epistemology');
+  const [depth, setDepth] = useState('standard');
   const [includeWeb, setIncludeWeb] = useState(false);
   const [evidenceQuery, setEvidenceQuery] = useState('');
   const [evidenceResults, setEvidenceResults] = useState<SearchResultDTO[]>([]);
@@ -98,13 +159,14 @@ export function ResearchWorkspace({ userId }: Props) {
   const [dialogueTurn, setDialogueTurn] = useState<DialogueTurnDTO | null>(null);
   const [dialogueError, setDialogueError] = useState('');
   const [dialogueLoading, setDialogueLoading] = useState(false);
+  const [focusedCitation, setFocusedCitation] = useState<string>();
   const { state, run, cancel } = useResearchStream(userId);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalized = query.trim();
     if (normalized.length < 3 || !userId) return;
-    await run(normalized, domain, includeWeb);
+    await run(normalized, domain, includeWeb, depth);
   };
 
   const isRunning = state.status === 'streaming';
@@ -181,6 +243,14 @@ export function ResearchWorkspace({ userId }: Props) {
             <span className="eyebrow">External sources</span>
             <span><input id="research-web" type="checkbox" checked={includeWeb} onChange={(event) => setIncludeWeb(event.target.checked)} disabled={isRunning} /> Include web discovery and acquisition</span>
           </label>
+          <label className="depth-control" htmlFor="research-depth">
+            <span className="eyebrow">Research depth</span>
+            <select id="research-depth" value={depth} onChange={(event) => setDepth(event.target.value)} disabled={isRunning}>
+              <option value="standard">Standard</option>
+              <option value="deep">Deep comparison</option>
+              <option value="brief">Brief orientation</option>
+            </select>
+          </label>
           <div className="inquiry-actions">
             {!userId && <span className="configuration-note">Configure a valid backend user ID in Settings.</span>}
             {isRunning ? (
@@ -220,11 +290,7 @@ export function ResearchWorkspace({ userId }: Props) {
           <div className="result-panel panel">
             <div className="panel-heading"><span className="result-heading"><span className="result-sigil" aria-hidden="true" /><span className="eyebrow">Research output</span></span>{state.validationStatus && <span className="status-label">{state.validationStatus}</span>}{isCancelled && <span className="status-label">CANCELLED</span>}</div>
             {state.finalResponse ? (
-<<<<<<< HEAD
-              <article className="synthesis"><div className="eyebrow">Validated workflow output</div><p>{state.finalResponse}</p>{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'}</div>}{typeof state.result?.web_research?.status === 'string' && state.result.web_research.status !== 'skipped' && <div className="result-meta">Web research: {state.result.web_research.status}</div>}</article>
-=======
-              <article className="synthesis"><div className="eyebrow">Evidence-grounded workflow output</div><p>{state.finalResponse}</p>{state.result?.web_research && <div className="research-source-note">External research: {state.result.web_research.status.replace(/_/g, ' ')}; {state.result.web_research.acquired_sources.length} acquired source{state.result.web_research.acquired_sources.length === 1 ? '' : 's'}.</div>}{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'} / {state.result?.retrieved_passages.length ?? 0} retrieved passage{state.result?.retrieved_passages.length === 1 ? '' : 's'}</div>}{state.result && <EvidenceUsed result={state.result} />}</article>
->>>>>>> origin/main
+              <article className="synthesis"><div className="eyebrow">Evidence-grounded scholarly answer</div><ResearchAnswer text={state.finalResponse} onCitation={setFocusedCitation} />{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'} / {state.result?.retrieved_passages.length ?? 0} evidence passage{state.result?.retrieved_passages.length === 1 ? '' : 's'}</div>}{state.result && <EvidenceUsed result={state.result} focusedLabel={focusedCitation} />}</article>
             ) : (
               <div className="result-waiting"><LoaderCircle className="spin" size={18} /><p>The final synthesis will appear when the backend emits <code>research_completed</code>.</p></div>
             )}
@@ -234,6 +300,8 @@ export function ResearchWorkspace({ userId }: Props) {
           </div>
         </section>
       )}
+
+      {state.result && <ResearchSources result={state.result} />}
 
       <section className="evidence-explorer panel">
         <div className="panel-heading"><span className="eyebrow">03 / Evidence desk</span><span className="muted-copy">Hybrid search returned by backend</span></div>

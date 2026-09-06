@@ -6,13 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from backend.app.api.dependencies import AuthenticatedPrincipal, get_current_user
-<<<<<<< HEAD
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
 from backend.app.application.use_cases.ingestion import DocumentIngestionService
 from backend.app.application.use_cases.embedding_indexing import EmbeddingIndexError
 from backend.app.application.use_cases.document_service import DocumentService
-=======
->>>>>>> origin/main
 from backend.app.api.v1.schemas.dtos import DocumentResponseDTO
 from backend.app.application.use_cases.document_service import DocumentService
 from backend.app.application.use_cases.ingestion import DocumentIngestionService

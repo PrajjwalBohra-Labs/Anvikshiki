@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -125,14 +125,9 @@ class EpistemicPositionResponseDTO(BaseModel):
 class ResearchRunRequestDTO(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=128)
     query: str = Field(..., min_length=3, max_length=10_000)
-<<<<<<< HEAD
     domain: Optional[str] = Field("Philosophy & Empirical Epistemology", max_length=128)
     depth: Optional[str] = "standard"
     include_web: bool = False
-=======
-    domain: str | None = Field("Philosophy & Empirical Epistemology", max_length=128)
-    depth: str | None = "standard"
->>>>>>> origin/main
 
 class ResearchResumeRequestDTO(BaseModel):
     research_question_id: str = Field(..., min_length=1, max_length=128)
@@ -187,6 +182,12 @@ class ResearchPassageResponseDTO(BaseModel):
     source_type: str | None = None
     retrieval_channels: list[str] = []
     citation_string: str | None = None
+    author: str | None = None
+    source_reference_url: str | None = None
+    publication: str | None = None
+    publication_year: int | None = None
+    section_heading: str | None = None
+    source_classification: str | None = None
 
 class ValidatedClaimResponseDTO(BaseModel):
     claim_id: str | None = None
@@ -215,13 +216,8 @@ class ResearchResultResponseDTO(BaseModel):
     retrieved_passages: list[ResearchPassageResponseDTO] = []
     claims: list[ValidatedClaimResponseDTO] = []
     specialist_analysis: SpecialistAnalysisResponseDTO = SpecialistAnalysisResponseDTO()
-<<<<<<< HEAD
     validation: Dict[str, Any] = {}
     web_research: Dict[str, Any] = {}
-=======
-    validation: dict[str, Any] = {}
-    web_research: dict[str, Any] = {}
->>>>>>> origin/main
 
 class ResearchRunSummaryResponseDTO(BaseModel):
     run_id: str
@@ -432,7 +428,6 @@ class UserResponseDTO(BaseModel):
     user_id: str
     username: str
     created_at: datetime
-<<<<<<< HEAD
     access_token: Optional[str] = None
 
 
@@ -460,6 +455,3 @@ class BackgroundJobResponseDTO(BaseModel):
     created_at: datetime
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
-=======
-    access_token: str | None = None
->>>>>>> origin/main

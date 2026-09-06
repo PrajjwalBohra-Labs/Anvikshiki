@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,15 +16,10 @@ class DocumentService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-<<<<<<< HEAD
     async def list_documents(
         self, source_id: Optional[str] = None, owner_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         stmt = select(DocumentModel).join(SourceModel).order_by(DocumentModel.created_at.desc())
-=======
-    async def list_documents(self, source_id: str | None = None) -> list[dict[str, Any]]:
-        stmt = select(DocumentModel).order_by(DocumentModel.created_at.desc())
->>>>>>> origin/main
         if source_id:
             stmt = stmt.where(DocumentModel.source_id == source_id)
         if owner_id:
@@ -33,7 +28,6 @@ class DocumentService:
         documents = result.scalars().all()
         return [await self.describe_document(document) for document in documents]
 
-<<<<<<< HEAD
     async def get_document(
         self, document_id: str, owner_id: Optional[str] = None
     ) -> Optional[DocumentModel]:
@@ -44,10 +38,6 @@ class DocumentService:
             )
         result = await self.session.execute(stmt)
         return result.scalars().first()
-=======
-    async def get_document(self, document_id: str) -> DocumentModel | None:
-        return await self.session.get(DocumentModel, document_id)
->>>>>>> origin/main
 
     async def describe_document(self, document: DocumentModel) -> dict[str, Any]:
         count_result = await self.session.execute(

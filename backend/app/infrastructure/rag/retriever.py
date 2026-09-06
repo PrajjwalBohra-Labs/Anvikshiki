@@ -5,7 +5,7 @@ are retrieval metadata only and are never used as documentary evidence.
 """
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,16 +60,10 @@ class HybridRetriever:
         source_type: SourceType | None = None,
         language: str | None = None,
         top_k: int = 5,
-<<<<<<< HEAD
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
         owner_id: Optional[str] = None,
-=======
-        source_id: str | None = None,
-        document_id: str | None = None,
-        document_version_id: str | None = None,
->>>>>>> origin/main
     ) -> RetrievalOutcome:
         results = await self.lexical.search(
             query=query,
@@ -88,16 +82,10 @@ class HybridRetriever:
         query: str,
         source_type: SourceType | None = None,
         top_k: int = 5,
-<<<<<<< HEAD
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
         owner_id: Optional[str] = None,
-=======
-        source_id: str | None = None,
-        document_id: str | None = None,
-        document_version_id: str | None = None,
->>>>>>> origin/main
     ) -> RetrievalOutcome:
         try:
             query_vector = await self.embed_client.get_embedding(query)
@@ -125,7 +113,6 @@ class HybridRetriever:
         source_type: SourceType | None = None,
         language: str | None = None,
         top_k: int = 5,
-<<<<<<< HEAD
         rrf_k: Optional[int] = None,
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
@@ -135,16 +122,6 @@ class HybridRetriever:
         lexical_candidate_limit: Optional[int] = None,
         semantic_candidate_limit: Optional[int] = None,
         owner_id: Optional[str] = None,
-=======
-        rrf_k: int | None = None,
-        source_id: str | None = None,
-        document_id: str | None = None,
-        document_version_id: str | None = None,
-        lexical_weight: float | None = None,
-        semantic_weight: float | None = None,
-        lexical_candidate_limit: int | None = None,
-        semantic_candidate_limit: int | None = None,
->>>>>>> origin/main
     ) -> RetrievalOutcome:
         if top_k < 1:
             raise ValueError("top_k must be positive.")

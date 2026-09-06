@@ -1,6 +1,7 @@
 from backend.app.application.orchestration.research_workflow import (
     append_citation_ledger,
     merge_research_evidence,
+    research_directions_for_query,
     research_depth_for_query,
     should_run_web_research,
 )
@@ -21,6 +22,19 @@ def test_web_research_is_required_when_local_evidence_is_missing(monkeypatch) ->
     assert should_run_web_research("What is pramana?", "standard", 0)
     assert should_run_web_research("Compare these schools", "deep", 2)
     assert not should_run_web_research("What is pramana?", "standard", 2)
+    assert should_run_web_research("What is pramana?", "standard", 2, requested=True)
+
+
+def test_philosophical_question_gets_multiple_distinct_research_directions() -> None:
+    directions = research_directions_for_query(
+        "How experience, memory and perception change with time?",
+        "Philosophy & Empirical Epistemology",
+    )
+
+    assert len(directions) == 6
+    assert any("primary text" in direction for direction in directions)
+    assert any("cognitive science" in direction for direction in directions)
+    assert len({direction.casefold() for direction in directions}) == len(directions)
 
 
 def test_isolated_tests_never_depend_on_external_web_search(monkeypatch) -> None:

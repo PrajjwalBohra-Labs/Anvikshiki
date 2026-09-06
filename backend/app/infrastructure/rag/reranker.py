@@ -1,5 +1,6 @@
 
 from backend.app.core.config import RuntimeProfile, settings
+from typing import List, Optional
 from backend.app.infrastructure.ai.embedding_reranker_adapters import (
     LocalCrossEncoderRerankerAdapter,
 )
@@ -90,18 +91,11 @@ class AdvancedRetriever(HybridRetriever):
         source_type=None,
         language: str | None = None,
         top_k: int = 5,
-<<<<<<< HEAD
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
         owner_id: Optional[str] = None,
     ) -> List[ScoredPassage]:
-=======
-        source_id: str | None = None,
-        document_id: str | None = None,
-        document_version_id: str | None = None,
-    ) -> list[ScoredPassage]:
->>>>>>> origin/main
         outcome = await self.retrieve_and_rerank_with_metadata(
             query=query,
             source_type=source_type,
@@ -120,16 +114,10 @@ class AdvancedRetriever(HybridRetriever):
         source_type=None,
         language: str | None = None,
         top_k: int = 5,
-<<<<<<< HEAD
         source_id: Optional[str] = None,
         document_id: Optional[str] = None,
         document_version_id: Optional[str] = None,
         owner_id: Optional[str] = None,
-=======
-        source_id: str | None = None,
-        document_id: str | None = None,
-        document_version_id: str | None = None,
->>>>>>> origin/main
     ) -> RetrievalOutcome:
         outcome = await self.hybrid_retrieve_with_metadata(
             query=query,

@@ -142,6 +142,12 @@ export interface ResearchPassageDTO {
   source_type?: string | null;
   retrieval_channels: string[];
   citation_string?: string | null;
+  author?: string | null;
+  source_reference_url?: string | null;
+  publication?: string | null;
+  publication_year?: number | null;
+  section_heading?: string | null;
+  source_classification?: string | null;
 }
 
 export interface ValidatedClaimDTO {
@@ -174,15 +180,15 @@ export interface ResearchResultDTO {
   claims: ValidatedClaimDTO[];
   specialist_analysis: SpecialistAnalysisDTO;
   validation: Record<string, unknown>;
-<<<<<<< HEAD
-  web_research?: Record<string, unknown>;
-=======
   web_research?: WebResearchDTO;
 }
 
 export interface WebResearchDTO {
-  status: 'not_requested' | 'not_needed' | 'searched' | 'acquired' | 'search_failed' | 'unavailable' | 'insufficient_evidence' | string;
+  requested?: boolean;
+  status: string;
   query?: string;
+  research_directions?: string[];
+  search_queries?: string[];
   discovered_results: WebResearchDiscoveryDTO[];
   acquired_sources: WebResearchAcquiredSourceDTO[];
   warnings: string[];
@@ -205,7 +211,9 @@ export interface WebResearchAcquiredSourceDTO {
   url?: string | null;
   passages_count: number;
   classification: string;
->>>>>>> origin/main
+  author?: string | null;
+  publication?: string | null;
+  publication_year?: number | null;
 }
 
 export interface ResearchRunDetailDTO extends ResearchRunSummaryDTO {

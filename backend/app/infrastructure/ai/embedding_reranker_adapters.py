@@ -46,18 +46,8 @@ class LocalSentenceTransformerEmbeddingAdapter:
         
         model = await asyncio.to_thread(self._get_model)
         if model is not None:
-<<<<<<< HEAD
             embeddings = model.encode(texts, normalize_embeddings=True)
             vectors = [emb.tolist() if hasattr(emb, "tolist") else list(emb) for emb in embeddings]
-=======
-            # sentence-transformers performs synchronous CPU work. Keep it
-            # off the FastAPI/worker event loop so long model calls cannot
-            # starve health checks or unrelated requests.
-            embeddings = await asyncio.to_thread(
-                model.encode, texts, normalize_embeddings=True
-            )
-            vectors = [emb.tolist() for emb in embeddings]
->>>>>>> origin/main
             if any(len(vector) != self.dimensions for vector in vectors):
                 raise RuntimeError(
                     f"Embedding model '{self.model_name}' returned a dimension other than "

@@ -1,9 +1,6 @@
 import mimetypes
 from datetime import datetime, timezone
-<<<<<<< HEAD
-=======
 from pathlib import Path
->>>>>>> origin/main
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -189,7 +186,6 @@ class DocumentIngestionService:
         filename: str,
         content: bytes,
         mime_type: str | None = None,
-<<<<<<< HEAD
         owner_id: str | None = None,
     ) -> tuple[DocumentModel, list[PassageModel]]:
         source_stmt = select(SourceModel).where(SourceModel.id == source_id)
@@ -198,10 +194,6 @@ class DocumentIngestionService:
                 or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None))
             )
         source_result = await self.session.execute(source_stmt)
-=======
-    ) -> tuple[DocumentModel, list[PassageModel]]:
-        source_result = await self.session.execute(select(SourceModel).where(SourceModel.id == source_id))
->>>>>>> origin/main
         source = source_result.scalars().first()
         if not source:
             raise AnvikshikiDomainError(f"Source {source_id} not found.", status_code=404)
