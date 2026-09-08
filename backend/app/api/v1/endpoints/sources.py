@@ -43,7 +43,7 @@ async def create_source(
     db.add(source)
     await db.commit()
     await db.refresh(source)
-    source_list_cache.invalidate(SOURCE_LIST_CACHE_KEY)
+    source_list_cache.clear()
     return source
 
 @router.get("/", response_model=List[SourceResponse])
@@ -51,10 +51,25 @@ async def list_sources(
     db: AsyncSession = Depends(get_db),
     current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
 ):
+    cache_key = f"{SOURCE_LIST_CACHE_KEY}:{current_user.user_id if current_user else 'public'}"
+    try:
+        cached = source_list_cache.get(cache_key)
+        if cached is not None:
+            return cached
+    except Exception:
+        # Cache is an optimization; never turn an unavailable cache into an
+        # unavailable source library, and never log cache internals.
+        logger.warning("cache_fallback", operation="read")
+
     stmt = select(SourceModel)
     if current_user is not None:
         stmt = stmt.where(
             or_(SourceModel.user_id == current_user.user_id, SourceModel.user_id.is_(None))
         )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    payload = [SourceResponse.model_validate(source).model_dump() for source in result.scalars().all()]
+    try:
+        source_list_cache.set(cache_key, payload)
+    except Exception:
+        logger.warning("cache_fallback", operation="write")
+    return payload

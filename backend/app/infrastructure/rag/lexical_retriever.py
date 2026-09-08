@@ -125,14 +125,52 @@ class LexicalRetriever:
                 .limit(resolved_limit)
             )
             result = await self.session.execute(stmt)
+            ranked_rows = result.all()
+            if ranked_rows:
+                return [
+                    ScoredPassage(
+                        passage=passage,
+                        score=float(score or 0.0),
+                        retrieval_method="lexical",
+                        lexical_score=float(score or 0.0),
+                    )
+                    for passage, score in ranked_rows
+                ]
+
+            # A missing/stale derived tsvector must not erase authoritative
+            # passage text from a focused query. This bounded fallback is
+            # lexical only; it never turns a retrieval score into evidence.
+            terms = [
+                term.lower()
+                for term in re.findall(r"\w+", normalized_query, flags=re.UNICODE)
+                if len(term) > 2
+            ]
+            if not terms:
+                return []
+            fallback = select(PassageModel).join(PassageModel.document).join(DocumentModel.source)
+            fallback = fallback.where(or_(*(PassageModel.content.ilike(f"%{term}%") for term in terms)))
+            if source_type:
+                fallback = fallback.where(SourceModel.source_type == source_type)
+            if language:
+                fallback = fallback.where(PassageModel.language == language)
+            if source_id:
+                fallback = fallback.where(DocumentModel.source_id == source_id)
+            if document_id:
+                fallback = fallback.where(PassageModel.document_id == document_id)
+            if document_version_id:
+                fallback = fallback.where(PassageModel.document_version_id == document_version_id)
+            if owner_id:
+                fallback = fallback.where(or_(SourceModel.user_id == owner_id, SourceModel.user_id.is_(None)))
+            fallback = fallback.options(selectinload(PassageModel.document).selectinload(DocumentModel.source)).limit(resolved_limit)
+            fallback_rows = (await self.session.execute(fallback)).scalars().all()
             return [
                 ScoredPassage(
                     passage=passage,
-                    score=float(score or 0.0),
+                    score=float(sum(passage.content.lower().count(term) for term in terms)),
                     retrieval_method="lexical",
-                    lexical_score=float(score or 0.0),
+                    lexical_score=float(sum(passage.content.lower().count(term) for term in terms)),
                 )
-                for passage, score in result.all()
+                for passage in fallback_rows
             ]
 
         # SQLite test databases do not provide tsvector or GIN. This path

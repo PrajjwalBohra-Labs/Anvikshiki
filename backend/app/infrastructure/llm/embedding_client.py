@@ -24,7 +24,11 @@ class LocalEmbeddingClient:
         self.model = model
         self.adapter = LocalSentenceTransformerEmbeddingAdapter(model_name=model)
 
-    def _generate_synthetic_vector(self, text: str, dim: int = 64) -> list[float]:
+    def _generate_synthetic_vector(self, text: str, dim: int | None = None) -> list[float]:
+        # Test vectors must obey the same dimensional contract as the
+        # PostgreSQL pgvector column; a smaller fixture vector is not a valid
+        # semantic query for the production index.
+        dim = dim or settings.EMBEDDING_DIMENSIONS
         vec = []
         for i in range(dim):
             digest = hashlib.sha256(f"{text}_{i}".encode()).hexdigest()

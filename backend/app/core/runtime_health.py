@@ -1,8 +1,11 @@
 """Safe runtime probes used by health and readiness endpoints."""
 
+import structlog
 from sqlalchemy import text
 
 from backend.app.infrastructure.database.session import AsyncSessionLocal, engine
+
+logger = structlog.get_logger(__name__)
 
 
 async def probe_runtime(session_factory=AsyncSessionLocal) -> dict[str, str]:
@@ -36,6 +39,7 @@ async def probe_runtime(session_factory=AsyncSessionLocal) -> dict[str, str]:
                 schema_status = "current" if required_schema.scalar_one() == 3 else "out_of_date"
     except Exception:
         # Do not expose connection strings, credentials, or driver internals.
+        logger.warning("health_check_failed")
         pass
 
     ready = database == "connected" and (

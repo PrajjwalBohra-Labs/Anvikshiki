@@ -36,6 +36,10 @@ from backend.app.application.use_cases.research_continuity import (
     ResearchContinuityService,
 )
 from backend.app.application.use_cases.research_run_service import ResearchRunService
+from backend.app.application.use_cases.reasoning_persistence import (
+    get_reasoning_artifacts,
+    persist_reasoning_artifacts,
+)
 from backend.app.infrastructure.database.session import AsyncSessionLocal, get_db
 
 router = APIRouter()
@@ -158,6 +162,27 @@ async def get_research_question(
         constraints=question.constraints or [],
         user_position=question.user_position,
         open_questions=question.open_questions or [],
+        normalized_question=question.normalized_question,
+        interpreted_question=question.interpreted_question,
+        primary_intent=question.primary_intent,
+        secondary_intents=question.secondary_intents or [],
+        intellectual_tasks=question.intellectual_tasks or [],
+        concepts=question.concepts or [],
+        traditions=question.traditions or [],
+        schools=question.schools or [],
+        disciplines=question.disciplines or [],
+        assumptions=question.assumptions or [],
+        presuppositions=question.presuppositions or [],
+        ambiguities=question.ambiguities or [],
+        temporal_scope=question.temporal_scope,
+        textual_scope=question.textual_scope,
+        geographical_scope=question.geographical_scope,
+        requested_depth=question.requested_depth,
+        expected_answer_form=question.expected_answer_form,
+        research_requirement=question.research_requirement,
+        evidence_requirement=question.evidence_requirement,
+        interpretation_confidence=question.interpretation_confidence,
+        alternative_interpretations=question.alternative_interpretations or [],
     )
 
 
@@ -227,8 +252,10 @@ async def run_research(
         include_web=payload.include_web,
         )
         result_payload = engine._result_payload(result_state)
+        await persist_reasoning_artifacts(db, run, question, result_payload)
         await service.complete_run(run.id, output_references=result_payload)
     except Exception as exc:
+        await db.rollback()
         await service.fail_run(run.id, str(exc))
         raise
 
@@ -290,12 +317,15 @@ async def stream_research_events(
                 public_event = _event_payload(run.id, sequence, event)
                 await service.record_event(run.id, public_event, sequence)
                 if event.get("event") == "research_completed":
-                    await service.complete_run(run.id, output_references=event.get("result") or {})
+                    result_payload = event.get("result") or {}
+                    await persist_reasoning_artifacts(db, run, question, result_payload)
+                    await service.complete_run(run.id, output_references=result_payload)
                 yield f"id: {public_event['event_id']}\ndata: {json.dumps(public_event, default=str)}\n\n"
         except asyncio.CancelledError:
             await service.cancel_run(run.id)
             raise
         except Exception as exc:
+            await db.rollback()
             await service.fail_run(run.id, str(exc))
             sequence += 1
             error_event = _event_payload(
@@ -385,6 +415,18 @@ async def get_research_provenance(
 ):
     await _owned_run(ResearchRunService(db), run_id, resolve_user_id(current_user, user_id))
     return await ProvenanceService(db).trace_run(run_id)
+
+
+@router.get("/runs/{run_id}/reasoning", response_model=dict[str, Any])
+async def get_research_reasoning(
+    run_id: str,
+    user_id: str | None = Query(default=None, min_length=1, max_length=128),
+    db: AsyncSession = Depends(get_db),
+    current_user: AuthenticatedPrincipal | None = Depends(get_current_user),
+):
+    """Return persisted inquiry-local reasoning artifacts, not private thinking."""
+    await _owned_run(ResearchRunService(db), run_id, resolve_user_id(current_user, user_id))
+    return await get_reasoning_artifacts(db, run_id)
 
 
 @router.get("/runs/{run_id}/provenance/graph", response_model=ProvenanceGraphResponseDTO)
