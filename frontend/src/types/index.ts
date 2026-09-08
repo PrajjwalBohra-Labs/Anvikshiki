@@ -107,6 +107,27 @@ export interface ResearchQuestionDetailDTO extends ResearchQuestionSummaryDTO {
   constraints: string[];
   user_position?: string | null;
   open_questions: string[];
+  normalized_question?: string | null;
+  interpreted_question?: string | null;
+  primary_intent?: string | null;
+  secondary_intents: string[];
+  intellectual_tasks: string[];
+  concepts: string[];
+  traditions: string[];
+  schools: string[];
+  disciplines: string[];
+  assumptions: string[];
+  presuppositions: string[];
+  ambiguities: Record<string, unknown>[];
+  temporal_scope?: string | null;
+  textual_scope?: string | null;
+  geographical_scope?: string | null;
+  requested_depth?: string | null;
+  expected_answer_form?: string | null;
+  research_requirement?: string | null;
+  evidence_requirement?: string | null;
+  interpretation_confidence?: number | null;
+  alternative_interpretations: Record<string, unknown>[];
 }
 
 export interface ResearchRunSummaryDTO {
@@ -169,6 +190,33 @@ export interface SpecialistAnalysisDTO {
   challenges: Record<string, unknown>[];
 }
 
+export interface ResearchReasoningDTO {
+  question_understanding?: {
+    literal_question?: string;
+    underlying_question?: string;
+    central_problem?: string;
+    key_concepts?: string[];
+    assumptions?: string[];
+    ambiguities?: { concept?: string; possible_meanings?: string[]; handling?: string }[];
+    premise_challenges?: string[];
+    answer_type?: string;
+    required_depth?: string;
+    disciplines?: string[];
+  };
+  research_plan?: {
+    question?: string;
+    purpose?: string;
+    search_terms?: string[];
+    expected_evidence?: string;
+    disciplines_traditions?: string[];
+  }[];
+  source_positions?: Record<string, unknown>[];
+  relationships?: Record<string, unknown>[];
+  chains?: Record<string, unknown>[];
+  gaps?: string[];
+  alternatives?: string[];
+}
+
 export interface ResearchResultDTO {
   run_id: string;
   query: string;
@@ -180,6 +228,8 @@ export interface ResearchResultDTO {
   claims: ValidatedClaimDTO[];
   specialist_analysis: SpecialistAnalysisDTO;
   validation: Record<string, unknown>;
+  reasoning?: ResearchReasoningDTO;
+  technical_provenance?: Record<string, unknown>;
   web_research?: WebResearchDTO;
 }
 

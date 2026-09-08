@@ -3,23 +3,25 @@ import { AlertTriangle, BookOpen, Check, CheckCircle2, CircleDot, Database, GitB
 import { useResearchStream, type ResearchStreamState } from '../../hooks/useResearchStream';
 import { executeDialogue, searchPassages } from '../../api/services';
 import { navigate } from '../../routing';
-import type { DialogueTurnDTO, ResearchPassageDTO, ResearchResultDTO, SearchResultDTO } from '../../types';
+import type { DialogueTurnDTO, ResearchPassageDTO, ResearchReasoningDTO, ResearchResultDTO, SearchResultDTO } from '../../types';
 import './ResearchWorkspace.css';
 
 interface Props { userId: string; }
 
 const stageLabels: Record<string, string> = {
   coordinator: 'Question understood',
+  question_understanding: 'Clarifying the question',
   web_research: 'Discovering and acquiring web sources',
   retrieval: 'Retrieving indexed evidence',
   specialist_analysis: 'Running specialist analysis',
+  cross_source_reasoning: 'Comparing source positions',
   challenger: 'Examining challenges',
   validator: 'Validating synthesis',
   synthesis: 'Composing the synthesis',
 };
 
 const workflowStages = [
-  { label: 'Question', node: 'coordinator' },
+  { label: 'Question', node: 'question_understanding' },
   { label: 'Web sources', node: 'web_research' },
   { label: 'Retrieval', node: 'retrieval' },
   { label: 'Specialist analysis', node: 'specialist_analysis' },
@@ -117,6 +119,39 @@ function EvidenceUsed({ result, focusedLabel }: { result: NonNullable<ResearchSt
         </div>
       </details>)}
     </div>
+  </section>;
+}
+
+function ReasoningInspection({ reasoning }: { reasoning?: ResearchReasoningDTO }) {
+  if (!reasoning) return null;
+  const understanding = reasoning.question_understanding;
+  const relationships = reasoning.relationships ?? [];
+  const chains = reasoning.chains ?? [];
+  const positions = reasoning.source_positions ?? [];
+  return <section className="reasoning-inspection panel" aria-label="Research reasoning">
+    <div className="panel-heading"><span className="eyebrow">Reasoning record</span><span className="muted-copy">Question, comparison, and evidence logic</span></div>
+    {understanding && <details open className="reasoning-block">
+      <summary><strong>Question understood</strong><span>{understanding.answer_type?.replace(/_/g, ' ') || 'research question'}</span></summary>
+      <div className="reasoning-copy">
+        {understanding.central_problem && <p><b>Central problem</b>{understanding.central_problem}</p>}
+        {understanding.underlying_question && <p><b>Underlying question</b>{understanding.underlying_question}</p>}
+        {understanding.ambiguities?.map((item) => <div className="ambiguity-note" key={item.concept}><b>{item.concept} is ambiguous</b><span>{item.possible_meanings?.join(' · ')}</span><small>{item.handling}</small></div>)}
+      </div>
+    </details>}
+    {(reasoning.research_plan?.length ?? 0) > 0 && <details className="reasoning-block">
+      <summary><strong>Research directions</strong><span>{reasoning.research_plan?.length} purposes</span></summary>
+      <ol className="reasoning-plan">{reasoning.research_plan?.map((item, index) => <li key={`${item.question}-${index}`}><b>{item.question}</b><span>{item.purpose}</span><small>Expected: {item.expected_evidence}</small></li>)}</ol>
+    </details>}
+    {(positions.length > 0 || relationships.length > 0) && <details className="reasoning-block">
+      <summary><strong>Source positions and comparison</strong><span>{relationships.length} relationship{relationships.length === 1 ? '' : 's'}</span></summary>
+      <div className="source-position-list">{positions.map((item, index) => <article key={`${String(item.source_title)}-${index}`}><span className="eyebrow">{String(item.source_type || 'SOURCE')}</span><h3>{String(item.source_title || 'Source')}</h3><p>{String(item.central_position || 'No direct position extracted.')}</p><small>Direct statement from retrieved passage; broader argument remains an interpretation.</small></article>)}</div>
+      {relationships.length > 0 && <div className="relationship-list reasoning-relationships">{relationships.map((item, index) => <article key={`${String(item.source_a)}-${String(item.source_b)}-${index}`}><strong>{String(item.relation || 'unresolved')}</strong><span>{String(item.source_a)} ↔ {String(item.source_b)}</span><small>{String(item.explanation || '')}</small></article>)}</div>}
+    </details>}
+    {chains.length > 0 && <details className="reasoning-block">
+      <summary><strong>Why these conclusions?</strong><span>{chains.length} reasoning chain{chains.length === 1 ? '' : 's'}</span></summary>
+      <div className="claim-chain-list">{chains.map((item, index) => <article key={`${String(item.claim)}-${index}`}><div className="claim-chain-heading"><span className="eyebrow">{String(item.type || 'CLAIM')}</span><span>{String(item.inference_status || '')}</span></div><p><b>Claim</b>{String(item.claim || '')}</p><p><b>Analysis</b>{String(item.analysis || '')}</p><p><b>Conclusion</b>{String(item.conclusion || '')}</p></article>)}</div>
+    </details>}
+    {(reasoning.gaps?.length ?? 0) > 0 && <div className="reasoning-boundary"><b>What remains unresolved</b>{reasoning.gaps?.map((gap) => <span key={gap}>{gap}</span>)}</div>}
   </section>;
 }
 
@@ -290,7 +325,7 @@ export function ResearchWorkspace({ userId }: Props) {
           <div className="result-panel panel">
             <div className="panel-heading"><span className="result-heading"><span className="result-sigil" aria-hidden="true" /><span className="eyebrow">Research output</span></span>{state.validationStatus && <span className="status-label">{state.validationStatus}</span>}{isCancelled && <span className="status-label">CANCELLED</span>}</div>
             {state.finalResponse ? (
-              <article className="synthesis"><div className="eyebrow">Evidence-grounded scholarly answer</div><ResearchAnswer text={state.finalResponse} onCitation={setFocusedCitation} />{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'} / {state.result?.retrieved_passages.length ?? 0} evidence passage{state.result?.retrieved_passages.length === 1 ? '' : 's'}</div>}{state.result && <EvidenceUsed result={state.result} focusedLabel={focusedCitation} />}</article>
+              <article className="synthesis"><div className="eyebrow">Evidence-grounded research answer</div><ResearchAnswer text={state.finalResponse} onCitation={setFocusedCitation} />{state.validatedClaimsCount !== undefined && <div className="result-meta">{state.validatedClaimsCount} validated claim{state.validatedClaimsCount === 1 ? '' : 's'} / {state.result?.retrieved_passages.length ?? 0} evidence passage{state.result?.retrieved_passages.length === 1 ? '' : 's'}</div>}{state.result && <EvidenceUsed result={state.result} focusedLabel={focusedCitation} />} {state.result && <ReasoningInspection reasoning={state.result.reasoning} />}</article>
             ) : (
               <div className="result-waiting"><LoaderCircle className="spin" size={18} /><p>The final synthesis will appear when the backend emits <code>research_completed</code>.</p></div>
             )}

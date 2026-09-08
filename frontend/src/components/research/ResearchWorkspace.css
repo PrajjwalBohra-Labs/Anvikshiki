@@ -372,3 +372,25 @@
   .source-card { grid-template-columns: 30px minmax(0, 1fr); padding: 15px; }
   .source-card-heading { flex-direction: column; gap: 8px; }
 }
+.reasoning-inspection { margin-top: 24px; border-top: 1px solid rgba(210,184,139,.2); }
+.reasoning-block { border-top: 1px solid rgba(210,184,139,.12); padding: 14px 0; }
+.reasoning-block summary { display: flex; justify-content: space-between; gap: 16px; cursor: pointer; color: var(--text-secondary); }
+.reasoning-block summary span, .reasoning-block small { color: var(--text-quiet); font: 10px var(--font-mono); }
+.reasoning-copy p, .reasoning-plan li, .claim-chain-list p { display: grid; gap: 5px; margin: 12px 0; color: var(--text-secondary); line-height: 1.55; }
+.reasoning-copy b, .claim-chain-list b { color: var(--dusty-oat); font: 10px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; }
+.ambiguity-note, .reasoning-boundary { display: grid; gap: 5px; margin: 12px 0; padding: 11px 13px; border-left: 2px solid var(--dusty-oat); background: rgba(210,184,139,.06); }
+.ambiguity-note span, .ambiguity-note small, .reasoning-boundary span { color: var(--text-secondary); line-height: 1.5; }
+.reasoning-plan { margin: 0; padding-left: 20px; }
+.reasoning-plan li { padding-left: 6px; }
+.reasoning-plan li span { color: var(--text-secondary); }
+.source-position-list, .claim-chain-list { display: grid; gap: 10px; margin-top: 14px; }
+.source-position-list article, .claim-chain-list article { padding: 12px; border: 1px solid rgba(210,184,139,.14); background: rgba(255,255,255,.018); }
+.source-position-list h3 { margin: 5px 0; color: var(--text-primary); font-size: 14px; }
+.source-position-list p, .source-position-list small, .claim-chain-list p { margin: 6px 0; color: var(--text-secondary); line-height: 1.5; }
+.reasoning-relationships { display: grid; gap: 8px; margin-top: 12px; }
+.reasoning-relationships article { display: grid; grid-template-columns: minmax(86px, .25fr) 1fr; gap: 4px 12px; padding: 10px 12px; border-left: 2px solid var(--dusty-oat); }
+.reasoning-relationships article small { grid-column: 2; line-height: 1.45; }
+.reasoning-relationships strong { color: var(--dusty-oat); text-transform: uppercase; font: 10px var(--font-mono); }
+.reasoning-relationships span { color: var(--text-secondary); }
+.claim-chain-heading { display: flex; justify-content: space-between; color: var(--text-quiet); }
+.reasoning-boundary { margin-top: 14px; color: var(--text-secondary); }
