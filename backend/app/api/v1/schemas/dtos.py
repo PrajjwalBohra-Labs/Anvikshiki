@@ -162,6 +162,27 @@ class ResearchQuestionDetailResponseDTO(ResearchQuestionSummaryResponseDTO):
     constraints: list[str] = []
     user_position: str | None = None
     open_questions: list[str] = []
+    normalized_question: str | None = None
+    interpreted_question: str | None = None
+    primary_intent: str | None = None
+    secondary_intents: list[str] = []
+    intellectual_tasks: list[str] = []
+    concepts: list[str] = []
+    traditions: list[str] = []
+    schools: list[str] = []
+    disciplines: list[str] = []
+    assumptions: list[str] = []
+    presuppositions: list[str] = []
+    ambiguities: list[dict[str, Any]] = []
+    temporal_scope: str | None = None
+    textual_scope: str | None = None
+    geographical_scope: str | None = None
+    requested_depth: str | None = None
+    expected_answer_form: str | None = None
+    research_requirement: str | None = None
+    evidence_requirement: str | None = None
+    interpretation_confidence: float | None = None
+    alternative_interpretations: list[dict[str, Any]] = []
 
 # --- Public research result contracts ---
 class ResearchStepResponseDTO(BaseModel):
@@ -217,6 +238,15 @@ class ResearchResultResponseDTO(BaseModel):
     claims: list[ValidatedClaimResponseDTO] = []
     specialist_analysis: SpecialistAnalysisResponseDTO = SpecialistAnalysisResponseDTO()
     validation: Dict[str, Any] = {}
+    answer_strategy: Dict[str, Any] = {}
+    direct_answer: str | None = None
+    synthesis: list[dict[str, Any]] = []
+    contradictions: list[dict[str, Any]] = []
+    uncertainty: list[str] = []
+    limitations: list[str] = []
+    citations: list[dict[str, Any]] = []
+    reasoning: Dict[str, Any] = {}
+    technical_provenance: Dict[str, Any] = {}
     web_research: Dict[str, Any] = {}
 
 class ResearchRunSummaryResponseDTO(BaseModel):
@@ -248,30 +278,6 @@ class ResearchRunExecutionResponseDTO(BaseModel):
     safe_events: list[dict[str, Any]] = []
     result: ResearchResultResponseDTO
 
-
-class BackgroundResearchJobRequestDTO(BaseModel):
-    """Research-only payload for durable background execution."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    query: str = Field(..., min_length=3, max_length=10_000)
-    domain: str | None = Field(default=None, max_length=128)
-    depth: str | None = Field(default="standard", max_length=32)
-    idempotency_key: str = Field(..., min_length=1, max_length=128)
-
-
-class BackgroundJobResponseDTO(BaseModel):
-    job_id: str
-    job_type: str
-    research_run_id: str | None = None
-    status: str
-    attempts: int
-    max_attempts: int
-    result: dict[str, Any] | None = None
-    error_message: str | None = None
-    created_at: datetime
-    started_at: datetime | None = None
-    finished_at: datetime | None = None
 
 class ResearchEventResponseDTO(BaseModel):
     event_id: str

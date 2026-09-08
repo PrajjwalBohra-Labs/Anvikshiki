@@ -23,10 +23,13 @@ from backend.app.core.config import RuntimeProfile, settings
 from backend.app.domain.models.enums import (
     ClaimType,
     EmbeddingIndexStatus,
+    EpistemicState,
     EvidenceStatus,
     ProvenanceNodeType,
     ProvenanceRelationType,
     RelationType,
+    ReasoningNodeType,
+    ReasoningRelationType,
     SourceRelationshipType,
     SourceType,
 )
@@ -111,6 +114,8 @@ class SourceModel(Base):
     user_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
+    tradition_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("traditions.id", ondelete="SET NULL"), index=True)
+    school_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("schools.id", ondelete="SET NULL"), index=True)
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     author: Mapped[str | None] = mapped_column(String(256))
     historical_era: Mapped[str | None] = mapped_column(String(128))
@@ -119,6 +124,8 @@ class SourceModel(Base):
     reference_url: Mapped[str | None] = mapped_column(String(1024))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     owner: Mapped[Optional["UserModel"]] = relationship("UserModel", back_populates="sources")
+    tradition: Mapped[Optional["TraditionModel"]] = relationship("TraditionModel", back_populates="sources")
+    school: Mapped[Optional["SchoolModel"]] = relationship("SchoolModel", back_populates="sources")
     
     documents: Mapped[list["DocumentModel"]] = relationship("DocumentModel", back_populates="source", cascade="all, delete-orphan")
     targets: Mapped[list["SourceRelationshipModel"]] = relationship(
@@ -264,7 +271,9 @@ class PassageModel(Base):
     # migration maintains this tsvector with a PostgreSQL trigger; SQLite
     # test databases use text and the retriever's compatibility path.
     search_vector: Mapped[Optional[Any]] = mapped_column(
-        TSVECTOR() if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST else Text,
+        TSVECTOR().with_variant(Text(), "sqlite")
+        if PGVECTOR_AVAILABLE and settings.RUNTIME_PROFILE != RuntimeProfile.TEST
+        else Text,
     )
 
     __table_args__ = (
@@ -486,6 +495,32 @@ class SourceCriticismModel(Base):
     
     source: Mapped["SourceModel"] = relationship("SourceModel", back_populates="criticisms")
 
+
+class TraditionModel(Base):
+    """A historical/intellectual tradition, independent from any one source."""
+
+    __tablename__ = "traditions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    name: Mapped[str] = mapped_column(String(256), nullable=False, unique=True)
+    parent_tradition_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("traditions.id", ondelete="SET NULL"), index=True)
+    historical_period: Mapped[str | None] = mapped_column(String(256))
+    conceptual_commitments: Mapped[list[str] | None] = mapped_column(JSON)
+    terminology: Mapped[list[str] | None] = mapped_column(JSON)
+    interpretive_notes: Mapped[list[str] | None] = mapped_column(JSON)
+    sources: Mapped[list["SourceModel"]] = relationship("SourceModel", back_populates="tradition")
+
+
+class SchoolModel(Base):
+    __tablename__ = "schools"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    tradition_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("traditions.id", ondelete="SET NULL"), index=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False, unique=True)
+    subschool: Mapped[str | None] = mapped_column(String(256))
+    historical_period: Mapped[str | None] = mapped_column(String(256))
+    conceptual_commitments: Mapped[list[str] | None] = mapped_column(JSON)
+    internal_disagreements: Mapped[list[str] | None] = mapped_column(JSON)
+    sources: Mapped[list["SourceModel"]] = relationship("SourceModel", back_populates="school")
+
 class ConceptModel(Base):
     __tablename__ = "concepts"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
@@ -494,6 +529,15 @@ class ConceptModel(Base):
     transliteration: Mapped[str | None] = mapped_column(String(256))
     definition: Mapped[str] = mapped_column(Text, nullable=False)
     aliases: Mapped[list[str] | None] = mapped_column(JSON)
+    tradition_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("traditions.id", ondelete="SET NULL"), index=True)
+    school_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("schools.id", ondelete="SET NULL"), index=True)
+    textual_context: Mapped[str | None] = mapped_column(Text)
+    technical_meaning: Mapped[str | None] = mapped_column(Text)
+    contextual_meaning: Mapped[str | None] = mapped_column(Text)
+    theoretical_role: Mapped[str | None] = mapped_column(Text)
+    historical_development: Mapped[str | None] = mapped_column(Text)
+    interpretive_uncertainty: Mapped[str | None] = mapped_column(Text)
+    provenance_payload: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 class ConceptRelationshipModel(Base):
@@ -517,6 +561,29 @@ class ResearchQuestionModel(Base):
     open_questions: Mapped[list[str] | None] = mapped_column(JSON)
     research_status: Mapped[str] = mapped_column(String(32), default="ACTIVE")
     research_history: Mapped[list[dict] | None] = mapped_column(JSON)
+    # Structured inquiry interpretation. These fields describe the question;
+    # they are not source evidence and are never promoted into the knowledge graph.
+    normalized_question: Mapped[str | None] = mapped_column(Text)
+    interpreted_question: Mapped[str | None] = mapped_column(Text)
+    primary_intent: Mapped[str | None] = mapped_column(String(128))
+    secondary_intents: Mapped[list[str] | None] = mapped_column(JSON)
+    intellectual_tasks: Mapped[list[str] | None] = mapped_column(JSON)
+    concepts: Mapped[list[str] | None] = mapped_column(JSON)
+    traditions: Mapped[list[str] | None] = mapped_column(JSON)
+    schools: Mapped[list[str] | None] = mapped_column(JSON)
+    disciplines: Mapped[list[str] | None] = mapped_column(JSON)
+    assumptions: Mapped[list[str] | None] = mapped_column(JSON)
+    presuppositions: Mapped[list[str] | None] = mapped_column(JSON)
+    ambiguities: Mapped[list[dict] | None] = mapped_column(JSON)
+    temporal_scope: Mapped[str | None] = mapped_column(String(256))
+    textual_scope: Mapped[str | None] = mapped_column(String(512))
+    geographical_scope: Mapped[str | None] = mapped_column(String(256))
+    requested_depth: Mapped[str | None] = mapped_column(String(32))
+    expected_answer_form: Mapped[str | None] = mapped_column(String(128))
+    research_requirement: Mapped[str | None] = mapped_column(Text)
+    evidence_requirement: Mapped[str | None] = mapped_column(Text)
+    interpretation_confidence: Mapped[float | None] = mapped_column(Float)
+    alternative_interpretations: Mapped[list[dict] | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 class ResearchRunModel(Base):
@@ -535,6 +602,16 @@ class ResearchRunModel(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     
     steps: Mapped[list["ResearchStepModel"]] = relationship("ResearchStepModel", back_populates="run", cascade="all, delete-orphan")
+    interpretations: Mapped[list["ReasoningInterpretationModel"]] = relationship("ReasoningInterpretationModel", back_populates="run", cascade="all, delete-orphan")
+    research_directions: Mapped[list["ResearchDirectionModel"]] = relationship("ResearchDirectionModel", back_populates="run", cascade="all, delete-orphan")
+    source_positions: Mapped[list["SourcePositionModel"]] = relationship("SourcePositionModel", back_populates="run", cascade="all, delete-orphan")
+    reasoning_relationships: Mapped[list["ReasoningRelationshipModel"]] = relationship("ReasoningRelationshipModel", back_populates="run", cascade="all, delete-orphan")
+    inferences: Mapped[list["InferenceModel"]] = relationship("InferenceModel", back_populates="run", cascade="all, delete-orphan")
+    syntheses: Mapped[list["SynthesisModel"]] = relationship("SynthesisModel", back_populates="run", cascade="all, delete-orphan")
+    insights: Mapped[list["InsightModel"]] = relationship("InsightModel", back_populates="run", cascade="all, delete-orphan")
+    reasoning_challenges: Mapped[list["ReasoningChallengeModel"]] = relationship("ReasoningChallengeModel", back_populates="run", cascade="all, delete-orphan")
+    reasoning_nodes: Mapped[list["ReasoningNodeModel"]] = relationship("ReasoningNodeModel", back_populates="run", cascade="all, delete-orphan")
+    reasoning_edges: Mapped[list["ReasoningEdgeModel"]] = relationship("ReasoningEdgeModel", back_populates="run", cascade="all, delete-orphan")
 
 class ResearchStepModel(Base):
     __tablename__ = "research_steps"
@@ -553,6 +630,182 @@ class ResearchStepModel(Base):
     )
     
     run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="steps")
+
+
+class ReasoningInterpretationModel(Base):
+    """One candidate reading of an inquiry, kept separate from its answer."""
+
+    __tablename__ = "reasoning_interpretations"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    formulation: Mapped[str] = mapped_column(Text, nullable=False)
+    interpretation_type: Mapped[str] = mapped_column(String(64), nullable=False, default="ALTERNATIVE")
+    assumptions: Mapped[list[str] | None] = mapped_column(JSON)
+    concepts: Mapped[list[str] | None] = mapped_column(JSON)
+    evidence_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    implications: Mapped[list[str] | None] = mapped_column(JSON)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    epistemic_state: Mapped[str] = mapped_column(String(32), nullable=False, default=EpistemicState.INTERPRETIVE.value)
+    unresolved_issues: Mapped[list[str] | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="interpretations")
+
+
+class ResearchDirectionModel(Base):
+    """A bounded, revisable research direction for one run."""
+
+    __tablename__ = "research_directions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    research_question: Mapped[str] = mapped_column(Text, nullable=False)
+    purpose: Mapped[str] = mapped_column(Text, nullable=False)
+    expected_evidence: Mapped[str] = mapped_column(Text, nullable=False)
+    search_strategy: Mapped[list[str] | None] = mapped_column(JSON)
+    source_types: Mapped[list[str] | None] = mapped_column(JSON)
+    traditions: Mapped[list[str] | None] = mapped_column(JSON)
+    concepts: Mapped[list[str] | None] = mapped_column(JSON)
+    exclusions: Mapped[list[str] | None] = mapped_column(JSON)
+    completion_criteria: Mapped[list[str] | None] = mapped_column(JSON)
+    discovered_evidence: Mapped[list[str] | None] = mapped_column(JSON)
+    evidence_gaps: Mapped[list[str] | None] = mapped_column(JSON)
+    dependencies: Mapped[list[str] | None] = mapped_column(JSON)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="PLANNED")
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="research_directions")
+
+
+class SourcePositionModel(Base):
+    """A source-scoped position, explicitly marked as direct or reconstructed."""
+
+    __tablename__ = "source_positions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("sources.id", ondelete="SET NULL"), index=True)
+    source_title: Mapped[str] = mapped_column(String(512), nullable=False)
+    position_type: Mapped[str] = mapped_column(String(32), nullable=False, default="RECONSTRUCTED_POSITION")
+    central_thesis: Mapped[str] = mapped_column(Text, nullable=False)
+    propositions: Mapped[list[str] | None] = mapped_column(JSON)
+    definitions: Mapped[list[str] | None] = mapped_column(JSON)
+    conceptual_commitments: Mapped[list[str] | None] = mapped_column(JSON)
+    arguments: Mapped[list[str] | None] = mapped_column(JSON)
+    evidence_passage_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    assumptions: Mapped[list[str] | None] = mapped_column(JSON)
+    qualifications: Mapped[list[str] | None] = mapped_column(JSON)
+    limitations: Mapped[list[str] | None] = mapped_column(JSON)
+    interpretive_uncertainties: Mapped[list[str] | None] = mapped_column(JSON)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    epistemic_state: Mapped[str] = mapped_column(String(32), nullable=False, default=EpistemicState.INTERPRETIVE.value)
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="source_positions")
+
+
+class ReasoningRelationshipModel(Base):
+    """Justified relationship in an inquiry-local reasoning graph."""
+
+    __tablename__ = "reasoning_relationships"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_a_id: Mapped[str | None] = mapped_column(String(36), index=True)
+    source_b_id: Mapped[str | None] = mapped_column(String(36), index=True)
+    source_a_label: Mapped[str] = mapped_column(String(512), nullable=False)
+    source_b_label: Mapped[str] = mapped_column(String(512), nullable=False)
+    relationship_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    classification: Mapped[str] = mapped_column(String(64), nullable=False, default="UNRESOLVED")
+    justification: Mapped[str] = mapped_column(Text, nullable=False)
+    supporting_passage_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    uncertainty: Mapped[str | None] = mapped_column(Text)
+    scope: Mapped[str | None] = mapped_column(Text)
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="reasoning_relationships")
+
+
+class InferenceModel(Base):
+    __tablename__ = "inferences"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    conclusion: Mapped[str] = mapped_column(Text, nullable=False)
+    premise_claim_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    evidence_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    reasoning_basis: Mapped[str] = mapped_column(Text, nullable=False)
+    assumptions: Mapped[list[str] | None] = mapped_column(JSON)
+    alternatives: Mapped[list[str] | None] = mapped_column(JSON)
+    counterarguments: Mapped[list[str] | None] = mapped_column(JSON)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    epistemic_state: Mapped[str] = mapped_column(String(32), nullable=False, default=EpistemicState.INFERENTIAL.value)
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="inferences")
+
+
+class SynthesisModel(Base):
+    __tablename__ = "syntheses"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    contributing_claim_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    contributing_source_position_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    contributing_relationship_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    reasoning_basis: Mapped[str] = mapped_column(Text, nullable=False)
+    unresolved_tensions: Mapped[list[str] | None] = mapped_column(JSON)
+    alternative_synthesis: Mapped[list[str] | None] = mapped_column(JSON)
+    limitations: Mapped[list[str] | None] = mapped_column(JSON)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    epistemic_state: Mapped[str] = mapped_column(String(32), nullable=False, default=EpistemicState.INFERENTIAL.value)
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="syntheses")
+
+
+class InsightModel(Base):
+    __tablename__ = "insights"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    insight_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    originating_claim_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    source_basis: Mapped[list[str] | None] = mapped_column(JSON)
+    reasoning_basis: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    epistemic_state: Mapped[str] = mapped_column(String(32), nullable=False, default=EpistemicState.INTERPRETIVE.value)
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="insights")
+
+
+class ReasoningChallengeModel(Base):
+    __tablename__ = "reasoning_challenges"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    target_id: Mapped[str | None] = mapped_column(String(36), index=True)
+    issue_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_ids: Mapped[list[str] | None] = mapped_column(JSON)
+    alternative_interpretation: Mapped[str | None] = mapped_column(Text)
+    severity: Mapped[str] = mapped_column(String(32), nullable=False, default="MATERIAL")
+    resolution: Mapped[str] = mapped_column(String(32), nullable=False, default="UNRESOLVED")
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="reasoning_challenges")
+
+
+class ReasoningNodeModel(Base):
+    __tablename__ = "reasoning_nodes"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    node_type: Mapped[ReasoningNodeType] = mapped_column(SQLEnum(ReasoningNodeType), nullable=False, index=True)
+    entity_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    label: Mapped[str] = mapped_column(String(512), nullable=False)
+    metadata_payload: Mapped[dict | None] = mapped_column(JSON)
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="reasoning_nodes")
+    __table_args__ = (UniqueConstraint("run_id", "node_type", "entity_id", name="uix_reasoning_node_identity"),)
+
+
+class ReasoningEdgeModel(Base):
+    __tablename__ = "reasoning_edges"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("research_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    from_node_id: Mapped[str] = mapped_column(String(36), ForeignKey("reasoning_nodes.id", ondelete="CASCADE"), nullable=False, index=True)
+    to_node_id: Mapped[str] = mapped_column(String(36), ForeignKey("reasoning_nodes.id", ondelete="CASCADE"), nullable=False, index=True)
+    relationship_type: Mapped[ReasoningRelationType] = mapped_column(SQLEnum(ReasoningRelationType), nullable=False, index=True)
+    justification: Mapped[str | None] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    metadata_payload: Mapped[dict | None] = mapped_column(JSON)
+    run: Mapped["ResearchRunModel"] = relationship("ResearchRunModel", back_populates="reasoning_edges")
+    __table_args__ = (UniqueConstraint("run_id", "from_node_id", "to_node_id", "relationship_type", name="uix_reasoning_edge_identity"),)
 
 class ConversationModel(Base):
     __tablename__ = "conversations"

@@ -12,7 +12,6 @@ from backend.app.application.agents.philosophical_analyst import PhilosophicalAn
 from backend.app.application.agents.scientific_analyst import ScientificAnalyst
 from backend.app.application.agents.source_critic_agent import SourceCriticAgent
 from backend.app.application.memory.epistemic_memory import EpistemicMemoryService
-from backend.app.application.agents.comparative_analyst import ComparativeAnalyst
 from backend.app.application.use_cases.claim_extraction_service import ClaimExtractionService
 from backend.app.application.use_cases.hybrid_retrieval import HybridRetrievalService
 from backend.app.infrastructure.ai.local_model_adapter import BaseModelAdapter, OllamaLocalAdapter
@@ -26,6 +25,16 @@ from backend.app.infrastructure.storage.local_storage import LocalStorageService
 from backend.app.application.use_cases.web_search import WebSearchResult, WebSearchService
 from backend.app.domain.models.enums import SourceType
 from backend.app.application.use_cases.synthesis_validation_service import SynthesisValidationService
+from backend.app.application.use_cases.research_reasoning import (
+    build_provenance_payload,
+    build_research_plan,
+    build_reasoning_chains,
+    classify_question,
+    compare_source_positions,
+    extract_source_positions,
+    is_substantive_passage,
+    work_identity,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -97,15 +106,17 @@ def research_directions_for_query(query: str, domain: str | None = None) -> list
     directions = [normalized]
     lower = normalized.lower()
     if any(term in lower for term in PHILOSOPHICAL_TERMS) or "philos" in (domain or "").lower():
-        directions.extend(
-            [
-                f"{normalized} conceptual analysis perception memory consciousness",
-                f"{normalized} phenomenology temporal experience continuity",
-                f"{normalized} primary text historical context Indian philosophy",
-                f"{normalized} scholarly interpretation competing accounts",
-                f"{normalized} cognitive science perception memory temporal awareness",
-            ]
-        )
+        directions.extend([
+            f"{normalized} conceptual analysis definitions",
+            f"{normalized} phenomenology temporal structure continuity",
+            f"{normalized} scholarly interpretation competing accounts",
+            f"{normalized} cognitive science empirical evidence limitations",
+        ])
+        indian_signals = ("indian", "nyaya", "buddhist", "advaita", "vedanta", "pramana", "sanskrit", "darshan")
+        if any(signal in lower or signal in (domain or "").lower() for signal in indian_signals):
+            directions.append(f"{normalized} primary texts and historical context Indian philosophy")
+        else:
+            directions.append(f"{normalized} primary texts and historical context relevant to the question")
     elif len(normalized.split()) >= 8 or research_depth_for_query(normalized) == "deep":
         directions.extend(
             [
@@ -183,15 +194,15 @@ def merge_research_evidence(
 
     selected: list[dict[str, Any]] = []
     selected_ids: set[str] = set()
-    selected_source_ids: set[str] = set()
+    selected_work_ids: set[str] = set()
     # Give each acquired web source a chance to contribute before filling the
     # remaining slots with the strongest combined candidates.
     for candidate in web_candidates:
-        source_id = candidate.get("source_id")
-        if source_id and source_id not in selected_source_ids:
+        work_id = work_identity(candidate)
+        if work_id not in selected_work_ids:
             selected.append(candidate)
             selected_ids.add(candidate["passage_id"])
-            selected_source_ids.add(source_id)
+            selected_work_ids.add(work_id)
             if len(selected) == limit:
                 return selected
 
@@ -206,13 +217,12 @@ def merge_research_evidence(
     for candidate in ordered:
         if candidate["passage_id"] in selected_ids:
             continue
-        source_id = candidate.get("source_id")
-        if source_id and source_id in selected_source_ids:
+        work_id = work_identity(candidate)
+        if work_id in selected_work_ids:
             continue
         selected.append(candidate)
         selected_ids.add(candidate["passage_id"])
-        if source_id:
-            selected_source_ids.add(source_id)
+        selected_work_ids.add(work_id)
         if len(selected) == limit:
             break
     # If the corpus has fewer distinct sources than the requested limit, fill
@@ -298,6 +308,91 @@ def grounded_fallback_response(query: str, passages: list[dict[str, Any]]) -> st
         "to the retained or related content, while change belongs to perception, attention, and temporal awareness."
     )
 
+
+def evidence_grounded_recovery_response(
+    query: str,
+    passages: list[dict[str, Any]],
+    question_understanding: dict[str, Any] | None = None,
+    claims: list[dict[str, Any]] | None = None,
+) -> str:
+    """Construct a conservative answer from the current inquiry and evidence.
+
+    This recovery path is intentionally inquiry-driven. It is used only after
+    a model draft fails validation, and it never turns source metadata into
+    evidence or assumes a particular philosophical question.
+    """
+    understanding = question_understanding or {}
+    claims = claims or []
+    concepts = [str(item) for item in understanding.get("key_concepts") or [] if item]
+    concept_text = ", ".join(concepts) or "the concepts in the question"
+    requirements = [
+        str(item.get("description"))
+        for item in understanding.get("answerability_requirements") or []
+        if item.get("description")
+    ]
+    passage_labels = {
+        passage.get("passage_id"): f"P{index}"
+        for index, passage in enumerate(passages, start=1)
+        if passage.get("passage_id")
+    }
+    selected_claims: list[tuple[str, str]] = []
+    seen_statements: set[str] = set()
+    for claim in claims:
+        statement = " ".join(str(claim.get("statement") or "").split())
+        label = passage_labels.get(claim.get("passage_id"))
+        if statement and label and statement.casefold() not in seen_statements:
+            selected_claims.append((statement, label))
+            seen_statements.add(statement.casefold())
+        if len(selected_claims) >= 5:
+            break
+
+    evidence_lines = [f"- {statement} [{label}]" for statement, label in selected_claims]
+    if not evidence_lines:
+        for index, passage in enumerate(passages[:5], start=1):
+            content = " ".join(str(passage.get("content") or passage.get("passage_text") or "").split())
+            if content:
+                evidence_lines.append(f"- {content[:500]} [P{index}]")
+
+    ambiguity_text = "; ".join(
+        f"{item.get('concept')}: {', '.join(str(value) for value in item.get('possible_meanings') or [])}"
+        for item in understanding.get("ambiguities") or []
+        if item.get("concept")
+    )
+    first_label = selected_claims[0][1] if selected_claims else ("P1" if evidence_lines else "")
+    supported_text = (
+        "\n".join(evidence_lines)
+        if evidence_lines
+        else "No substantive passage is available for a supported conclusion."
+    )
+    return (
+        "## Direct answer\n\n"
+        f"For the question about {concept_text}, the available evidence supports only these source-linked propositions:\n\n"
+        f"{supported_text}\n\n"
+        "The retained material does not justify a stronger conclusion beyond the cited propositions. "
+        f"{('[' + first_label + ']' if first_label else '')}\n\n"
+        "## What the evidence supports\n\n"
+        + supported_text
+        + "\n\n## Analysis\n\n"
+        f"The answer requirements call for {' '.join(requirements[:3]) or 'a direct explanation of the represented question'}. "
+        "A source-level statement establishes only the proposition expressed in its passage. Any connection among the "
+        "question's concepts beyond those statements remains an inference and is left qualified here."
+        + (f"\n\nThe main unresolved terminology is: {ambiguity_text}." if ambiguity_text else "")
+        + "\n\n## Conclusion\n\n"
+        f"For the question '{query}', the defensible conclusion is limited to the source-linked propositions above. "
+        "The evidence does not support claims that are not expressed in, or reasonably grounded by, those passages."
+    )
+
+
+def answerability_failure_response(query: str) -> str:
+    """Keep an invalid draft from leaking operational metadata to the user."""
+    return (
+        "## Answer\n\n"
+        f"The available research does not yet support a direct answer to: {query}\n\n"
+        "## Evidence limitation\n\n"
+        "The generated draft was not accepted because it did not connect its conclusion to the concepts and "
+        "relationships expressed in the question. No unrelated source or pipeline summary is being presented as an answer."
+    )
+
 class ResearchWorkflowState(TypedDict):
     run_id: str | None
     query: str
@@ -319,6 +414,11 @@ class ResearchWorkflowState(TypedDict):
     current_step: str
     include_web: bool
     web_research: Dict[str, Any]
+    question_understanding: Dict[str, Any]
+    research_plan: list[dict[str, Any]]
+    source_positions: list[dict[str, Any]]
+    source_relationships: list[dict[str, Any]]
+    reasoning_chains: Dict[str, Any]
 
 class ResearchWorkflowEngine:
     """
@@ -354,19 +454,36 @@ class ResearchWorkflowEngine:
                 "current_step": "coordinator_completed",
             }
 
+        async def question_understanding_node(state: ResearchWorkflowState) -> dict[str, Any]:
+            question = classify_question(
+                state["query"],
+                state.get("domain"),
+                state.get("depth") or "standard",
+            )
+            return {
+                "question_understanding": question,
+                "research_plan": build_research_plan(question),
+                "current_step": "question_understanding_completed",
+            }
+
         async def retrieval_node(state: ResearchWorkflowState) -> dict[str, Any]:
             query = state["query"]
             domain = state.get("domain", "Epistemology")
             depth = state.get("depth") or research_depth_for_query(query)
-            research_directions = list(
-                (state.get("web_research") or {}).get("research_directions")
-                or research_directions_for_query(query, domain)
+            plan = state.get("research_plan") or build_research_plan(
+                classify_question(query, domain, depth)
             )
+            research_directions = [
+                term
+                for direction in plan
+                for term in direction.get("search_terms", [])
+            ] or research_directions_for_query(query, domain)
             web_research: dict[str, Any] = {
                 "requested": bool(state.get("include_web")),
                 "status": (state.get("web_research") or {}).get("status", "not_requested"),
                 "query": query,
                 "research_directions": research_directions,
+                "research_plan": plan,
                 "search_queries": [],
                 "discovered_results": [],
                 "acquired_sources": [],
@@ -545,6 +662,15 @@ class ResearchWorkflowEngine:
                     "source_classification": cand.get(
                         "source_classification", cand.get("source_type", "UNVERIFIED")
                     ),
+                    "work_id": work_identity(cand),
+                    "metadata_only": not is_substantive_passage(cand),
+                    "verification_status": "SUBSTANTIVE" if is_substantive_passage(cand) else "METADATA_ONLY",
+                    "epistemic_status": "SOURCE_MATERIAL" if is_substantive_passage(cand) else "METADATA",
+                    "provenance": {
+                        "passage_id": cand.get("passage_id"),
+                        "document_id": cand.get("document_id"),
+                        "source_id": cand.get("source_id"),
+                    },
                 }
                 for cand in evidence_candidates
             ]
@@ -555,6 +681,11 @@ class ResearchWorkflowEngine:
             }
 
         async def web_research_node(state: ResearchWorkflowState) -> Dict[str, Any]:
+            planned_directions = [
+                term
+                for direction in (state.get("research_plan") or [])
+                for term in direction.get("search_terms", [])
+            ] or research_directions_for_query(state["query"], state.get("domain"))
             if not state.get("include_web", False):
                 return {
                     "web_research": {
@@ -573,9 +704,7 @@ class ResearchWorkflowEngine:
                     "web_research": {
                         "requested": True,
                         "status": "unavailable",
-                        "research_directions": research_directions_for_query(
-                            state["query"], state.get("domain")
-                        ),
+                        "research_directions": planned_directions,
                         "search_queries": [],
                         "discovered_results": [],
                         "acquired_sources": [],
@@ -587,9 +716,7 @@ class ResearchWorkflowEngine:
                 "web_research": {
                     "requested": True,
                     "status": "planned",
-                    "research_directions": research_directions_for_query(
-                        state["query"], state.get("domain")
-                    ),
+                    "research_directions": planned_directions,
                     "search_queries": [],
                     "discovered_results": [],
                     "acquired_sources": [],
@@ -619,13 +746,28 @@ class ResearchWorkflowEngine:
                         source_type=p.get("source_type", "UNVERIFIED"),
                     )
                     for claim in extracted:
+                        question_concepts = state.get("question_understanding", {}).get("key_concepts", [])
+                        claim_text = claim.statement
+                        claim_tokens = set(re.findall(r"[a-z][a-z'-]{2,}", claim_text.casefold()))
+                        matched_requirements = [
+                            f"concept_{concept}"
+                            for concept in question_concepts
+                            if concept.casefold() in claim_tokens
+                            or any(token.startswith(concept.casefold()[:6]) for token in claim_tokens)
+                        ]
                         claims.append({
                             "claim_id": claim.id,
-                            "statement": claim.statement,
+                            "statement": claim_text,
                             "claim_type": claim.claim_type.value,
                             "passage_id": claim.provenance_id,
                             "confidence": claim.confidence,
                             "source_title": p["source_title"],
+                            "relevance_to_question": matched_requirements,
+                            "supporting_evidence": [p["passage_id"]],
+                            "opposing_evidence": [],
+                            "inference_dependencies": [],
+                            "epistemic_status": "SOURCE_STATEMENT",
+                            "provenance": {"passage_id": p["passage_id"], "source_id": p.get("source_id")},
                         })
                     claim_stmt = extracted[0].statement if extracted else p["content"]
                     arg = await phil_analyst.reconstruct_argument(
@@ -660,13 +802,31 @@ class ResearchWorkflowEngine:
                         )
                     )
 
+            source_positions = extract_source_positions(passages, claims)
             return {
                 "extracted_claims": claims,
                 "reconstructed_arguments": arguments,
                 "criticisms": criticisms,
                 "scientific_analyses": scientific_analyses,
                 "comparisons": comparisons,
+                "source_positions": source_positions,
                 "current_step": "specialist_analysis_completed"
+            }
+
+        async def cross_source_reasoning_node(state: ResearchWorkflowState) -> dict[str, Any]:
+            positions = state.get("source_positions", [])
+            relationships = compare_source_positions(positions)
+            chains = build_reasoning_chains(
+                state.get("question_understanding", {}),
+                state.get("retrieved_passages", []),
+                state.get("extracted_claims", []),
+                positions,
+                relationships,
+            )
+            return {
+                "source_relationships": relationships,
+                "reasoning_chains": chains,
+                "current_step": "cross_source_reasoning_completed",
             }
 
         async def challenger_node(state: ResearchWorkflowState) -> dict[str, Any]:
@@ -676,11 +836,21 @@ class ResearchWorkflowEngine:
             async with self.session_factory() as session:
                 challenger = ChallengerAgent(session)
                 for c in claims:
-                    ch_res = await challenger.challenge_claim(c["statement"])
+                    ch_res = await challenger.challenge_claim(
+                        c["statement"],
+                        {
+                            "question_understanding": state.get("question_understanding", {}),
+                            "relationships": state.get("source_relationships", []),
+                        },
+                    )
                     if ch_res.get("objections"):
-                        objections.extend(ch_res["objections"])
+                        objections.extend({**item, "target_claim_id": c.get("claim_id")} for item in ch_res["objections"])
                     else:
-                        objections.append({"objection": f"Examine non-erroneous conditions for: {c['statement'][:60]}..."})
+                        objections.append({
+                            "objection": f"Examine non-erroneous conditions for: {c['statement'][:60]}...",
+                            "target_claim_id": c.get("claim_id"),
+                            "type": "claim_challenge",
+                        })
 
             return {
                 "objections": objections,
@@ -689,45 +859,57 @@ class ResearchWorkflowEngine:
 
         async def validation_node(state: ResearchWorkflowState) -> dict[str, Any]:
             claims = state.get("extracted_claims", [])
+            passages = state.get("retrieved_passages", [])
+            question_understanding = state.get("question_understanding", {})
             async with self.session_factory() as session:
                 validator = SynthesisValidationService(session)
-                val_res = await validator.validate_research_output(
-                    claims, research_scope=state["domain"]
+                claim_validation = await validator.validate_research_output(
+                    claims,
+                    research_scope=state["domain"],
+                    question=state["query"],
+                    question_understanding=question_understanding,
+                    passages=passages,
                 )
 
             evidence_payload = {
                 "passages": [
                     {**passage, "evidence_label": f"P{index}"}
-                    for index, passage in enumerate(state.get("retrieved_passages", []), start=1)
+                    for index, passage in enumerate(passages, start=1)
                 ],
-                "claims": val_res["validated_claims"],
+                "claims": claim_validation["validated_claims"],
                 "objections": state.get("objections", []),
                 "source_criticisms": state.get("criticisms", []),
                 "comparisons": state.get("comparisons", []),
+                "question_understanding": state.get("question_understanding", {}),
+                "research_plan": state.get("research_plan", []),
+                "source_positions": state.get("source_positions", []),
+                "source_relationships": state.get("source_relationships", []),
+                "reasoning_chains": state.get("reasoning_chains", {}),
                 "web_research": state.get("web_research", {}),
                 # User positions are context, not evidence. They are kept in a
                 # separate field so synthesis cannot cite them as source claims.
                 "user_epistemic_positions": state.get("user_epistemic_positions", []),
             }
             prompt = (
-                "Write a serious, readable scholarly research answer in Markdown.\n"
+                "Write a serious, readable answer in Markdown. Follow the user's answer type and depth; do not use a research-paper template for a simple factual question.\n"
                 f"Query: {state['query']}\n"
+                f"Answer requirements: {json.dumps(question_understanding.get('answerability_requirements', []), ensure_ascii=False)}\n"
                 f"Evidence JSON:\n{json.dumps(evidence_payload, ensure_ascii=False, default=str)}\n"
                 "Use only verified passages as evidence. Cite them inline as [P1], [P2], etc.; "
                 "do not expose UUIDs, passage_id, source_id, document_id, claim_id, or pipeline state. "
                 "Answer the exact question asked; do not substitute an unrelated hypothetical claim or example. "
-                "For this inquiry, explicitly examine the relation among experience, impressions, perception, "
-                "memory, consciousness, temporal awareness, change, continuity, and the observer where the evidence permits. "
-                "When the question is substantive, organize the answer with a short answer, conceptual background, "
-                "claims, evidence, analysis, source comparison, alternative interpretations, and conclusion as useful. "
+                "Start with the conceptual problem or direct answer actually asked. Address listed ambiguities instead of silently choosing one interpretation. "
+                "Use Claim -> Evidence -> Analysis -> Conclusion reasoning for substantive claims; source positions, relationships, gaps, and alternatives are structured inputs, not proof by themselves. "
                 "Clearly distinguish what a source states, your interpretation, and any inference. "
                 "Distinguish primary from secondary sources and never treat a discovery-only URL as evidence. "
-                "Correlate sources only where the passages support agreement, qualification, complementarity, or disagreement."
+                "Correlate sources only where the passages support agreement, qualification, complementarity, or disagreement. "
+                "Do not report publication dates, URLs, retrieval counts, search warnings, or pipeline metadata as the answer. "
+                "If the passages cannot answer a requirement, state that limitation and do not substitute a bibliography."
             )
             depth = (state.get("depth") or "standard").lower()
             max_tokens = 1800 if depth in {"deep", "comprehensive", "long"} else 1100
             llm_summary = await self.llm.generate(prompt=prompt, max_tokens=max_tokens)
-            if not state.get("retrieved_passages"):
+            if not passages:
                 final_response = (
                     "This inquiry could not be grounded in a verified local passage or an acquired "
                     "web source. No substantive conclusion is being presented as established evidence. "
@@ -735,37 +917,105 @@ class ResearchWorkflowEngine:
                 )
             else:
                 draft_response = llm_summary.get("content", "")
-                passages = state.get("retrieved_passages", [])
                 if _requires_grounded_fallback(draft_response, passages):
-                    draft_response = grounded_fallback_response(state["query"], passages)
+                    draft_response = evidence_grounded_recovery_response(
+                        state["query"],
+                        passages,
+                        question_understanding,
+                        claim_validation["validated_claims"],
+                    )
                 final_response = append_citation_ledger(draft_response, passages)
 
+            async with self.session_factory() as session:
+                final_validator = SynthesisValidationService(session)
+                final_validation = await final_validator.validate_research_output(
+                    claim_validation["validated_claims"],
+                    research_scope=state["domain"],
+                    question=state["query"],
+                    question_understanding=question_understanding,
+                    passages=passages,
+                    response=(final_response.split("\n\nEvidence references", 1)[0] if "\n\nEvidence references" in final_response else final_response),
+                )
+            # A model can produce a syntactically valid but intellectually
+            # irrelevant draft without triggering the citation-shape checks.
+            # Give the evidence a second, deterministic recovery path before
+            # downgrading the run.  The recovery is available only when there
+            # are verified, question-relevant claims; metadata-only runs still
+            # fail closed.
+            if (
+                not final_validation["is_safe_for_publication"]
+                and passages
+                and claim_validation["validated_claims"]
+                and not (final_validation.get("answerability") or {}).get("metadata_leakage")
+            ):
+                recovered_response = append_citation_ledger(
+                    evidence_grounded_recovery_response(
+                        state["query"],
+                        passages,
+                        question_understanding,
+                        claim_validation["validated_claims"],
+                    ),
+                    passages,
+                )
+                async with self.session_factory() as session:
+                    recovered_validation = await SynthesisValidationService(session).validate_research_output(
+                        claim_validation["validated_claims"],
+                        research_scope=state["domain"],
+                        question=state["query"],
+                        question_understanding=question_understanding,
+                        passages=passages,
+                        response=(
+                            recovered_response.split("\n\nEvidence references", 1)[0]
+                            if "\n\nEvidence references" in recovered_response
+                            else recovered_response
+                        ),
+                    )
+                if recovered_validation["is_safe_for_publication"]:
+                    final_response = recovered_response
+                    final_validation = recovered_validation
+            final_validation["claim_validation"] = claim_validation
+            answerability = final_validation.get("answerability") or {}
+            if not claim_validation["validated_claims"] and claims:
+                final_validation["status"] = "BLOCKED_OR_DOWNGRADED"
+                final_validation["is_safe_for_publication"] = False
+                final_validation["reason"] = "All extracted claims were excluded by the claim-to-question or evidence-support gate."
+            if answerability.get("metadata_leakage"):
+                final_response = answerability_failure_response(state["query"])
+
             return {
-                "validation_status": val_res["status"],
-                "validated_claims": val_res["validated_claims"],
-                "validation_details": val_res,
+                "validation_status": final_validation["status"],
+                "validated_claims": final_validation["validated_claims"],
+                "validation_details": final_validation,
                 "final_response": final_response,
                 "current_step": "validation_completed",
             }
 
         builder.add_node("coordinator", coordinator_node)
+        builder.add_node("question_understanding", question_understanding_node)
         builder.add_node("web_research", web_research_node)
         builder.add_node("retrieval", retrieval_node)
         builder.add_node("specialist_analysis", specialist_analysis_node)
+        builder.add_node("cross_source_reasoning", cross_source_reasoning_node)
         builder.add_node("challenger", challenger_node)
         builder.add_node("validator", validation_node)
 
         builder.set_entry_point("coordinator")
-        builder.add_edge("coordinator", "web_research")
+        builder.add_edge("coordinator", "question_understanding")
+        builder.add_edge("question_understanding", "web_research")
         builder.add_edge("web_research", "retrieval")
         builder.add_edge("retrieval", "specialist_analysis")
-        builder.add_edge("specialist_analysis", "challenger")
+        builder.add_edge("specialist_analysis", "cross_source_reasoning")
+        builder.add_edge("cross_source_reasoning", "challenger")
         builder.add_edge("challenger", "validator")
         builder.add_edge("validator", END)
 
         return builder.compile(checkpointer=self.checkpointer)
 
     def _result_payload(self, state: dict[str, Any]) -> dict[str, Any]:
+        understanding = state.get("question_understanding", {})
+        reasoning_chains = state.get("reasoning_chains", {})
+        relationships = state.get("source_relationships", [])
+        validation = state.get("validation_details", {})
         return {
             "run_id": state.get("run_id") or "",
             "query": state.get("query", ""),
@@ -783,6 +1033,40 @@ class ResearchWorkflowEngine:
                 "challenges": state.get("objections", []),
             },
             "validation": state.get("validation_details", {}),
+            "answer_strategy": {
+                "answer_type": understanding.get("answer_type"),
+                "depth": understanding.get("required_depth"),
+                "requested_task": understanding.get("requested_task"),
+                "mode": "evidence_constrained" if not validation.get("is_safe_for_publication", False) else "supported_synthesis",
+            },
+            "direct_answer": state.get("final_response", ""),
+            "synthesis": reasoning_chains.get("chains", []),
+            "contradictions": [item for item in relationships if item.get("relation") == "contradicts"],
+            "uncertainty": reasoning_chains.get("gaps", []),
+            "limitations": reasoning_chains.get("gaps", []),
+            "citations": [
+                {"label": f"P{index}", "citation": passage.get("citation_string"), "passage_id": passage.get("passage_id")}
+                for index, passage in enumerate(state.get("retrieved_passages", []), start=1)
+            ],
+            "reasoning": {
+                "question_understanding": state.get("question_understanding", {}),
+                "research_plan": state.get("research_plan", []),
+                "source_positions": state.get("source_positions", []),
+                "relationships": state.get("source_relationships", []),
+                "chains": state.get("reasoning_chains", {}).get("chains", []),
+                "gaps": state.get("reasoning_chains", {}).get("gaps", []),
+                "alternatives": state.get("reasoning_chains", {}).get("alternatives", []),
+            },
+            "technical_provenance": build_provenance_payload(
+                state.get("query", ""),
+                state.get("question_understanding", {}),
+                state.get("research_plan", []),
+                state.get("retrieved_passages", []),
+                state.get("extracted_claims", []),
+                state.get("source_positions", []),
+                state.get("source_relationships", []),
+                state.get("reasoning_chains", {}),
+            ),
             "web_research": state.get("web_research", {
                 "requested": False,
                 "status": "not_reported",
@@ -822,6 +1106,11 @@ class ResearchWorkflowEngine:
             "current_step": "initialized",
             "include_web": include_web,
             "web_research": {},
+            "question_understanding": {},
+            "research_plan": [],
+            "source_positions": [],
+            "source_relationships": [],
+            "reasoning_chains": {},
         }
         config = {"configurable": {"thread_id": thread_id}}
         return await self.graph.ainvoke(initial_state, config=config)
@@ -857,6 +1146,11 @@ class ResearchWorkflowEngine:
             "current_step": "initialized",
             "include_web": include_web,
             "web_research": {},
+            "question_understanding": {},
+            "research_plan": [],
+            "source_positions": [],
+            "source_relationships": [],
+            "reasoning_chains": {},
         }
         config = {"configurable": {"thread_id": thread_id}}
 

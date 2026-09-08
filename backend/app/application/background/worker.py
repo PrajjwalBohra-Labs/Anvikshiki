@@ -18,6 +18,7 @@ from backend.app.application.orchestration.research_workflow import (
     ResearchWorkflowEngine,
 )
 from backend.app.application.use_cases.research_run_service import ResearchRunService
+from backend.app.application.use_cases.reasoning_persistence import persist_reasoning_artifacts
 from backend.app.infrastructure.database.models import (
     BackgroundJobModel,
     ResearchQuestionModel,
@@ -257,6 +258,10 @@ async def execute_research_job(job: BackgroundJobModel) -> dict[str, Any]:
         result = engine._result_payload(state)
         async with AsyncSessionLocal() as session:
             service = ResearchRunService(session)
+            run = await session.get(ResearchRunModel, job.research_run_id)
+            question = await session.get(ResearchQuestionModel, run.research_question_id) if run and run.research_question_id else None
+            if run is not None and question is not None:
+                await persist_reasoning_artifacts(session, run, question, result)
             await service.complete_run(job.research_run_id, output_references=result)
             await service.record_event(
                 job.research_run_id,

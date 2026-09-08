@@ -25,7 +25,7 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             """
-            CREATE FUNCTION passages_search_vector_refresh() RETURNS trigger
+            CREATE OR REPLACE FUNCTION passages_search_vector_refresh() RETURNS trigger
             LANGUAGE plpgsql AS $$
             BEGIN
                 NEW.search_vector := to_tsvector('simple'::regconfig, coalesce(NEW.content, ''));
