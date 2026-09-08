@@ -25,11 +25,24 @@ from backend.app.infrastructure.storage.local_storage import LocalStorageService
 from backend.app.application.use_cases.web_search import WebSearchResult, WebSearchService
 from backend.app.domain.models.enums import SourceType
 from backend.app.application.use_cases.synthesis_validation_service import SynthesisValidationService
+from backend.app.application.use_cases.adaptive_reasoning import (
+    answer_repair_prompt,
+    challenge_prompt,
+    evidence_reasoning_prompt,
+    evidence_relevance_prompt,
+    fallback_question_analysis,
+    generate_structured,
+    normalize_challenges,
+    normalize_evidence_reasoning,
+    normalize_question_analysis,
+    normalize_relevance_assessment,
+    normalize_semantic_audit,
+    question_analysis_prompt,
+    research_plan_from_analysis,
+    semantic_audit_prompt,
+)
 from backend.app.application.use_cases.research_reasoning import (
     build_provenance_payload,
-    build_research_plan,
-    build_reasoning_chains,
-    classify_question,
     compare_source_positions,
     extract_source_positions,
     is_substantive_passage,
@@ -39,102 +52,22 @@ from backend.app.application.use_cases.research_reasoning import (
 logger = structlog.get_logger(__name__)
 
 
-COMPLEX_RESEARCH_TERMS = (
-    "compare",
-    "comparison",
-    "correlat",
-    "relationship",
-    "contrast",
-    "analy",
-    "critique",
-    "disagree",
-    "difference",
-    "schools",
-    "scholarship",
-    "historical context",
-    "according to",
-)
-EXPLICIT_WEB_TERMS = (
-    "web",
-    "online",
-    "latest",
-    "recent",
-    "current",
-    "today",
-    "literature",
-    "external sources",
-    "state of the art",
-    "cross-cultural",
-    "global",
-    "evidence",
-)
-
-PHILOSOPHICAL_TERMS = (
-    "experience",
-    "impression",
-    "perception",
-    "consciousness",
-    "memory",
-    "time",
-    "identity",
-    "observer",
-    "cognition",
-    "philosoph",
-    "seeing",
-)
-
-
 def research_depth_for_query(query: str, requested_depth: str | None = None) -> str:
     """Select a response budget from the inquiry, without forcing verbosity."""
-    normalized = (query or "").strip().lower()
     requested = (requested_depth or "standard").strip().lower()
     if requested in {"deep", "comprehensive", "long"}:
         return "deep"
     if requested in {"brief", "concise", "shallow"}:
         return "brief"
-    if len(normalized.split()) > 10 or any(term in normalized for term in COMPLEX_RESEARCH_TERMS):
+    if len((query or "").split()) >= 10:
         return "deep"
     return "standard"
 
 
 def research_directions_for_query(query: str, domain: str | None = None) -> list[str]:
-    """Turn a substantive inquiry into distinct, inspectable search directions."""
+    """Compatibility fallback containing only the user's own inquiry."""
     normalized = " ".join((query or "").split())
-    if not normalized:
-        return []
-
-    directions = [normalized]
-    lower = normalized.lower()
-    if any(term in lower for term in PHILOSOPHICAL_TERMS) or "philos" in (domain or "").lower():
-        directions.extend([
-            f"{normalized} conceptual analysis definitions",
-            f"{normalized} phenomenology temporal structure continuity",
-            f"{normalized} scholarly interpretation competing accounts",
-            f"{normalized} cognitive science empirical evidence limitations",
-        ])
-        indian_signals = ("indian", "nyaya", "buddhist", "advaita", "vedanta", "pramana", "sanskrit", "darshan")
-        if any(signal in lower or signal in (domain or "").lower() for signal in indian_signals):
-            directions.append(f"{normalized} primary texts and historical context Indian philosophy")
-        else:
-            directions.append(f"{normalized} primary texts and historical context relevant to the question")
-    elif len(normalized.split()) >= 8 or research_depth_for_query(normalized) == "deep":
-        directions.extend(
-            [
-                f"{normalized} key concepts and definitions",
-                f"{normalized} primary sources and original research",
-                f"{normalized} scholarly interpretations and criticism",
-                f"{normalized} alternative explanations and limitations",
-            ]
-        )
-
-    unique: list[str] = []
-    seen: set[str] = set()
-    for direction in directions:
-        key = direction.casefold()
-        if key not in seen:
-            unique.append(direction)
-            seen.add(key)
-    return unique[:6]
+    return [normalized] if normalized else []
 
 
 def should_run_web_research(
@@ -148,10 +81,9 @@ def should_run_web_research(
         return False
     if requested:
         return True
-    normalized = (query or "").strip().lower()
     if local_passage_count == 0:
         return True
-    return depth == "deep" or any(term in normalized for term in EXPLICIT_WEB_TERMS)
+    return depth == "deep"
 
 
 def _web_result_payload(result: WebSearchResult, classification: str) -> dict[str, Any]:
@@ -416,9 +348,12 @@ class ResearchWorkflowState(TypedDict):
     web_research: Dict[str, Any]
     question_understanding: Dict[str, Any]
     research_plan: list[dict[str, Any]]
+    retrieved_candidates: list[dict[str, Any]]
+    evidence_assessment: Dict[str, Any]
     source_positions: list[dict[str, Any]]
     source_relationships: list[dict[str, Any]]
     reasoning_chains: Dict[str, Any]
+    semantic_audit: Dict[str, Any]
 
 class ResearchWorkflowEngine:
     """
@@ -455,14 +390,21 @@ class ResearchWorkflowEngine:
             }
 
         async def question_understanding_node(state: ResearchWorkflowState) -> dict[str, Any]:
-            question = classify_question(
+            depth = state.get("depth") or "standard"
+            raw = await generate_structured(
+                self.llm,
+                question_analysis_prompt(state["query"], state.get("domain"), depth),
+                max_tokens=1800 if depth == "deep" else 1300,
+            )
+            question = normalize_question_analysis(
+                raw,
                 state["query"],
                 state.get("domain"),
-                state.get("depth") or "standard",
+                depth,
             )
             return {
                 "question_understanding": question,
-                "research_plan": build_research_plan(question),
+                "research_plan": research_plan_from_analysis(question),
                 "current_step": "question_understanding_completed",
             }
 
@@ -470,9 +412,8 @@ class ResearchWorkflowEngine:
             query = state["query"]
             domain = state.get("domain", "Epistemology")
             depth = state.get("depth") or research_depth_for_query(query)
-            plan = state.get("research_plan") or build_research_plan(
-                classify_question(query, domain, depth)
-            )
+            analysis = state.get("question_understanding") or fallback_question_analysis(query, domain, depth)
+            plan = state.get("research_plan") or research_plan_from_analysis(analysis)
             research_directions = [
                 term
                 for direction in plan
@@ -676,8 +617,44 @@ class ResearchWorkflowEngine:
             ]
             return {
                 "retrieved_passages": passages_data,
+                "retrieved_candidates": passages_data,
                 "current_step": "retrieval_completed",
                 "web_research": web_research,
+            }
+
+        async def evidence_evaluation_node(state: ResearchWorkflowState) -> dict[str, Any]:
+            candidates = state.get("retrieved_candidates") or state.get("retrieved_passages", [])
+            if not candidates:
+                assessment = normalize_relevance_assessment(
+                    None,
+                    state.get("question_understanding", {}),
+                    [],
+                )
+                return {
+                    "retrieved_passages": [],
+                    "evidence_assessment": assessment,
+                    "current_step": "evidence_evaluation_completed",
+                }
+            raw = await generate_structured(
+                self.llm,
+                evidence_relevance_prompt(
+                    state["query"],
+                    state.get("question_understanding", {}),
+                    candidates,
+                ),
+                max_tokens=1800,
+            )
+            assessment = normalize_relevance_assessment(
+                raw,
+                state.get("question_understanding", {}),
+                candidates,
+            )
+            usable_ids = set(assessment.get("usable_passage_ids", []))
+            relevant = [item for item in candidates if item.get("passage_id") in usable_ids]
+            return {
+                "retrieved_passages": relevant,
+                "evidence_assessment": assessment,
+                "current_step": "evidence_evaluation_completed",
             }
 
         async def web_research_node(state: ResearchWorkflowState) -> Dict[str, Any]:
@@ -815,15 +792,36 @@ class ResearchWorkflowEngine:
 
         async def cross_source_reasoning_node(state: ResearchWorkflowState) -> dict[str, Any]:
             positions = state.get("source_positions", [])
-            relationships = compare_source_positions(positions)
-            chains = build_reasoning_chains(
-                state.get("question_understanding", {}),
-                state.get("retrieved_passages", []),
-                state.get("extracted_claims", []),
-                positions,
-                relationships,
+            passages = state.get("retrieved_passages", [])
+            claims = state.get("extracted_claims", [])
+            raw = await generate_structured(
+                self.llm,
+                evidence_reasoning_prompt(
+                    state["query"],
+                    state.get("question_understanding", {}),
+                    state.get("evidence_assessment", {}),
+                    passages,
+                    claims,
+                ),
+                max_tokens=2200,
             )
+            reasoning = normalize_evidence_reasoning(raw, passages, claims)
+            if reasoning.get("status") == "llm":
+                positions = reasoning.get("source_positions", [])
+                relationships = reasoning.get("relationships", [])
+                chains = reasoning
+            else:
+                relationships = compare_source_positions(positions)
+                chains = {
+                    "chains": [],
+                    "gaps": reasoning.get("gaps", []),
+                    "alternatives": [],
+                    "source_position_count": len(positions),
+                    "relationship_count": len(relationships),
+                    "status": "deterministic_fallback",
+                }
             return {
+                "source_positions": positions,
                 "source_relationships": relationships,
                 "reasoning_chains": chains,
                 "current_step": "cross_source_reasoning_completed",
@@ -831,26 +829,31 @@ class ResearchWorkflowEngine:
 
         async def challenger_node(state: ResearchWorkflowState) -> dict[str, Any]:
             claims = state.get("extracted_claims", [])
-            objections = []
-
-            async with self.session_factory() as session:
-                challenger = ChallengerAgent(session)
-                for c in claims:
-                    ch_res = await challenger.challenge_claim(
-                        c["statement"],
-                        {
-                            "question_understanding": state.get("question_understanding", {}),
-                            "relationships": state.get("source_relationships", []),
-                        },
-                    )
-                    if ch_res.get("objections"):
-                        objections.extend({**item, "target_claim_id": c.get("claim_id")} for item in ch_res["objections"])
-                    else:
-                        objections.append({
-                            "objection": f"Examine non-erroneous conditions for: {c['statement'][:60]}...",
-                            "target_claim_id": c.get("claim_id"),
-                            "type": "claim_challenge",
-                        })
+            raw = await generate_structured(
+                self.llm,
+                challenge_prompt(
+                    state["query"],
+                    state.get("question_understanding", {}),
+                    state.get("reasoning_chains", {}),
+                ),
+                max_tokens=1200,
+            )
+            objections = normalize_challenges(raw)
+            if not objections and claims:
+                async with self.session_factory() as session:
+                    challenger = ChallengerAgent(session)
+                    for claim in claims:
+                        challenge = await challenger.challenge_claim(
+                            claim["statement"],
+                            {
+                                "question_understanding": state.get("question_understanding", {}),
+                                "relationships": state.get("source_relationships", []),
+                            },
+                        )
+                        objections.extend(
+                            {**item, "target_claim_id": claim.get("claim_id")}
+                            for item in challenge.get("objections", [])
+                        )
 
             return {
                 "objections": objections,
@@ -882,6 +885,7 @@ class ResearchWorkflowEngine:
                 "comparisons": state.get("comparisons", []),
                 "question_understanding": state.get("question_understanding", {}),
                 "research_plan": state.get("research_plan", []),
+                "evidence_assessment": state.get("evidence_assessment", {}),
                 "source_positions": state.get("source_positions", []),
                 "source_relationships": state.get("source_relationships", []),
                 "reasoning_chains": state.get("reasoning_chains", {}),
@@ -904,7 +908,9 @@ class ResearchWorkflowEngine:
                 "Distinguish primary from secondary sources and never treat a discovery-only URL as evidence. "
                 "Correlate sources only where the passages support agreement, qualification, complementarity, or disagreement. "
                 "Do not report publication dates, URLs, retrieval counts, search warnings, or pipeline metadata as the answer. "
-                "If the passages cannot answer a requirement, state that limitation and do not substitute a bibliography."
+                "If the passages cannot answer a requirement, state that limitation and do not substitute a bibliography. "
+                "The evidence relevance judgments are binding: do not use a passage marked irrelevant, contextual-only, "
+                "or unclear as support for a conclusion."
             )
             depth = (state.get("depth") or "standard").lower()
             max_tokens = 1800 if depth in {"deep", "comprehensive", "long"} else 1100
@@ -917,15 +923,27 @@ class ResearchWorkflowEngine:
                 )
             else:
                 draft_response = llm_summary.get("content", "")
-                if _requires_grounded_fallback(draft_response, passages):
-                    draft_response = evidence_grounded_recovery_response(
-                        state["query"],
-                        passages,
-                        question_understanding,
-                        claim_validation["validated_claims"],
-                    )
                 final_response = append_citation_ledger(draft_response, passages)
 
+            response_body = (
+                final_response.split("\n\nEvidence references", 1)[0]
+                if "\n\nEvidence references" in final_response
+                else final_response
+            )
+            semantic_audit = normalize_semantic_audit(
+                await generate_structured(
+                    self.llm,
+                    semantic_audit_prompt(
+                        state["query"],
+                        question_understanding,
+                        state.get("evidence_assessment", {}),
+                        response_body,
+                        passages,
+                    ),
+                    max_tokens=1400,
+                ) if passages else None,
+                passages,
+            )
             async with self.session_factory() as session:
                 final_validator = SynthesisValidationService(session)
                 final_validation = await final_validator.validate_research_output(
@@ -934,26 +952,53 @@ class ResearchWorkflowEngine:
                     question=state["query"],
                     question_understanding=question_understanding,
                     passages=passages,
-                    response=(final_response.split("\n\nEvidence references", 1)[0] if "\n\nEvidence references" in final_response else final_response),
+                    response=response_body,
+                    semantic_audit=semantic_audit if passages else None,
                 )
+
             # A model can produce a syntactically valid but intellectually
-            # irrelevant draft without triggering the citation-shape checks.
-            # Give the evidence a second, deterministic recovery path before
-            # downgrading the run.  The recovery is available only when there
-            # are verified, question-relevant claims; metadata-only runs still
-            # fail closed.
+            # irrelevant draft. Give it one evidence-constrained repair turn.
+            # Metadata leakage, absent evidence, and unavailable audits never
+            # enter this path and remain blocked.
             if (
                 not final_validation["is_safe_for_publication"]
                 and passages
                 and claim_validation["validated_claims"]
                 and not (final_validation.get("answerability") or {}).get("metadata_leakage")
             ):
-                recovered_response = append_citation_ledger(
-                    evidence_grounded_recovery_response(
+                repaired = await self.llm.generate(
+                    prompt=answer_repair_prompt(
                         state["query"],
-                        passages,
                         question_understanding,
-                        claim_validation["validated_claims"],
+                        state.get("evidence_assessment", {}),
+                        state.get("reasoning_chains", {}),
+                        response_body,
+                        semantic_audit,
+                        passages,
+                    ),
+                    max_tokens=1800 if (state.get("depth") or "standard") == "deep" else 1100,
+                )
+                repaired_body = repaired.get("content", "") if isinstance(repaired, dict) else ""
+                recovered_response = append_citation_ledger(
+                    repaired_body,
+                    passages,
+                )
+                recovered_body = (
+                    recovered_response.split("\n\nEvidence references", 1)[0]
+                    if "\n\nEvidence references" in recovered_response
+                    else recovered_response
+                )
+                recovered_audit = normalize_semantic_audit(
+                    await generate_structured(
+                        self.llm,
+                        semantic_audit_prompt(
+                            state["query"],
+                            question_understanding,
+                            state.get("evidence_assessment", {}),
+                            recovered_body,
+                            passages,
+                        ),
+                        max_tokens=1400,
                     ),
                     passages,
                 )
@@ -964,16 +1009,15 @@ class ResearchWorkflowEngine:
                         question=state["query"],
                         question_understanding=question_understanding,
                         passages=passages,
-                        response=(
-                            recovered_response.split("\n\nEvidence references", 1)[0]
-                            if "\n\nEvidence references" in recovered_response
-                            else recovered_response
-                        ),
+                        response=recovered_body,
+                        semantic_audit=recovered_audit,
                     )
                 if recovered_validation["is_safe_for_publication"]:
                     final_response = recovered_response
                     final_validation = recovered_validation
+                    semantic_audit = recovered_audit
             final_validation["claim_validation"] = claim_validation
+            final_validation["semantic_audit"] = semantic_audit
             answerability = final_validation.get("answerability") or {}
             if not claim_validation["validated_claims"] and claims:
                 final_validation["status"] = "BLOCKED_OR_DOWNGRADED"
@@ -986,6 +1030,7 @@ class ResearchWorkflowEngine:
                 "validation_status": final_validation["status"],
                 "validated_claims": final_validation["validated_claims"],
                 "validation_details": final_validation,
+                "semantic_audit": semantic_audit,
                 "final_response": final_response,
                 "current_step": "validation_completed",
             }
@@ -994,6 +1039,7 @@ class ResearchWorkflowEngine:
         builder.add_node("question_understanding", question_understanding_node)
         builder.add_node("web_research", web_research_node)
         builder.add_node("retrieval", retrieval_node)
+        builder.add_node("evidence_evaluation", evidence_evaluation_node)
         builder.add_node("specialist_analysis", specialist_analysis_node)
         builder.add_node("cross_source_reasoning", cross_source_reasoning_node)
         builder.add_node("challenger", challenger_node)
@@ -1003,7 +1049,8 @@ class ResearchWorkflowEngine:
         builder.add_edge("coordinator", "question_understanding")
         builder.add_edge("question_understanding", "web_research")
         builder.add_edge("web_research", "retrieval")
-        builder.add_edge("retrieval", "specialist_analysis")
+        builder.add_edge("retrieval", "evidence_evaluation")
+        builder.add_edge("evidence_evaluation", "specialist_analysis")
         builder.add_edge("specialist_analysis", "cross_source_reasoning")
         builder.add_edge("cross_source_reasoning", "challenger")
         builder.add_edge("challenger", "validator")
@@ -1024,6 +1071,8 @@ class ResearchWorkflowEngine:
             "final_response": state.get("final_response", ""),
             "validated_claims_count": len(state.get("validated_claims", [])),
             "retrieved_passages": state.get("retrieved_passages", []),
+            "retrieved_candidates": state.get("retrieved_candidates", []),
+            "evidence_assessment": state.get("evidence_assessment", {}),
             "claims": state.get("extracted_claims", []),
             "specialist_analysis": {
                 "philosophical_arguments": state.get("reconstructed_arguments", []),
@@ -1033,6 +1082,7 @@ class ResearchWorkflowEngine:
                 "challenges": state.get("objections", []),
             },
             "validation": state.get("validation_details", {}),
+            "semantic_audit": state.get("semantic_audit", {}),
             "answer_strategy": {
                 "answer_type": understanding.get("answer_type"),
                 "depth": understanding.get("required_depth"),
@@ -1056,6 +1106,8 @@ class ResearchWorkflowEngine:
                 "chains": state.get("reasoning_chains", {}).get("chains", []),
                 "gaps": state.get("reasoning_chains", {}).get("gaps", []),
                 "alternatives": state.get("reasoning_chains", {}).get("alternatives", []),
+                "evidence_assessment": state.get("evidence_assessment", {}),
+                "semantic_audit": state.get("semantic_audit", {}),
             },
             "technical_provenance": build_provenance_payload(
                 state.get("query", ""),
@@ -1108,9 +1160,12 @@ class ResearchWorkflowEngine:
             "web_research": {},
             "question_understanding": {},
             "research_plan": [],
+            "retrieved_candidates": [],
+            "evidence_assessment": {},
             "source_positions": [],
             "source_relationships": [],
             "reasoning_chains": {},
+            "semantic_audit": {},
         }
         config = {"configurable": {"thread_id": thread_id}}
         return await self.graph.ainvoke(initial_state, config=config)
@@ -1148,9 +1203,12 @@ class ResearchWorkflowEngine:
             "web_research": {},
             "question_understanding": {},
             "research_plan": [],
+            "retrieved_candidates": [],
+            "evidence_assessment": {},
             "source_positions": [],
             "source_relationships": [],
             "reasoning_chains": {},
+            "semantic_audit": {},
         }
         config = {"configurable": {"thread_id": thread_id}}
 

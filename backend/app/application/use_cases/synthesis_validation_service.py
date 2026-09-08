@@ -20,7 +20,8 @@ from backend.app.infrastructure.database.models import PassageModel
 logger = structlog.get_logger(__name__)
 
 _STOPWORDS = {
-    "about", "after", "also", "been", "being", "between", "could", "does", "from",
+    "about", "after", "also", "and", "are", "been", "being", "between", "but", "could", "does", "for", "from",
+    "how", "the", "with",
     "have", "into", "more", "only", "that", "their", "there", "these", "they", "this",
     "through", "what", "when", "where", "which", "while", "with", "would", "your",
     "question", "source", "sources", "passage", "evidence", "answer", "according",
@@ -40,9 +41,22 @@ def _tokens(value: str) -> set[str]:
 
 
 def _anchors(question_understanding: dict[str, Any]) -> set[str]:
-    concepts = question_understanding.get("key_concepts") or []
-    anchors = {str(item).casefold() for item in concepts if item}
-    for requirement in question_understanding.get("answerability_requirements") or []:
+    concepts = question_understanding.get("key_concepts") or question_understanding.get("concepts") or []
+    anchors: set[str] = set()
+    for item in concepts:
+        value = item.get("label") or item.get("concept") if isinstance(item, dict) else item
+        if value:
+            anchors.add(str(value).casefold())
+            anchors.update(_tokens(str(value)))
+    for relationship in question_understanding.get("relationships") or []:
+        if isinstance(relationship, dict):
+            anchors.update(
+                str(relationship.get(key) or "").casefold()
+                for key in ("source", "target")
+                if relationship.get(key)
+            )
+    requirements = question_understanding.get("answerability_requirements") or question_understanding.get("research_requirements") or []
+    for requirement in requirements:
         for anchor in requirement.get("anchors") or []:
             if anchor:
                 anchors.add(str(anchor).casefold())
@@ -54,6 +68,13 @@ def _requirement_coverage(response: str, requirements: list[dict[str, Any]]) -> 
     covered = []
     for requirement in requirements:
         anchors = {str(item).casefold()[:7] for item in requirement.get("anchors") or [] if item}
+        if not anchors:
+            anchors = {
+                token[:7]
+                for token in _tokens(
+                    str(requirement.get("question_component") or requirement.get("description") or "")
+                )
+            }
         matched = sorted(response_tokens & anchors)
         required = bool(requirement.get("required", True))
         covered.append({
@@ -94,12 +115,21 @@ class SynthesisValidationService:
         metadata_hits = [marker for marker in _METADATA_MARKERS if marker in text.casefold()]
         direct_response = bool(text) and bool(relevant_overlap) and not (len(metadata_hits) >= 2 and len(relevant_overlap) <= 1)
 
-        requirements = understanding.get("answerability_requirements") or []
+        requirements = understanding.get("answerability_requirements") or understanding.get("research_requirements") or []
         coverage_status, coverage = _requirement_coverage(text, requirements)
 
         cited_labels = {int(item) for item in re.findall(r"\[P(\d+)\]", text)}
         evidence_reasons: list[str] = []
         unsupported_claims: list[str] = []
+        if re.search(
+            r"\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b",
+            text,
+            re.IGNORECASE,
+        ):
+            evidence_reasons.append("The response exposes an internal identifier instead of a public evidence reference.")
+        bracketed_references = re.findall(r"\[([^\[\]]+)\]", text)
+        if any(not re.fullmatch(r"P\d+", reference.strip()) for reference in bracketed_references):
+            evidence_reasons.append("The response contains an unrecognized citation marker.")
         if passages and not cited_labels:
             evidence_reasons.append("The response contains no inline references to the available substantive passages.")
         for label in sorted(cited_labels):
@@ -123,6 +153,8 @@ class SynthesisValidationService:
         evidence_status = "PASS" if passages and cited_labels and not evidence_reasons and not unsupported_claims else "FAIL"
 
         metadata_leakage = bool(metadata_hits) and len(metadata_hits) >= 2 and len(relevant_overlap) <= 1
+        if metadata_leakage:
+            coverage_status = "FAIL"
         epistemic_status = "PASS"
         epistemic_reasons: list[str] = []
         if re.search(r"\b(proves|proven|certainly|always|never|irrefutable)\b", text, re.IGNORECASE) and not re.search(r"\b(limited|uncertain|does not establish|cannot conclude)\b", text, re.IGNORECASE):
@@ -163,6 +195,7 @@ class SynthesisValidationService:
         question_understanding: dict[str, Any] | None = None,
         passages: list[dict[str, Any]] | None = None,
         response: str | None = None,
+        semantic_audit: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         validated = []
         blocked = []
@@ -195,6 +228,35 @@ class SynthesisValidationService:
         answerability = None
         if response is not None:
             answerability = self.validate_answerability(question, response, question_understanding, passages, validated)
+            if semantic_audit is not None:
+                answerability["semantic_audit"] = semantic_audit
+                semantic_ok = (
+                    semantic_audit.get("status") == "llm"
+                    and bool(semantic_audit.get("addresses_question"))
+                    and not bool(semantic_audit.get("topic_drift"))
+                    and not semantic_audit.get("irrelevant_or_unsupported_claims")
+                    and bool(semantic_audit.get("sufficient_for_answer"))
+                )
+                answerability["semantic_alignment"] = "PASS" if semantic_ok else "FAIL"
+                answerability["gates"]["semantic_alignment"] = answerability["semantic_alignment"]
+                if semantic_ok:
+                    # Lexical coverage is a safety signal, not the semantic
+                    # judge. Let the question-specific model audit decide
+                    # whether a requirement was addressed compositionally.
+                    answerability["question_coverage"] = "PASS"
+                    answerability["synthesis"] = "PASS" if answerability["answerability"] == "PASS" else "FAIL"
+                    answerability["gates"]["question_coverage"] = answerability["question_coverage"]
+                    answerability["gates"]["synthesis"] = answerability["synthesis"]
+                if not semantic_ok:
+                    answerability["reason"] = "; ".join(
+                        item for item in (
+                            answerability.get("reason"),
+                            semantic_audit.get("reason"),
+                        ) if item
+                    )
+        if answerability is not None and "semantic_alignment" in answerability:
+            answerability["is_approved"] = all(value == "PASS" for value in answerability["gates"].values())
+            answerability["status"] = "PASS" if answerability["is_approved"] else "FAIL"
         approved = claim_status == "PASS" and (answerability is None or answerability["is_approved"])
         return {
             "status": "APPROVED" if approved else "BLOCKED_OR_DOWNGRADED",

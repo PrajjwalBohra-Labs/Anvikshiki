@@ -1,7 +1,5 @@
-from backend.app.application.use_cases.research_reasoning import (
-    classify_question,
-    group_underlying_works,
-)
+from backend.app.application.use_cases.adaptive_reasoning import normalize_question_analysis
+from backend.app.application.use_cases.research_reasoning import group_underlying_works
 from backend.app.application.use_cases.synthesis_validation_service import (
     SynthesisValidationService,
 )
@@ -18,7 +16,28 @@ PASSAGE = {
 
 
 def _understanding():
-    return classify_question(QUESTION, "Philosophy", "deep")
+    return normalize_question_analysis(
+        {
+            "concepts": [
+                {"label": "perception"},
+                {"label": "experience"},
+                {"label": "stationary"},
+                {"label": "change"},
+                {"label": "time"},
+            ],
+            "research_requirements": [
+                {
+                    "requirement_id": "relation",
+                    "question_component": QUESTION,
+                    "search_queries": [QUESTION],
+                    "required": True,
+                }
+            ],
+        },
+        QUESTION,
+        "Philosophy",
+        "deep",
+    )
 
 
 def test_metadata_summary_is_rejected_even_with_a_citation():
@@ -72,11 +91,12 @@ def test_citation_to_unrelated_passage_fails_support_gate():
     assert result["evidence_support"] == "FAIL"
 
 
-def test_ambiguous_terms_are_derived_and_exposed():
+def test_question_specific_terms_are_supported_when_supplied_by_the_llm():
     understanding = _understanding()
-    assert {item["concept"] for item in understanding["ambiguities"]} == {"experience", "stationary"}
-    assert understanding["answerability_requirements"]
-    assert understanding["concept_relationships"]
+    assert [item["label"] for item in understanding["concepts"]] == [
+        "perception", "experience", "stationary", "change", "time"
+    ]
+    assert understanding["research_requirements"]
 
 
 def test_archived_versions_group_as_one_underlying_work():

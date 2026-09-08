@@ -67,50 +67,67 @@ async def persist_reasoning_artifacts(
     if not isinstance(chains, list):
         chains = []
 
+    concepts = _list(understanding.get("key_concepts")) or _list(understanding.get("concepts"))
+    interpretations_data = _list(understanding.get("interpretations"))
+    answer_strategy = understanding.get("answer_strategy") if isinstance(understanding.get("answer_strategy"), dict) else {}
+    intellectual_tasks = _list(understanding.get("intellectual_tasks"))
+    intellectual_tasks.extend(
+        str(item) for item in _list(answer_strategy.get("must_address"))
+        if str(item) not in intellectual_tasks
+    )
+
     question.normalized_question = understanding.get("literal_question")
-    question.interpreted_question = understanding.get("underlying_question")
-    question.primary_intent = understanding.get("answer_type")
-    question.secondary_intents = _list(understanding.get("secondary_intents"))
-    question.intellectual_tasks = _list(understanding.get("intellectual_tasks"))
-    question.concepts = _list(understanding.get("key_concepts"))
+    question.interpreted_question = understanding.get("underlying_question") or understanding.get("central_problem")
+    question.primary_intent = understanding.get("answer_type") or understanding.get("inquiry_mode")
+    question.secondary_intents = _list(understanding.get("secondary_intents")) or [
+        item.get("reading") for item in interpretations_data if isinstance(item, dict) and item.get("reading")
+    ]
+    question.intellectual_tasks = intellectual_tasks
+    question.concepts = concepts
     question.traditions = _list(understanding.get("traditions"))
     question.schools = _list(understanding.get("schools"))
     question.disciplines = _list(understanding.get("disciplines"))
     question.assumptions = _list(understanding.get("assumptions"))
     question.presuppositions = _list(understanding.get("presuppositions"))
-    question.ambiguities = _list(understanding.get("ambiguities"))
-    question.requested_depth = understanding.get("required_depth")
-    question.expected_answer_form = understanding.get("answer_type")
+    question.ambiguities = _list(understanding.get("ambiguities")) or [
+        item for item in interpretations_data
+        if isinstance(item, dict) and item.get("material_difference")
+    ]
+    question.requested_depth = understanding.get("required_depth") or answer_strategy.get("depth")
+    question.expected_answer_form = understanding.get("answer_type") or understanding.get("inquiry_mode")
     question.research_requirement = "; ".join(item.get("purpose", "") for item in plan if isinstance(item, dict))
     question.evidence_requirement = "; ".join(item.get("expected_evidence", "") for item in plan if isinstance(item, dict))
     question.interpretation_confidence = _bounded_confidence(understanding.get("interpretation_confidence"), 0.6)
-    question.alternative_interpretations = _list(understanding.get("ambiguities"))
+    question.alternative_interpretations = interpretations_data
 
     interpretations = [
         ReasoningInterpretationModel(
             run_id=run.id,
-            formulation=understanding.get("underlying_question") or run.query,
+            formulation=understanding.get("underlying_question") or understanding.get("central_problem") or run.query,
             interpretation_type="PRIMARY",
             assumptions=_list(understanding.get("assumptions")),
-            concepts=_list(understanding.get("key_concepts")),
+            concepts=concepts,
             implications=[understanding.get("central_problem", "")],
             confidence=question.interpretation_confidence or 0.0,
             epistemic_state="INTERPRETIVE",
-            unresolved_issues=[item.get("concept", "") for item in _list(understanding.get("ambiguities")) if isinstance(item, dict)],
+            unresolved_issues=[
+                item.get("reading", "") for item in interpretations_data
+                if isinstance(item, dict) and item.get("material_difference")
+            ],
         )
     ]
-    for alternative in _list(understanding.get("ambiguities")):
+    for alternative in interpretations_data:
         if isinstance(alternative, dict):
             interpretations.append(
                 ReasoningInterpretationModel(
                     run_id=run.id,
-                    formulation=f"Interpret {alternative.get('concept', 'term')} as one of its listed senses.",
+                    formulation=str(alternative.get("reading") or alternative.get("formulation") or run.query),
                     interpretation_type="ALTERNATIVE",
-                    assumptions=[alternative.get("handling", "")],
-                    concepts=[alternative.get("concept", "")],
-                    confidence=0.45,
+                    assumptions=[str(alternative.get("material_difference") or "")],
+                    concepts=_list(alternative.get("concepts")) or concepts,
+                    confidence=_bounded_confidence(alternative.get("confidence"), 0.45),
                     epistemic_state="UNRESOLVED",
-                    unresolved_issues=_list(alternative.get("possible_meanings")),
+                    unresolved_issues=_list(alternative.get("unresolved_questions")),
                 )
             )
     session.add_all(interpretations)
@@ -126,10 +143,13 @@ async def persist_reasoning_artifacts(
                 purpose=str(item.get("purpose", "")),
                 expected_evidence=str(item.get("expected_evidence", "")),
                 search_strategy=_list(item.get("search_terms")),
-                traditions=_list(item.get("disciplines_traditions")),
-                concepts=_list(understanding.get("key_concepts")),
+                traditions=_list(item.get("disciplines_traditions")) or _list(item.get("source_preferences")),
+                concepts=concepts,
                 completion_criteria=["Evidence is acquired and traceable to a passage."],
-                evidence_gaps=_list(result.get("reasoning", {}).get("gaps")),
+                evidence_gaps=(
+                    _list(result.get("reasoning", {}).get("gaps"))
+                    + _list(result.get("reasoning", {}).get("evidence_assessment", {}).get("missing_requirements"))
+                ),
                 priority=index,
                 status="PLANNED",
             )
