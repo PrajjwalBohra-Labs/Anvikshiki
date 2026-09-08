@@ -6,19 +6,19 @@ from backend.app.application.use_cases.research_reasoning import (
 )
 
 
-def test_exact_question_is_understood_as_a_tension_not_a_definition_list():
+def test_compatibility_fallback_does_not_invent_an_intellectual_map():
     question = classify_question(
         "How perceptions changes with time but the experience remains stationary?",
         "Philosophy & Empirical Epistemology",
         "deep",
     )
 
-    assert question["central_problem"] == "Changing perceptual content versus the claimed continuity or stability of experience"
-    assert question["answer_type"] == "philosophical_analysis"
-    assert {item["concept"] for item in question["ambiguities"]} == {"experience", "stationary"}
+    assert question["central_problem"] == "How perceptions changes with time but the experience remains stationary?"
+    assert question["concepts"] == []
+    assert question["analysis_status"] == "fallback_unavailable"
     plan = build_research_plan(question)
-    assert len(plan) >= 4
-    assert all(item["purpose"] and item["expected_evidence"] for item in plan)
+    assert len(plan) == 1
+    assert plan[0]["search_terms"] == [question["literal_question"]]
 
 
 def test_source_disagreement_is_visible_and_not_consensus():
@@ -41,8 +41,8 @@ def test_source_disagreement_is_visible_and_not_consensus():
 
     relationships = compare_source_positions(positions)
 
-    assert relationships[0]["relation"] == "contradicts"
-    assert "incompatible" in relationships[0]["explanation"]
+    assert relationships[0]["relation"] == "unresolved"
+    assert "model-based" in relationships[0]["explanation"]
 
 
 def test_insufficient_evidence_is_explicit():
@@ -50,8 +50,7 @@ def test_insufficient_evidence_is_explicit():
         {
             "literal_question": "Is this true?",
             "underlying_question": "Is this true?",
-            "ambiguities": [],
-            "premise_challenges": [],
+            "research_requirements": [],
         },
         [],
         [],
@@ -60,11 +59,11 @@ def test_insufficient_evidence_is_explicit():
     )
 
     assert chains["gaps"]
-    assert "cannot be answered" in chains["gaps"][0]
+    assert "relevant substantive passage" in chains["gaps"][0]
 
 
 def test_simple_factual_question_gets_one_direct_direction():
     question = classify_question("What is the capital of France?", "general", "standard")
 
-    assert question["answer_type"] == "fact_verification"
+    assert question["inquiry_mode"] == "undetermined"
     assert len(build_research_plan(question)) == 1

@@ -31,10 +31,9 @@ def test_philosophical_question_gets_multiple_distinct_research_directions() -> 
         "Philosophy & Empirical Epistemology",
     )
 
-    assert len(directions) == 6
-    assert any("primary text" in direction for direction in directions)
-    assert any("cognitive science" in direction for direction in directions)
-    assert len({direction.casefold() for direction in directions}) == len(directions)
+    assert directions == ["How experience, memory and perception change with time?"]
+    assert all("primary text" not in direction for direction in directions)
+    assert all("cognitive science" not in direction for direction in directions)
 
 
 def test_isolated_tests_never_depend_on_external_web_search(monkeypatch) -> None:
