@@ -146,7 +146,12 @@ class SynthesisValidationService:
                 evidence_reasons.append(f"[P{label}] does not support the propositions stated near its citation.")
         for claim in claims:
             statement = str(claim.get("statement") or "")
-            if statement and anchors and not (_tokens(statement) & anchors):
+            if (
+                statement
+                and anchors
+                and not (_tokens(statement) & anchors)
+                and not claim.get("relevance_to_question")
+            ):
                 unsupported_claims.append(statement)
         if unsupported_claims:
             evidence_reasons.append("One or more extracted claims cannot be connected to a question requirement.")
@@ -215,7 +220,11 @@ class SynthesisValidationService:
                 blocked.append({**item, "reason": "Metadata-only evidence cannot support a substantive claim"})
                 continue
             statement = str(item.get("statement") or "")
-            if anchors and not (_tokens(statement) & anchors):
+            if (
+                anchors
+                and not (_tokens(statement) & anchors)
+                and not item.get("relevance_to_question")
+            ):
                 blocked.append({**item, "reason": "Claim is not relevant to a represented question requirement"})
                 continue
             confidence = item.get("confidence", 0.95)
@@ -236,17 +245,49 @@ class SynthesisValidationService:
                     and not bool(semantic_audit.get("topic_drift"))
                     and not semantic_audit.get("irrelevant_or_unsupported_claims")
                     and bool(semantic_audit.get("sufficient_for_answer"))
+                    and not answerability.get("metadata_leakage")
                 )
+                cited_labels = {int(item) for item in re.findall(r"\[P(\d+)\]", response or "")}
+                cited_passage_ids = {
+                    passages[label - 1].get("passage_id")
+                    for label in cited_labels
+                    if 1 <= label <= len(passages)
+                }
+                audited_support = {
+                    item.get("passage_id"): item.get("supports")
+                    for item in semantic_audit.get("evidence_alignment", [])
+                    if isinstance(item, dict)
+                }
+                semantic_evidence_ok = bool(cited_passage_ids) and all(
+                    audited_support.get(passage_id) is True
+                    for passage_id in cited_passage_ids
+                )
+                semantic_ok = semantic_ok and semantic_evidence_ok
                 answerability["semantic_alignment"] = "PASS" if semantic_ok else "FAIL"
                 answerability["gates"]["semantic_alignment"] = answerability["semantic_alignment"]
                 if semantic_ok:
-                    # Lexical coverage is a safety signal, not the semantic
-                    # judge. Let the question-specific model audit decide
-                    # whether a requirement was addressed compositionally.
+                    # The question-specific audit is the semantic judge. Keep
+                    # structural citation and metadata checks, but do not let
+                    # lexical overlap reject a compositionally valid answer.
+                    answerability["answerability"] = "PASS"
+                    answerability["relevance"] = "PASS"
                     answerability["question_coverage"] = "PASS"
-                    answerability["synthesis"] = "PASS" if answerability["answerability"] == "PASS" else "FAIL"
+                    answerability["synthesis"] = "PASS"
                     answerability["gates"]["question_coverage"] = answerability["question_coverage"]
                     answerability["gates"]["synthesis"] = answerability["synthesis"]
+                    answerability["gates"]["answerability"] = answerability["answerability"]
+                    answerability["gates"]["relevance"] = answerability["relevance"]
+                    lexical_evidence_failures = [
+                        reason for reason in answerability.get("evidence_reasons", [])
+                        if "does not support the propositions stated near its citation" in reason
+                    ]
+                    structural_evidence_failures = [
+                        reason for reason in answerability.get("evidence_reasons", [])
+                        if reason not in lexical_evidence_failures
+                    ]
+                    if not structural_evidence_failures:
+                        answerability["evidence_support"] = "PASS"
+                        answerability["gates"]["evidence_support"] = "PASS"
                 if not semantic_ok:
                     answerability["reason"] = "; ".join(
                         item for item in (

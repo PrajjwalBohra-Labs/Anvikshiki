@@ -38,6 +38,20 @@ def _as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
+def _as_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().casefold()
+        if normalized in {"true", "yes", "1"}:
+            return True
+        if normalized in {"false", "no", "0", ""}:
+            return False
+    return default
+
+
 def _json_object(content: Any) -> dict[str, Any] | None:
     if isinstance(content, dict):
         return content
@@ -62,12 +76,15 @@ def _json_object(content: Any) -> dict[str, Any] | None:
 
 async def generate_structured(llm: Any, prompt: str, max_tokens: int = 1600) -> dict[str, Any] | None:
     """Ask the configured model for bounded JSON without inventing fallback facts."""
-    result = await llm.generate(
-        prompt=prompt,
-        system_prompt=ADAPTIVE_SYSTEM_PROMPT,
-        max_tokens=max_tokens,
-        temperature=0.15,
-    )
+    try:
+        result = await llm.generate(
+            prompt=prompt,
+            system_prompt=ADAPTIVE_SYSTEM_PROMPT,
+            max_tokens=max_tokens,
+            temperature=0.15,
+        )
+    except Exception:  # noqa: BLE001 - unavailable semantic judgment must fail closed.
+        return None
     return _json_object(result.get("content") if isinstance(result, dict) else result)
 
 
@@ -154,7 +171,7 @@ def normalize_question_analysis(raw: dict[str, Any] | None, query: str, domain: 
         "central_problem": _as_text(data.get("central_problem"), query),
         "requested_task": _as_text(data.get("requested_task"), query),
         "inquiry_mode": _as_text(data.get("inquiry_mode"), "undetermined"),
-        "research_needed": bool(data.get("research_needed", True)),
+        "research_needed": _as_bool(data.get("research_needed"), True),
         "answer_strategy": data.get("answer_strategy") if isinstance(data.get("answer_strategy"), dict) else normalized["answer_strategy"],
         "domain_context": domain or "",
         "analysis_status": "llm" if raw else "fallback_unavailable",
@@ -178,7 +195,7 @@ def normalize_question_analysis(raw: dict[str, Any] | None, query: str, domain: 
             "source_preferences": [_as_text(value) for value in _as_list(item.get("source_preferences")) if _as_text(value)],
             "search_queries": queries or [query],
             "sufficiency_test": _as_text(item.get("sufficiency_test")),
-            "required": bool(item.get("required", True)),
+            "required": _as_bool(item.get("required"), True),
         })
     normalized["research_requirements"] = requirements or normalized["research_requirements"]
     return normalized
@@ -246,6 +263,11 @@ facts that the passage does not state.
 
 def normalize_relevance_assessment(raw: dict[str, Any] | None, analysis: dict[str, Any], candidates: list[dict[str, Any]]) -> dict[str, Any]:
     by_id = {str(item.get("passage_id")): item for item in candidates if item.get("passage_id")}
+    known_requirements = {
+        str(item.get("requirement_id"))
+        for item in analysis.get("research_requirements", [])
+        if isinstance(item, dict) and item.get("requirement_id")
+    }
     if not raw:
         return {
             "evaluations": [],
@@ -267,11 +289,14 @@ def normalize_relevance_assessment(raw: dict[str, Any] | None, analysis: dict[st
             continue
         relevance = _as_text(item.get("relevance"), "unclear").casefold()
         supports_requirements = [
-            _as_text(value) for value in _as_list(item.get("supports_requirements")) if _as_text(value)
+            value for value in (
+                _as_text(value) for value in _as_list(item.get("supports_requirements"))
+            )
+            if value and value in known_requirements
         ]
         supported_proposition = _as_text(item.get("supported_proposition"))
         use = (
-            bool(item.get("use_for_synthesis"))
+            _as_bool(item.get("use_for_synthesis"))
             and relevance in {"direct", "indirect"}
             and bool(supports_requirements)
             and bool(supported_proposition)
@@ -292,9 +317,18 @@ def normalize_relevance_assessment(raw: dict[str, Any] | None, analysis: dict[st
     return {
         "evaluations": evaluations,
         "sufficiency": _as_text(raw.get("sufficiency"), "unknown").casefold(),
-        "satisfied_requirements": [_as_text(value) for value in _as_list(raw.get("satisfied_requirements")) if _as_text(value)],
-        "missing_requirements": [_as_text(value) for value in _as_list(raw.get("missing_requirements")) if _as_text(value)],
-        "next_research": [item for item in _as_list(raw.get("next_research")) if isinstance(item, dict)][:12],
+        "satisfied_requirements": [
+            value for value in (_as_text(value) for value in _as_list(raw.get("satisfied_requirements")))
+            if value in known_requirements
+        ],
+        "missing_requirements": [
+            value for value in (_as_text(value) for value in _as_list(raw.get("missing_requirements")))
+            if value in known_requirements
+        ],
+        "next_research": [
+            item for item in _as_list(raw.get("next_research"))
+            if isinstance(item, dict) and _as_text(item.get("requirement_id")) in known_requirements
+        ][:12],
         "status": "llm",
         "usable_passage_ids": usable,
     }
@@ -495,15 +529,15 @@ def normalize_semantic_audit(raw: dict[str, Any] | None, passages: list[dict[str
     for item in _as_list(raw.get("evidence_alignment")):
         if not isinstance(item, dict) or str(item.get("passage_id")) not in known:
             continue
-        alignment.append({"passage_id": str(item.get("passage_id")), "supports": bool(item.get("supports")), "reason": _as_text(item.get("reason"))})
+        alignment.append({"passage_id": str(item.get("passage_id")), "supports": _as_bool(item.get("supports")), "reason": _as_text(item.get("reason"))})
     return {
-        "addresses_question": bool(raw.get("addresses_question")),
+        "addresses_question": _as_bool(raw.get("addresses_question")),
         "covered_requirements": [_as_text(value) for value in _as_list(raw.get("covered_requirements")) if _as_text(value)],
         "uncovered_requirements": [_as_text(value) for value in _as_list(raw.get("uncovered_requirements")) if _as_text(value)],
         "evidence_alignment": alignment,
         "irrelevant_or_unsupported_claims": [_as_text(value) for value in _as_list(raw.get("irrelevant_or_unsupported_claims")) if _as_text(value)],
-        "topic_drift": bool(raw.get("topic_drift")),
-        "sufficient_for_answer": bool(raw.get("sufficient_for_answer")),
+        "topic_drift": _as_bool(raw.get("topic_drift")),
+        "sufficient_for_answer": _as_bool(raw.get("sufficient_for_answer")),
         "reason": _as_text(raw.get("reason")),
         "status": "llm",
     }
