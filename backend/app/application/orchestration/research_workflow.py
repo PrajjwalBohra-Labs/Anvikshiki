@@ -213,34 +213,6 @@ def _requires_grounded_fallback(response: str, passages: list[dict[str, Any]]) -
     return False
 
 
-def grounded_fallback_response(query: str, passages: list[dict[str, Any]]) -> str:
-    """Provide an honest, readable answer when the model leaves the evidence boundary."""
-    excerpts = []
-    for index, passage in enumerate(passages[:5], start=1):
-        content = " ".join(str(passage.get("content", "")).split())
-        excerpts.append(f"- [P{index}] {content[:500]}{'…' if len(content) > 500 else ''}")
-    return (
-        "## Short Answer\n\n"
-        "The retrieved material supports a distinction between continuity of experienced or remembered content "
-        "and change in the way that content is attended to and temporally perceived. It does not, by itself, "
-        "prove that experiences or impressions remain literally stationary. That stronger formulation is an "
-        "interpretation of the question, not a statement established by the sources.\n\n"
-        "## What the sources state\n\n"
-        + "\n".join(excerpts)
-        + "\n\n## Analysis\n\n"
-        "Taken together, these passages make continuity intelligible without erasing change: memory and temporal "
-        "awareness can make a sequence feel connected, while perception remains an active relation to what is "
-        "present. This is a synthesis across the retrieved passages, not a claim that the sources use identical "
-        "terminology.\n\n"
-        "## Alternative interpretations\n\n"
-        "The evidence does not settle whether continuity belongs to a persisting object, a stream of consciousness, "
-        "or the mind's retrospective organization of successive experiences. Those alternatives should remain open.\n\n"
-        "## Conclusion\n\n"
-        f"For the question '{query}', the strongest defensible answer is therefore qualified: continuity can belong "
-        "to the retained or related content, while change belongs to perception, attention, and temporal awareness."
-    )
-
-
 def evidence_grounded_recovery_response(
     query: str,
     passages: list[dict[str, Any]],
@@ -433,16 +405,29 @@ class ResearchWorkflowEngine:
 
             async with self.session_factory() as session:
                 retrieval_service = HybridRetrievalService(session)
-                evidence_candidates = await retrieval_service.retrieve_evidence(
-                    query=query,
-                    domain=domain,
-                    top_k=10 if depth == "deep" else 6,
-                    owner_id=state["user_id"],
+                evidence_limit = 10 if depth == "deep" else 6
+                retrieval_queries = list(dict.fromkeys(
+                    [query, *research_directions]
+                ))
+                retrieved_by_plan: list[dict[str, Any]] = []
+                for retrieval_query in retrieval_queries:
+                    retrieved_by_plan.extend(
+                        await retrieval_service.retrieve_evidence(
+                            query=retrieval_query,
+                            domain=domain,
+                            top_k=evidence_limit,
+                            owner_id=state["user_id"],
+                        )
+                    )
+                evidence_candidates = merge_research_evidence(
+                    retrieved_by_plan,
+                    [],
+                    evidence_limit,
                 )
                 evidence_candidates = merge_research_evidence(
                     evidence_candidates,
                     [],
-                    10 if depth == "deep" else 6,
+                    evidence_limit,
                 )
 
                 if state.get("include_web") and settings.RUNTIME_PROFILE == RuntimeProfile.TEST:
@@ -532,23 +517,27 @@ class ResearchWorkflowEngine:
                                     "One discovered web source could not be acquired."
                                 )
                         if web_research["acquired_sources"]:
-                            evidence_limit = 10 if depth == "deep" else 6
-                            all_candidates = await HybridRetrievalService(session).retrieve_evidence(
-                                query=query,
-                                domain=domain,
-                                top_k=evidence_limit,
-                            )
-                            web_candidates: list[dict[str, Any]] = []
-                            for acquired in web_research["acquired_sources"]:
-                                web_candidates.extend(
+                            all_candidates: list[dict[str, Any]] = []
+                            for retrieval_query in retrieval_queries:
+                                all_candidates.extend(
                                     await HybridRetrievalService(session).retrieve_evidence(
-                                        query=query,
+                                        query=retrieval_query,
                                         domain=domain,
-                                        source_type_filter=SourceType.DISCOVERY_ONLY,
-                                        source_id_filter=acquired["source_id"],
-                                        top_k=3,
+                                        top_k=evidence_limit,
                                     )
                                 )
+                            web_candidates: list[dict[str, Any]] = []
+                            for acquired in web_research["acquired_sources"]:
+                                for retrieval_query in retrieval_queries:
+                                    web_candidates.extend(
+                                        await HybridRetrievalService(session).retrieve_evidence(
+                                            query=retrieval_query,
+                                            domain=domain,
+                                            source_type_filter=SourceType.DISCOVERY_ONLY,
+                                            source_id_filter=acquired["source_id"],
+                                            top_k=3,
+                                        )
+                                    )
                             evidence_candidates = merge_research_evidence(
                                 all_candidates,
                                 web_candidates,
@@ -714,6 +703,11 @@ class ResearchWorkflowEngine:
                 phil_analyst = PhilosophicalAnalyst(session)
                 claim_extractor = ClaimExtractionService(session, run_id=state.get("run_id"))
                 source_critic = SourceCriticAgent(session)
+                relevance_by_passage = {
+                    str(item.get("passage_id")): item
+                    for item in (state.get("evidence_assessment", {}).get("evaluations", []))
+                    if isinstance(item, dict) and item.get("passage_id")
+                }
                 seen_sources = set()
                 for p in passages:
                     extracted = await claim_extractor.extract_claims_from_passage(
@@ -723,15 +717,12 @@ class ResearchWorkflowEngine:
                         source_type=p.get("source_type", "UNVERIFIED"),
                     )
                     for claim in extracted:
-                        question_concepts = state.get("question_understanding", {}).get("key_concepts", [])
                         claim_text = claim.statement
-                        claim_tokens = set(re.findall(r"[a-z][a-z'-]{2,}", claim_text.casefold()))
-                        matched_requirements = [
-                            f"concept_{concept}"
-                            for concept in question_concepts
-                            if concept.casefold() in claim_tokens
-                            or any(token.startswith(concept.casefold()[:6]) for token in claim_tokens)
-                        ]
+                        matched_requirements = list(
+                            relevance_by_passage.get(str(p["passage_id"]), {}).get(
+                                "supports_requirements", []
+                            )
+                        )
                         claims.append({
                             "claim_id": claim.id,
                             "statement": claim_text,
@@ -914,7 +905,10 @@ class ResearchWorkflowEngine:
             )
             depth = (state.get("depth") or "standard").lower()
             max_tokens = 1800 if depth in {"deep", "comprehensive", "long"} else 1100
-            llm_summary = await self.llm.generate(prompt=prompt, max_tokens=max_tokens)
+            try:
+                llm_summary = await self.llm.generate(prompt=prompt, max_tokens=max_tokens)
+            except Exception:  # noqa: BLE001 - publication must fail closed if synthesis is unavailable.
+                llm_summary = {}
             if not passages:
                 final_response = (
                     "This inquiry could not be grounded in a verified local passage or an acquired "
@@ -966,18 +960,21 @@ class ResearchWorkflowEngine:
                 and claim_validation["validated_claims"]
                 and not (final_validation.get("answerability") or {}).get("metadata_leakage")
             ):
-                repaired = await self.llm.generate(
-                    prompt=answer_repair_prompt(
-                        state["query"],
-                        question_understanding,
-                        state.get("evidence_assessment", {}),
-                        state.get("reasoning_chains", {}),
-                        response_body,
-                        semantic_audit,
-                        passages,
-                    ),
-                    max_tokens=1800 if (state.get("depth") or "standard") == "deep" else 1100,
-                )
+                try:
+                    repaired = await self.llm.generate(
+                        prompt=answer_repair_prompt(
+                            state["query"],
+                            question_understanding,
+                            state.get("evidence_assessment", {}),
+                            state.get("reasoning_chains", {}),
+                            response_body,
+                            semantic_audit,
+                            passages,
+                        ),
+                        max_tokens=1800 if (state.get("depth") or "standard") == "deep" else 1100,
+                    )
+                except Exception:  # noqa: BLE001 - keep the failed draft unpublished.
+                    repaired = {}
                 repaired_body = repaired.get("content", "") if isinstance(repaired, dict) else ""
                 recovered_response = append_citation_ledger(
                     repaired_body,
@@ -1023,7 +1020,9 @@ class ResearchWorkflowEngine:
                 final_validation["status"] = "BLOCKED_OR_DOWNGRADED"
                 final_validation["is_safe_for_publication"] = False
                 final_validation["reason"] = "All extracted claims were excluded by the claim-to-question or evidence-support gate."
-            if answerability.get("metadata_leakage"):
+            if answerability.get("metadata_leakage") or (
+                not final_validation["is_safe_for_publication"] and passages
+            ):
                 final_response = answerability_failure_response(state["query"])
 
             return {
