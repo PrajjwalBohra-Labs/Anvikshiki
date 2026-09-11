@@ -20,14 +20,9 @@ class ResearchAgent:
         self.filter_service = WebSourceFilteringService()
 
     def expand_query(self, query: str) -> list[str]:
-        """Expands a search query with semantic synonyms or traditional terminology variants."""
+        """Preserve the planner's query; semantic expansion belongs to the LLM."""
         cleaned = query.strip()
-        expansions = [cleaned]
-        if "perception" in cleaned.lower():
-            expansions.append("Pratyaksha sense-object contact")
-        if "inference" in cleaned.lower():
-            expansions.append("Anumana logical deduction")
-        return expansions
+        return [cleaned] if cleaned else []
 
     def deduplicate_sources(self, sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Deduplicates retrieved sources based on unique URL or title fingerprints."""

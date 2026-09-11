@@ -26,6 +26,8 @@ from backend.app.application.use_cases.web_search import WebSearchResult, WebSea
 from backend.app.domain.models.enums import SourceType
 from backend.app.application.use_cases.synthesis_validation_service import SynthesisValidationService
 from backend.app.application.use_cases.adaptive_reasoning import (
+    adaptive_research_decision_prompt,
+    apply_inquiry_refinement,
     answer_repair_prompt,
     challenge_prompt,
     evidence_reasoning_prompt,
@@ -33,12 +35,15 @@ from backend.app.application.use_cases.adaptive_reasoning import (
     fallback_question_analysis,
     generate_structured,
     normalize_challenges,
+    normalize_adaptive_research_decision,
+    normalize_inquiry_refinement,
     normalize_evidence_reasoning,
     normalize_question_analysis,
     normalize_relevance_assessment,
     normalize_semantic_audit,
     question_analysis_prompt,
     research_plan_from_analysis,
+    inquiry_refinement_prompt,
     semantic_audit_prompt,
 )
 from backend.app.application.use_cases.research_reasoning import (
@@ -326,6 +331,9 @@ class ResearchWorkflowState(TypedDict):
     source_relationships: list[dict[str, Any]]
     reasoning_chains: Dict[str, Any]
     semantic_audit: Dict[str, Any]
+    research_decision: Dict[str, Any]
+    research_round: int
+    research_history: list[str]
 
 class ResearchWorkflowEngine:
     """
@@ -386,13 +394,21 @@ class ResearchWorkflowEngine:
             depth = state.get("depth") or research_depth_for_query(query)
             analysis = state.get("question_understanding") or fallback_question_analysis(query, domain, depth)
             plan = state.get("research_plan") or research_plan_from_analysis(analysis)
-            research_directions = [
+            research_decision = state.get("research_decision") or {}
+            planned_directions = [
                 term
                 for direction in plan
                 for term in direction.get("search_terms", [])
             ] or research_directions_for_query(query, domain)
+            adaptive_directions = [
+                query_text
+                for item in research_decision.get("missing_evidence", [])
+                for query_text in item.get("search_queries", [])
+                if query_text
+            ]
+            research_directions = list(dict.fromkeys(adaptive_directions or planned_directions))
             web_research: dict[str, Any] = {
-                "requested": bool(state.get("include_web")),
+                "requested": bool(state.get("include_web")) or bool(research_decision.get("research_required")),
                 "status": (state.get("web_research") or {}).get("status", "not_requested"),
                 "query": query,
                 "research_directions": research_directions,
@@ -401,6 +417,7 @@ class ResearchWorkflowEngine:
                 "discovered_results": [],
                 "acquired_sources": [],
                 "warnings": [],
+                "decision": research_decision,
             }
 
             async with self.session_factory() as session:
@@ -430,14 +447,24 @@ class ResearchWorkflowEngine:
                     evidence_limit,
                 )
 
-                if state.get("include_web") and settings.RUNTIME_PROFILE == RuntimeProfile.TEST:
+                if state.get("include_web") and (
+                    settings.RUNTIME_PROFILE == RuntimeProfile.TEST
+                    or not settings.ENABLE_WEB_RETRIEVAL
+                ):
                     web_research["status"] = "unavailable"
-                    web_research["warnings"].append("Live web research is unavailable in the test profile.")
-                elif should_run_web_research(
-                    query,
-                    depth,
-                    len(evidence_candidates),
-                    requested=bool(state.get("include_web")),
+                    web_research["warnings"].append(
+                        "Live web research is unavailable in the test profile."
+                        if settings.RUNTIME_PROFILE == RuntimeProfile.TEST
+                        else "Live web research is disabled for this run."
+                    )
+                elif (
+                    settings.ENABLE_WEB_RETRIEVAL
+                    and bool(state.get("include_web"))
+                    or bool(research_decision.get("research_required"))
+                    or (
+                        not research_decision
+                        and should_run_web_research(query, depth, len(evidence_candidates))
+                    )
                 ):
                     web_research["status"] = "searched"
                     try:
@@ -607,6 +634,10 @@ class ResearchWorkflowEngine:
             return {
                 "retrieved_passages": passages_data,
                 "retrieved_candidates": passages_data,
+                "research_history": list(dict.fromkeys([
+                    *state.get("research_history", []),
+                    *web_research.get("search_queries", []),
+                ])),
                 "current_step": "retrieval_completed",
                 "web_research": web_research,
             }
@@ -619,9 +650,26 @@ class ResearchWorkflowEngine:
                     state.get("question_understanding", {}),
                     [],
                 )
+                decision = normalize_adaptive_research_decision(
+                    await generate_structured(
+                        self.llm,
+                        adaptive_research_decision_prompt(
+                            state["query"],
+                            state.get("question_understanding", {}),
+                            [],
+                            assessment,
+                            int(state.get("research_round", 0)),
+                        ),
+                        max_tokens=1400,
+                    ),
+                    state.get("question_understanding", {}),
+                    [],
+                    assessment,
+                )
                 return {
                     "retrieved_passages": [],
                     "evidence_assessment": assessment,
+                    "research_decision": decision,
                     "current_step": "evidence_evaluation_completed",
                 }
             raw = await generate_structured(
@@ -640,9 +688,44 @@ class ResearchWorkflowEngine:
             )
             usable_ids = set(assessment.get("usable_passage_ids", []))
             relevant = [item for item in candidates if item.get("passage_id") in usable_ids]
+            analysis = state.get("question_understanding", {})
+            refinement = normalize_inquiry_refinement(
+                await generate_structured(
+                    self.llm,
+                    inquiry_refinement_prompt(
+                        state["query"],
+                        analysis,
+                        assessment,
+                        relevant,
+                    ),
+                    max_tokens=1600,
+                ) if relevant else None,
+                analysis,
+                relevant,
+            )
+            refined_analysis = apply_inquiry_refinement(analysis, refinement)
+            decision = normalize_adaptive_research_decision(
+                await generate_structured(
+                    self.llm,
+                    adaptive_research_decision_prompt(
+                        state["query"],
+                        refined_analysis,
+                        relevant,
+                        assessment,
+                        int(state.get("research_round", 0)),
+                    ),
+                    max_tokens=1400,
+                ),
+                refined_analysis,
+                relevant,
+                assessment,
+            )
             return {
                 "retrieved_passages": relevant,
                 "evidence_assessment": assessment,
+                "question_understanding": refined_analysis,
+                "research_plan": research_plan_from_analysis(refined_analysis),
+                "research_decision": decision,
                 "current_step": "evidence_evaluation_completed",
             }
 
@@ -652,23 +735,23 @@ class ResearchWorkflowEngine:
                 for direction in (state.get("research_plan") or [])
                 for term in direction.get("search_terms", [])
             ] or research_directions_for_query(state["query"], state.get("domain"))
-            if not state.get("include_web", False):
+            if settings.RUNTIME_PROFILE == RuntimeProfile.TEST:
                 return {
                     "web_research": {
-                        "requested": False,
-                        "status": "not_requested",
-                        "research_directions": [],
+                        "requested": bool(state.get("include_web")),
+                        "status": "unavailable" if state.get("include_web") else "not_requested",
+                        "research_directions": planned_directions if state.get("include_web") else [],
                         "search_queries": [],
                         "discovered_results": [],
                         "acquired_sources": [],
-                        "warnings": [],
+                        "warnings": ["Live web research is unavailable in the test profile."] if state.get("include_web") else [],
                     },
-                    "current_step": "web_research_not_requested",
+                    "current_step": "web_research_unavailable" if state.get("include_web") else "web_research_not_requested",
                 }
             if not settings.ENABLE_WEB_RETRIEVAL:
                 return {
                     "web_research": {
-                        "requested": True,
+                        "requested": bool(state.get("include_web")),
                         "status": "unavailable",
                         "research_directions": planned_directions,
                         "search_queries": [],
@@ -678,7 +761,49 @@ class ResearchWorkflowEngine:
                     },
                     "current_step": "web_research_unavailable",
                 }
+            decision = normalize_adaptive_research_decision(
+                await generate_structured(
+                    self.llm,
+                    adaptive_research_decision_prompt(
+                        state["query"],
+                        state.get("question_understanding", {}),
+                        state.get("retrieved_candidates", []),
+                        state.get("evidence_assessment", {}),
+                        int(state.get("research_round", 0)),
+                    ),
+                    max_tokens=1400,
+                ),
+                state.get("question_understanding", {}),
+                state.get("retrieved_candidates", []),
+                state.get("evidence_assessment", {}),
+            )
+            # Explicit include_web remains an affirmative request. Otherwise
+            # the model decides from the inquiry and current evidence.
+            research_requested = bool(state.get("include_web")) or bool(decision.get("research_required"))
+            adaptive_directions = [
+                query_text
+                for item in decision.get("missing_evidence", [])
+                for query_text in item.get("search_queries", [])
+                if query_text
+            ]
+            planned_directions = list(dict.fromkeys(adaptive_directions or planned_directions))
+            if not research_requested:
+                return {
+                    "research_decision": decision,
+                    "web_research": {
+                        "requested": False,
+                        "status": "not_requested",
+                        "research_directions": planned_directions,
+                        "search_queries": [],
+                        "discovered_results": [],
+                        "acquired_sources": [],
+                        "warnings": [],
+                        "decision": decision,
+                    },
+                    "current_step": "web_research_not_requested",
+                }
             return {
+                "research_decision": decision,
                 "web_research": {
                     "requested": True,
                     "status": "planned",
@@ -687,7 +812,9 @@ class ResearchWorkflowEngine:
                     "discovered_results": [],
                     "acquired_sources": [],
                     "warnings": [],
+                    "decision": decision,
                 },
+                "research_round": int(state.get("research_round", 0)) + 1,
                 "current_step": "web_research_planned",
             }
 
@@ -750,7 +877,12 @@ class ResearchWorkflowEngine:
                         criticisms.append(await source_critic.evaluate_source(source_id))
                         seen_sources.add(source_id)
 
-                    if state.get("domain", "").lower() in {"science", "scientific", "empirical"}:
+                    requested_tools = {
+                        str(item.get("capability"))
+                        for item in (state.get("question_understanding", {}).get("tool_requests") or [])
+                        if isinstance(item, dict)
+                    }
+                    if "scientific_analysis" in requested_tools:
                         scientific_analyses.append(
                             await ScientificAnalyst(session).analyze_study(
                                 {"study_type": "PASSAGE", "methodology": p["content"]}
@@ -796,7 +928,12 @@ class ResearchWorkflowEngine:
                 ),
                 max_tokens=2200,
             )
-            reasoning = normalize_evidence_reasoning(raw, passages, claims)
+            reasoning = normalize_evidence_reasoning(
+                raw,
+                passages,
+                claims,
+                state.get("question_understanding", {}),
+            )
             if reasoning.get("status") == "llm":
                 positions = reasoning.get("source_positions", [])
                 relationships = reasoning.get("relationships", [])
@@ -805,6 +942,7 @@ class ResearchWorkflowEngine:
                 relationships = compare_source_positions(positions)
                 chains = {
                     "chains": [],
+                    "insights": [],
                     "gaps": reasoning.get("gaps", []),
                     "alternatives": [],
                     "source_position_count": len(positions),
@@ -886,20 +1024,21 @@ class ResearchWorkflowEngine:
                 "user_epistemic_positions": state.get("user_epistemic_positions", []),
             }
             prompt = (
-                "Write a serious, readable answer in Markdown. Follow the user's answer type and depth; do not use a research-paper template for a simple factual question.\n"
+                "Write the answer a thoughtful expert would give to this particular inquiry. Let the question analysis determine the structure; do not force a universal template or research-paper format.\n"
                 f"Query: {state['query']}\n"
-                f"Answer requirements: {json.dumps(question_understanding.get('answerability_requirements', []), ensure_ascii=False)}\n"
+                f"Inquiry representation: {json.dumps(question_understanding, ensure_ascii=False)}\n"
                 f"Evidence JSON:\n{json.dumps(evidence_payload, ensure_ascii=False, default=str)}\n"
                 "Use only verified passages as evidence. Cite them inline as [P1], [P2], etc.; "
                 "do not expose UUIDs, passage_id, source_id, document_id, claim_id, or pipeline state. "
                 "Answer the exact question asked; do not substitute an unrelated hypothetical claim or example. "
-                "Start with the conceptual problem or direct answer actually asked. Address listed ambiguities instead of silently choosing one interpretation. "
-                "Use Claim -> Evidence -> Analysis -> Conclusion reasoning for substantive claims; source positions, relationships, gaps, and alternatives are structured inputs, not proof by themselves. "
+                "Start with the direct answer or clarification the inquiry calls for. Address material ambiguities instead of silently choosing one interpretation. "
+                "Make the reasoning visible where it matters: distinguish what a source states, what follows by interpretation, what is an inference, and what is synthesis. Source positions, relationships, gaps, and alternatives are inputs to judgment, not proof by themselves. "
                 "Clearly distinguish what a source states, your interpretation, and any inference. "
                 "Distinguish primary from secondary sources and never treat a discovery-only URL as evidence. "
                 "Correlate sources only where the passages support agreement, qualification, complementarity, or disagreement. "
                 "Do not report publication dates, URLs, retrieval counts, search warnings, or pipeline metadata as the answer. "
                 "If the passages cannot answer a requirement, state that limitation and do not substitute a bibliography. "
+                "Calibrate language: distinguish established, well-supported, plausible, contested, uncertain, and unsupported conclusions. Challenge a premise only when the supplied analysis or evidence makes the challenge material. "
                 "The evidence relevance judgments are binding: do not use a passage marked irrelevant, contextual-only, "
                 "or unclear as support for a conclusion."
             )
@@ -1025,14 +1164,93 @@ class ResearchWorkflowEngine:
             ):
                 final_response = answerability_failure_response(state["query"])
 
+            # If publication validation identifies a genuinely uncovered
+            # question requirement, give the adaptive research gate one last
+            # opportunity to request evidence before failing closed.
+            if (
+                semantic_audit.get("status") == "llm"
+                and semantic_audit.get("uncovered_requirements")
+            ):
+                followup_assessment = {
+                    **state.get("evidence_assessment", {}),
+                    "sufficiency": "insufficient",
+                    "semantic_audit": semantic_audit,
+                }
+                followup_decision = normalize_adaptive_research_decision(
+                    await generate_structured(
+                        self.llm,
+                        adaptive_research_decision_prompt(
+                            state["query"],
+                            question_understanding,
+                            passages,
+                            followup_assessment,
+                            int(state.get("research_round", 0)),
+                        ),
+                        max_tokens=1400,
+                    ),
+                    question_understanding,
+                    passages,
+                    followup_assessment,
+                )
+                if followup_decision.get("research_required"):
+                    final_validation["research_decision"] = followup_decision
+
             return {
                 "validation_status": final_validation["status"],
                 "validated_claims": final_validation["validated_claims"],
                 "validation_details": final_validation,
                 "semantic_audit": semantic_audit,
+                "research_decision": final_validation.get(
+                    "research_decision", state.get("research_decision", {})
+                ),
                 "final_response": final_response,
                 "current_step": "validation_completed",
             }
+
+        def route_after_evidence(state: ResearchWorkflowState) -> str:
+            """Continue research only for a grounded, material semantic gap."""
+            decision = state.get("research_decision") or {}
+            attempted = {
+                " ".join(str(value).split()).casefold()
+                for value in state.get("research_history", [])
+                if str(value).strip()
+            }
+            proposed = {
+                " ".join(str(query).split()).casefold()
+                for item in decision.get("missing_evidence", [])
+                for query in item.get("search_queries", [])
+                if str(query).strip()
+            }
+            if (
+                decision.get("research_required")
+                and settings.ENABLE_WEB_RETRIEVAL
+                and settings.RUNTIME_PROFILE != RuntimeProfile.TEST
+                and bool(proposed - attempted)
+            ):
+                return "web_research"
+            return "specialist_analysis"
+
+        def route_after_validation(state: ResearchWorkflowState) -> str:
+            decision = state.get("research_decision") or {}
+            attempted = {
+                " ".join(str(value).split()).casefold()
+                for value in state.get("research_history", [])
+                if str(value).strip()
+            }
+            proposed = {
+                " ".join(str(query).split()).casefold()
+                for item in decision.get("missing_evidence", [])
+                for query in item.get("search_queries", [])
+                if str(query).strip()
+            }
+            if (
+                decision.get("research_required")
+                and settings.ENABLE_WEB_RETRIEVAL
+                and settings.RUNTIME_PROFILE != RuntimeProfile.TEST
+                and bool(proposed - attempted)
+            ):
+                return "web_research"
+            return END
 
         builder.add_node("coordinator", coordinator_node)
         builder.add_node("question_understanding", question_understanding_node)
@@ -1049,11 +1267,22 @@ class ResearchWorkflowEngine:
         builder.add_edge("question_understanding", "web_research")
         builder.add_edge("web_research", "retrieval")
         builder.add_edge("retrieval", "evidence_evaluation")
-        builder.add_edge("evidence_evaluation", "specialist_analysis")
+        builder.add_conditional_edges(
+            "evidence_evaluation",
+            route_after_evidence,
+            {
+                "web_research": "web_research",
+                "specialist_analysis": "specialist_analysis",
+            },
+        )
         builder.add_edge("specialist_analysis", "cross_source_reasoning")
         builder.add_edge("cross_source_reasoning", "challenger")
         builder.add_edge("challenger", "validator")
-        builder.add_edge("validator", END)
+        builder.add_conditional_edges(
+            "validator",
+            route_after_validation,
+            {"web_research": "web_research", END: END},
+        )
 
         return builder.compile(checkpointer=self.checkpointer)
 
@@ -1090,6 +1319,7 @@ class ResearchWorkflowEngine:
             },
             "direct_answer": state.get("final_response", ""),
             "synthesis": reasoning_chains.get("chains", []),
+            "insights": reasoning_chains.get("insights", []),
             "contradictions": [item for item in relationships if item.get("relation") == "contradicts"],
             "uncertainty": reasoning_chains.get("gaps", []),
             "limitations": reasoning_chains.get("gaps", []),
@@ -1103,6 +1333,7 @@ class ResearchWorkflowEngine:
                 "source_positions": state.get("source_positions", []),
                 "relationships": state.get("source_relationships", []),
                 "chains": state.get("reasoning_chains", {}).get("chains", []),
+                "insights": state.get("reasoning_chains", {}).get("insights", []),
                 "gaps": state.get("reasoning_chains", {}).get("gaps", []),
                 "alternatives": state.get("reasoning_chains", {}).get("alternatives", []),
                 "evidence_assessment": state.get("evidence_assessment", {}),
@@ -1165,6 +1396,9 @@ class ResearchWorkflowEngine:
             "source_relationships": [],
             "reasoning_chains": {},
             "semantic_audit": {},
+            "research_decision": {},
+            "research_round": 0,
+            "research_history": [],
         }
         config = {"configurable": {"thread_id": thread_id}}
         return await self.graph.ainvoke(initial_state, config=config)
@@ -1208,6 +1442,9 @@ class ResearchWorkflowEngine:
             "source_relationships": [],
             "reasoning_chains": {},
             "semantic_audit": {},
+            "research_decision": {},
+            "research_round": 0,
+            "research_history": [],
         }
         config = {"configurable": {"thread_id": thread_id}}
 
