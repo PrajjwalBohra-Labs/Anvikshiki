@@ -219,6 +219,135 @@ def research_plan_from_analysis(analysis: dict[str, Any]) -> list[dict[str, Any]
     return plan
 
 
+def adaptive_research_decision_prompt(
+    query: str,
+    analysis: dict[str, Any],
+    candidates: list[dict[str, Any]],
+    assessment: dict[str, Any] | None = None,
+    research_round: int = 0,
+) -> str:
+    """Ask the model whether the current evidence warrants more research.
+
+    This is deliberately separate from question planning.  A question can
+    require research even when the initial plan did not predict that the
+    local corpus would be empty, and a retrieved passage can still be
+    irrelevant or insufficient after semantic evaluation.
+    """
+    evidence = [
+        {
+            "passage_id": item.get("passage_id"),
+            "source_title": item.get("source_title"),
+            "content": item.get("content") or item.get("passage_text"),
+        }
+        for item in candidates
+    ]
+    return f"""Decide whether this inquiry needs another evidence-gathering step.
+
+Question:
+{query}
+
+Question-specific analysis:
+{json.dumps(analysis, ensure_ascii=False)}
+
+Current evidence candidates (empty means local retrieval found nothing usable):
+{json.dumps(evidence, ensure_ascii=False, default=str)}
+
+Current semantic evidence assessment:
+{json.dumps(assessment or {}, ensure_ascii=False, default=str)}
+
+Research round already attempted: {research_round}
+
+Return JSON:
+{{
+  "research_required": true,
+  "reason": "why another search is or is not material to this question",
+  "missing_evidence":[{{
+    "requirement_id":"exact id from the question analysis",
+    "question_component":"the requirement this serves",
+    "what_is_missing":"the evidence or explanation still needed",
+    "why_material":"why this is necessary to answer the question",
+    "search_queries":["focused query grounded in that requirement"]
+  }}],
+  "stop_reason":"evidence is sufficient|no material gap|research unavailable|other"
+}}
+
+Use only question requirements and gaps exposed by the supplied evidence
+assessment. A possible topic is not an evidence gap merely because it could
+be interesting. Do not invent a subject, theory, discipline, author, or
+factor that is not connected to a stated question component. Distinguish
+relevant from sufficient: further research is warranted when the available
+evidence is relevant but does not establish a material explanation. Keep
+search queries focused on the actual missing requirement.
+"""
+
+
+def normalize_adaptive_research_decision(
+    raw: dict[str, Any] | None,
+    analysis: dict[str, Any],
+    candidates: list[dict[str, Any]],
+    assessment: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Normalize the model decision without manufacturing new requirements."""
+    requirements = {
+        str(item.get("requirement_id")): item
+        for item in analysis.get("research_requirements", [])
+        if isinstance(item, dict) and item.get("requirement_id")
+    }
+    if raw is None:
+        # When judgment is unavailable, an empty or explicitly insufficient
+        # evidence set should still get an opportunity for external research.
+        assessment_status = str((assessment or {}).get("sufficiency") or "").casefold()
+        should_research = not candidates or assessment_status in {"insufficient", "partial", "unknown"}
+        return {
+            "research_required": should_research,
+            "reason": "Semantic research decision was unavailable; evidence availability determines whether a retry is warranted.",
+            "missing_evidence": [],
+            "stop_reason": "decision_unavailable",
+            "status": "unavailable",
+        }
+
+    missing = []
+    for item in _as_list(raw.get("missing_evidence")):
+        if not isinstance(item, dict):
+            continue
+        requirement_id = _as_text(item.get("requirement_id"))
+        requirement = requirements.get(requirement_id)
+        if not requirement:
+            continue
+        component = _as_text(item.get("question_component")) or _as_text(requirement.get("question_component"))
+        missing.append({
+            "requirement_id": requirement_id,
+            "question_component": component,
+            "what_is_missing": _as_text(item.get("what_is_missing")),
+            "why_material": _as_text(item.get("why_material")),
+            "search_queries": [
+                _as_text(value) for value in _as_list(item.get("search_queries")) if _as_text(value)
+            ],
+        })
+    research_required = _as_bool(raw.get("research_required"))
+    if research_required and not missing:
+        # A model may decide that the existing plan is the correct next step
+        # without restating every requirement. Reuse only those plan queries.
+        missing = [
+            {
+                "requirement_id": item.get("requirement_id"),
+                "question_component": item.get("question_component"),
+                "what_is_missing": item.get("evidence_needed"),
+                "why_material": item.get("purpose"),
+                "search_queries": list(item.get("search_terms") or []),
+            }
+            for item in research_plan_from_analysis(analysis)
+            if item.get("requirement_id")
+        ]
+    return {
+        "research_required": research_required and bool(missing or not candidates),
+        "reason": _as_text(raw.get("reason")),
+        "missing_evidence": missing[:12],
+        "stop_reason": _as_text(raw.get("stop_reason")),
+        "status": "llm",
+    }
+
+
 def evidence_relevance_prompt(query: str, analysis: dict[str, Any], candidates: list[dict[str, Any]]) -> str:
     evidence = []
     for candidate in candidates:
@@ -360,7 +489,7 @@ Return JSON with concise, auditable artifacts only:
   "source_positions":[{{"source_id":"...", "source_title":"...", "position":"...", "problem_addressed":"...", "reasoning_summary":"...", "assumptions":["..."], "qualifications":["..."], "supporting_passage_ids":["..."]}}],
   "relationships":[{{"source_a":"...", "source_b":"...", "relation":"agreement|qualification|complementarity|contradiction|framework_difference|unresolved", "explanation":"...", "passage_ids":["..."]}}],
   "reasoning_chains":[{{"question_component":"...", "claim":"...", "evidence_passage_ids":["..."], "analysis":"...", "conclusion":"...", "confidence":0.0, "inference_status":"direct|interpretation|inference|synthesis"}}],
-  "gaps":["..."],
+  "gaps":[{{"requirement_id":"exact id from the question analysis", "description":"material evidence gap grounded in that requirement"}}],
   "alternatives":["..."]
 }}
 
@@ -374,7 +503,12 @@ def _valid_passage_ids(items: Any, known: set[str]) -> list[str]:
     return [str(item) for item in _as_list(items) if str(item) in known]
 
 
-def normalize_evidence_reasoning(raw: dict[str, Any] | None, passages: list[dict[str, Any]], claims: list[dict[str, Any]]) -> dict[str, Any]:
+def normalize_evidence_reasoning(
+    raw: dict[str, Any] | None,
+    passages: list[dict[str, Any]],
+    claims: list[dict[str, Any]],
+    analysis: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     known = {str(item.get("passage_id")) for item in passages if item.get("passage_id")}
     if not raw:
         return {"source_positions": [], "relationships": [], "chains": [], "gaps": ["The model could not produce an evidence-linked reasoning record."], "alternatives": [], "status": "unavailable"}
@@ -431,11 +565,26 @@ def normalize_evidence_reasoning(raw: dict[str, Any] | None, passages: list[dict
             "conclusion": _as_text(item.get("conclusion")),
             "inference_status": _as_text(item.get("inference_status"), "inference"),
         })
+    requirements = {
+        str(item.get("requirement_id")): item
+        for item in (analysis or {}).get("research_requirements", [])
+        if isinstance(item, dict) and item.get("requirement_id")
+    }
+    # Free-form gap text is not promoted to an unresolved issue.  Only retain
+    # gaps with an explicit requirement link; possible explanatory factors are
+    # not evidence gaps unless the question-specific plan made them material.
+    grounded_gaps = []
+    for item in _as_list(raw.get("gaps")):
+        if not isinstance(item, dict):
+            continue
+        requirement_id = _as_text(item.get("requirement_id"))
+        if requirement_id and requirement_id in requirements:
+            grounded_gaps.append(_as_text(item.get("description") or item.get("gap")))
     return {
         "source_positions": positions,
         "relationships": relationships,
         "chains": chains,
-        "gaps": [_as_text(value) for value in _as_list(raw.get("gaps")) if _as_text(value)],
+        "gaps": [value for value in grounded_gaps if value],
         "alternatives": [_as_text(value) for value in _as_list(raw.get("alternatives")) if _as_text(value)],
         "status": "llm",
     }
