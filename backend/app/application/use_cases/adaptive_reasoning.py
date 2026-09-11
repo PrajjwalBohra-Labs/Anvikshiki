@@ -105,10 +105,19 @@ empty):
   "central_problem": "...",
   "requested_task": "what the user needs answered",
   "inquiry_mode": "your own concise description, not a fixed enum",
+  "subquestions": ["only material subquestions needed to answer the inquiry"],
+  "explanatory_targets": ["what must be explained, interpreted, compared, or assessed"],
   "concepts": [{{"label":"...", "role":"...", "contextual_meaning":"..."}}],
   "relationships": [{{"source":"...", "relation":"...", "target":"...", "why_it_matters":"..."}}],
   "assumptions": [{{"assumption":"...", "materiality":"..."}}],
   "interpretations": [{{"reading":"...", "material_difference":"...", "confidence":0.0}}],
+  "clarifications": [{{"ambiguity":"...", "why_material":"...", "working_interpretation":"..."}}],
+  "intellectual_landscape": {{
+    "knowledge_connections": ["only areas of knowledge the inquiry actually requires"],
+    "perspectives_to_seek": ["relevant positions or competing explanations, without naming them unless justified"],
+    "source_strategy": ["why primary, secondary, empirical, historical, or other source material is needed"]
+  }},
+  "tool_requests": [{{"capability":"existing backend capability that is materially needed", "purpose":"...", "supports_requirements":["requirement_id"]}}],
   "research_requirements": [{{
     "requirement_id":"stable short id",
     "question_component":"the exact part this serves",
@@ -117,15 +126,18 @@ empty):
     "source_preferences":["only source kinds justified by this question"],
     "search_queries":["focused query"],
     "sufficiency_test":"what would count as enough evidence",
-    "required":true
+    "required":true,
+    "role":"direct evidence|context|interpretation|comparison|counterevidence|other"
   }}],
   "research_needed": true,
   "answer_strategy": {{"depth":"...", "order":["..."], "must_address":["..."], "omit":["..."]}}
 }}
 
-Only include ambiguities, perspectives, and research requirements that
-materially affect this particular question. Do not fill fields with generic
-philosophical categories.
+Only include subquestions, ambiguities, perspectives, connections, and
+research requirements that materially affect this particular question. Do not
+fill fields with generic philosophical categories. Do not name a tradition,
+discipline, author, or explanatory factor merely because it could be related;
+include it only when the inquiry itself makes it materially relevant.
 """
 
 
@@ -137,10 +149,19 @@ def fallback_question_analysis(query: str, domain: str | None, depth: str) -> di
         "central_problem": normalized,
         "requested_task": normalized,
         "inquiry_mode": "undetermined",
+        "subquestions": [],
+        "explanatory_targets": [normalized] if normalized else [],
         "concepts": [],
         "relationships": [],
         "assumptions": [],
         "interpretations": [],
+        "clarifications": [],
+        "intellectual_landscape": {
+            "knowledge_connections": [],
+            "perspectives_to_seek": [],
+            "source_strategy": [],
+        },
+        "tool_requests": [],
         "research_requirements": [{
             "requirement_id": "question_scope",
             "question_component": normalized,
@@ -176,8 +197,31 @@ def normalize_question_analysis(raw: dict[str, Any] | None, query: str, domain: 
         "domain_context": domain or "",
         "analysis_status": "llm" if raw else "fallback_unavailable",
     })
-    for key in ("concepts", "relationships", "assumptions", "interpretations"):
+    for key in (
+        "subquestions",
+        "explanatory_targets",
+        "concepts",
+        "relationships",
+        "assumptions",
+        "interpretations",
+        "clarifications",
+    ):
         normalized[key] = _as_list(data.get(key))[:24]
+    landscape = data.get("intellectual_landscape")
+    if isinstance(landscape, dict):
+        normalized["intellectual_landscape"] = {
+            key: [_as_text(value) for value in _as_list(landscape.get(key)) if _as_text(value)][:16]
+            for key in ("knowledge_connections", "perspectives_to_seek", "source_strategy")
+        }
+    normalized["tool_requests"] = [
+        {
+            "capability": _as_text(item.get("capability")),
+            "purpose": _as_text(item.get("purpose")),
+            "supports_requirements": [_as_text(value) for value in _as_list(item.get("supports_requirements")) if _as_text(value)],
+        }
+        for item in _as_list(data.get("tool_requests"))
+        if isinstance(item, dict) and _as_text(item.get("capability"))
+    ][:12]
 
     requirements = []
     for index, item in enumerate(_as_list(data.get("research_requirements"))[:16], start=1):
@@ -195,6 +239,7 @@ def normalize_question_analysis(raw: dict[str, Any] | None, query: str, domain: 
             "source_preferences": [_as_text(value) for value in _as_list(item.get("source_preferences")) if _as_text(value)],
             "search_queries": queries or [query],
             "sufficiency_test": _as_text(item.get("sufficiency_test")),
+            "role": _as_text(item.get("role")),
             "required": _as_bool(item.get("required"), True),
         })
     normalized["research_requirements"] = requirements or normalized["research_requirements"]
@@ -214,9 +259,178 @@ def research_plan_from_analysis(analysis: dict[str, Any]) -> list[dict[str, Any]
             "expected_evidence": item.get("evidence_needed"),
             "source_preferences": item.get("source_preferences", []),
             "sufficiency_test": item.get("sufficiency_test"),
+            "role": item.get("role", ""),
             "required": item.get("required", True),
         })
     return plan
+
+
+def inquiry_refinement_prompt(
+    query: str,
+    analysis: dict[str, Any],
+    assessment: dict[str, Any],
+    passages: list[dict[str, Any]],
+) -> str:
+    """Ask whether evidence materially changes the working inquiry model."""
+    evidence = [
+        {"passage_id": item.get("passage_id"), "source_title": item.get("source_title"), "content": item.get("content")}
+        for item in passages
+    ]
+    return f"""Reconsider the working representation of this inquiry after reading the evidence.
+
+Question:
+{query}
+
+Working inquiry representation:
+{json.dumps(analysis, ensure_ascii=False)}
+
+Evidence assessment:
+{json.dumps(assessment, ensure_ascii=False, default=str)}
+
+Relevant passages:
+{json.dumps(evidence, ensure_ascii=False, default=str)}
+
+Return JSON:
+{{
+  "changed": true,
+  "revised_central_problem": "only if the evidence reveals a material refinement",
+  "revised_requested_task": "only if the evidence changes what must be answered",
+  "new_relationships":[{{"source":"...", "relation":"...", "target":"...", "why_it_matters":"...", "passage_ids":["exact ids"]}}],
+  "changed_interpretations":[{{"reading":"...", "material_difference":"...", "confidence":0.0, "passage_ids":["exact ids"]}}],
+  "research_implications":[{{
+    "requirement_id":"existing id or a new id justified by the passages",
+    "question_component":"material component of the original inquiry",
+    "why_needed":"why this follows from the inquiry and evidence",
+    "evidence_needed":"what is still needed",
+    "search_queries":["focused query"],
+    "sufficiency_test":"what would count as enough",
+    "grounding_passage_ids":["exact ids for a new requirement"]
+  }}],
+  "synthesis_focus":["connections or distinctions that the final answer should consider"]
+}}
+
+Revise only when the evidence changes the understanding of the original
+question or exposes a requirement needed to answer it. Do not turn an
+interesting possibility into a requirement. New requirements must be tied to
+exact supplied passage IDs and remain within the original inquiry. If nothing
+material changed, return changed=false and empty arrays.
+"""
+
+
+def normalize_inquiry_refinement(
+    raw: dict[str, Any] | None,
+    analysis: dict[str, Any],
+    passages: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if not raw:
+        return {"changed": False, "status": "unavailable", "research_implications": []}
+    known_passages = {str(item.get("passage_id")) for item in passages if item.get("passage_id")}
+    known_requirements = {
+        str(item.get("requirement_id"))
+        for item in analysis.get("research_requirements", [])
+        if isinstance(item, dict) and item.get("requirement_id")
+    }
+    relationships = []
+    for item in _as_list(raw.get("new_relationships")):
+        if not isinstance(item, dict):
+            continue
+        passage_ids = [str(value) for value in _as_list(item.get("passage_ids")) if str(value) in known_passages]
+        if passage_ids and _as_text(item.get("source")) and _as_text(item.get("target")):
+            relationships.append({
+                "source": _as_text(item.get("source")),
+                "relation": _as_text(item.get("relation")),
+                "target": _as_text(item.get("target")),
+                "why_it_matters": _as_text(item.get("why_it_matters")),
+                "passage_ids": passage_ids,
+                "evidence_status": "llm_passage_linked",
+            })
+    implications = []
+    for item in _as_list(raw.get("research_implications")):
+        if not isinstance(item, dict):
+            continue
+        requirement_id = _as_text(item.get("requirement_id"))
+        grounding = [str(value) for value in _as_list(item.get("grounding_passage_ids")) if str(value) in known_passages]
+        if not requirement_id or not _as_text(item.get("question_component")):
+            continue
+        if requirement_id not in known_requirements and not grounding:
+            continue
+        implications.append({
+            "requirement_id": requirement_id,
+            "question_component": _as_text(item.get("question_component")),
+            "why_needed": _as_text(item.get("why_needed")),
+            "evidence_needed": _as_text(item.get("evidence_needed")),
+            "search_queries": [_as_text(value) for value in _as_list(item.get("search_queries")) if _as_text(value)],
+            "sufficiency_test": _as_text(item.get("sufficiency_test")),
+            "grounding_passage_ids": grounding,
+        })
+    changed_interpretations = []
+    for item in _as_list(raw.get("changed_interpretations")):
+        if not isinstance(item, dict):
+            continue
+        passage_ids = [str(value) for value in _as_list(item.get("passage_ids")) if str(value) in known_passages]
+        if not passage_ids or not _as_text(item.get("reading")):
+            continue
+        changed_interpretations.append({
+            "reading": _as_text(item.get("reading")),
+            "material_difference": _as_text(item.get("material_difference")),
+            "confidence": float(item.get("confidence", 0.0) or 0.0),
+            "passage_ids": passage_ids,
+            "evidence_status": "llm_passage_linked",
+        })
+    return {
+        "changed": _as_bool(raw.get("changed")),
+        "revised_central_problem": _as_text(raw.get("revised_central_problem")),
+        "revised_requested_task": _as_text(raw.get("revised_requested_task")),
+        "new_relationships": relationships[:16],
+        "changed_interpretations": changed_interpretations[:16],
+        "research_implications": implications[:16],
+        "synthesis_focus": [_as_text(value) for value in _as_list(raw.get("synthesis_focus")) if _as_text(value)][:16],
+        "status": "llm",
+    }
+
+
+def apply_inquiry_refinement(analysis: dict[str, Any], refinement: dict[str, Any]) -> dict[str, Any]:
+    """Merge only grounded model refinements into the working representation."""
+    if not refinement.get("changed"):
+        return analysis
+    updated = dict(analysis)
+    for key in ("central_problem", "requested_task"):
+        value = refinement.get(f"revised_{key}")
+        if value:
+            updated[key] = value
+    for key in ("relationships", "interpretations"):
+        existing = list(updated.get(key) or [])
+        additions = refinement.get("new_relationships" if key == "relationships" else "changed_interpretations") or []
+        existing.extend(additions)
+        updated[key] = existing[-32:]
+    requirements = [dict(item) for item in updated.get("research_requirements", []) if isinstance(item, dict)]
+    by_id = {str(item.get("requirement_id")): item for item in requirements if item.get("requirement_id")}
+    for implication in refinement.get("research_implications", []):
+        requirement = by_id.get(str(implication.get("requirement_id")))
+        if requirement is None:
+            requirement = {
+                "requirement_id": implication.get("requirement_id"),
+                "question_component": implication.get("question_component"),
+                "why_needed": implication.get("why_needed"),
+                "evidence_needed": implication.get("evidence_needed"),
+                "source_preferences": [],
+                "search_queries": implication.get("search_queries", []),
+                "sufficiency_test": implication.get("sufficiency_test"),
+                "required": True,
+                "role": "refined_from_evidence",
+            }
+            requirements.append(requirement)
+            by_id[str(requirement.get("requirement_id"))] = requirement
+        else:
+            for key in ("why_needed", "evidence_needed", "sufficiency_test"):
+                if implication.get(key):
+                    requirement[key] = implication[key]
+            if implication.get("search_queries"):
+                requirement["search_queries"] = implication["search_queries"]
+    updated["research_requirements"] = requirements[:24]
+    updated["synthesis_focus"] = refinement.get("synthesis_focus", [])
+    updated["inquiry_refinement"] = refinement
+    return updated
 
 
 def adaptive_research_decision_prompt(
@@ -486,16 +700,20 @@ Source-linked claims:
 
 Return JSON with concise, auditable artifacts only:
 {{
-  "source_positions":[{{"source_id":"...", "source_title":"...", "position":"...", "problem_addressed":"...", "reasoning_summary":"...", "assumptions":["..."], "qualifications":["..."], "supporting_passage_ids":["..."]}}],
-  "relationships":[{{"source_a":"...", "source_b":"...", "relation":"agreement|qualification|complementarity|contradiction|framework_difference|unresolved", "explanation":"...", "passage_ids":["..."]}}],
-  "reasoning_chains":[{{"question_component":"...", "claim":"...", "evidence_passage_ids":["..."], "analysis":"...", "conclusion":"...", "confidence":0.0, "inference_status":"direct|interpretation|inference|synthesis"}}],
+  "source_positions":[{{"source_id":"...", "source_title":"...", "position":"...", "problem_addressed":"...", "premises":["..."], "conclusion":"...", "argument_form":"...", "reasoning_summary":"...", "assumptions":["..."], "qualifications":["..."], "epistemic_status":"established|well-supported|plausible|contested|uncertain", "supporting_passage_ids":["..."]}}],
+  "relationships":[{{"source_a":"...", "source_b":"...", "relation":"agreement|qualification|complementarity|contradiction|framework_difference|different_question|term_scope_difference|unresolved", "explanation":"...", "question_significance":"...", "passage_ids":["..."]}}],
+  "reasoning_chains":[{{"question_component":"...", "claim":"...", "evidence_passage_ids":["..."], "analysis":"...", "conclusion":"...", "confidence":0.0, "inference_status":"direct|interpretation|inference|synthesis", "epistemic_status":"established|well-supported|plausible|contested|uncertain"}}],
+  "insights":[{{"insight":"a justified connection that helps answer the inquiry", "question_component":"...", "supporting_passage_ids":["..."], "why_justified":"...", "inference_status":"inference|synthesis", "confidence":0.0}}],
   "gaps":[{{"requirement_id":"exact id from the question analysis", "description":"material evidence gap grounded in that requirement"}}],
   "alternatives":["..."]
 }}
 
-Every source position and claim must cite one or more exact passage IDs. Do
-not call sources contradictory unless their supported propositions conflict
-after accounting for scope, terminology, and assumptions.
+Every source position and reasoning chain must cite one or more exact passage
+IDs. Reconstruct premises and conclusions only when the passages warrant it.
+Do not call sources contradictory unless their supported propositions conflict
+after accounting for scope, terminology, assumptions, and whether they answer
+the same question. A difference in framework or question is not a
+contradiction.
 """
 
 
@@ -511,7 +729,7 @@ def normalize_evidence_reasoning(
 ) -> dict[str, Any]:
     known = {str(item.get("passage_id")) for item in passages if item.get("passage_id")}
     if not raw:
-        return {"source_positions": [], "relationships": [], "chains": [], "gaps": ["The model could not produce an evidence-linked reasoning record."], "alternatives": [], "status": "unavailable"}
+        return {"source_positions": [], "relationships": [], "chains": [], "insights": [], "gaps": ["The model could not produce an evidence-linked reasoning record."], "alternatives": [], "status": "unavailable"}
     positions = []
     for item in _as_list(raw.get("source_positions")):
         if not isinstance(item, dict):
@@ -525,8 +743,12 @@ def normalize_evidence_reasoning(
             "central_position": _as_text(item.get("position")),
             "problem_addressed": _as_text(item.get("problem_addressed")),
             "argument": _as_text(item.get("reasoning_summary")),
+            "premises": [_as_text(value) for value in _as_list(item.get("premises")) if _as_text(value)],
+            "conclusion": _as_text(item.get("conclusion")),
+            "argument_form": _as_text(item.get("argument_form")),
             "assumptions": [_as_text(value) for value in _as_list(item.get("assumptions")) if _as_text(value)],
             "qualifications": [_as_text(value) for value in _as_list(item.get("qualifications")) if _as_text(value)],
+            "source_epistemic_status": _as_text(item.get("epistemic_status"), "uncertain"),
             "evidence_passage_ids": passage_ids,
             "epistemic_status": "LLM_RECONSTRUCTION",
             "interpretation_boundary": "Concise model reconstruction constrained to cited passages.",
@@ -543,6 +765,7 @@ def normalize_evidence_reasoning(
             "source_b": _as_text(item.get("source_b")),
             "relation": _as_text(item.get("relation"), "unresolved").casefold(),
             "explanation": _as_text(item.get("explanation")),
+            "question_significance": _as_text(item.get("question_significance")),
             "passage_ids": passage_ids,
             "evidence_status": "llm_passage_linked",
         })
@@ -564,6 +787,22 @@ def normalize_evidence_reasoning(
             "analysis": _as_text(item.get("analysis")),
             "conclusion": _as_text(item.get("conclusion")),
             "inference_status": _as_text(item.get("inference_status"), "inference"),
+            "epistemic_status": _as_text(item.get("epistemic_status"), "uncertain"),
+        })
+    insights = []
+    for item in _as_list(raw.get("insights")):
+        if not isinstance(item, dict):
+            continue
+        passage_ids = _valid_passage_ids(item.get("supporting_passage_ids"), known)
+        if not passage_ids or not _as_text(item.get("insight")):
+            continue
+        insights.append({
+            "insight": _as_text(item.get("insight")),
+            "question_component": _as_text(item.get("question_component")),
+            "evidence": passage_ids,
+            "why_justified": _as_text(item.get("why_justified")),
+            "inference_status": _as_text(item.get("inference_status"), "inference"),
+            "confidence": float(item.get("confidence", 0.0) or 0.0),
         })
     requirements = {
         str(item.get("requirement_id")): item
@@ -584,6 +823,7 @@ def normalize_evidence_reasoning(
         "source_positions": positions,
         "relationships": relationships,
         "chains": chains,
+        "insights": insights[:16],
         "gaps": [value for value in grounded_gaps if value],
         "alternatives": [_as_text(value) for value in _as_list(raw.get("alternatives")) if _as_text(value)],
         "status": "llm",
@@ -612,13 +852,18 @@ Return JSON:
   "evidence_alignment":[{{"passage_id":"...", "supports":true, "reason":"..."}}],
   "irrelevant_or_unsupported_claims":["..."],
   "topic_drift":false,
+  "conclusion_follows":true,
+  "answer_is_source_summary":false,
+  "epistemic_calibration":"established|well-supported|plausible|contested|uncertain|unsupported",
   "sufficient_for_answer":true,
   "reason":"brief audit explanation"
 }}
 
 Judge meaning and relationships compositionally. Shared words are not enough.
-Reject an answer that discusses a true but unrelated topic. Do not approve
-metadata, URLs, retrieval status, or source descriptions as an answer.
+Reject an answer that discusses a true but unrelated topic, merely summarizes
+sources without answering, or reaches a conclusion that does not follow from
+the cited evidence. Do not approve metadata, URLs, retrieval status, or source
+descriptions as an answer.
 """
 
 
@@ -670,6 +915,9 @@ def normalize_semantic_audit(raw: dict[str, Any] | None, passages: list[dict[str
             "evidence_alignment": [],
             "irrelevant_or_unsupported_claims": ["Semantic audit unavailable."],
             "topic_drift": True,
+            "conclusion_follows": False,
+            "answer_is_source_summary": False,
+            "epistemic_calibration": "unsupported",
             "sufficient_for_answer": False,
             "reason": "The answer could not be semantically audited.",
             "status": "unavailable",
@@ -686,6 +934,9 @@ def normalize_semantic_audit(raw: dict[str, Any] | None, passages: list[dict[str
         "evidence_alignment": alignment,
         "irrelevant_or_unsupported_claims": [_as_text(value) for value in _as_list(raw.get("irrelevant_or_unsupported_claims")) if _as_text(value)],
         "topic_drift": _as_bool(raw.get("topic_drift")),
+        "conclusion_follows": _as_bool(raw.get("conclusion_follows"), _as_bool(raw.get("addresses_question"))),
+        "answer_is_source_summary": _as_bool(raw.get("answer_is_source_summary")),
+        "epistemic_calibration": _as_text(raw.get("epistemic_calibration"), "uncertain"),
         "sufficient_for_answer": _as_bool(raw.get("sufficient_for_answer")),
         "reason": _as_text(raw.get("reason")),
         "status": "llm",
@@ -693,14 +944,17 @@ def normalize_semantic_audit(raw: dict[str, Any] | None, passages: list[dict[str
 
 
 def challenge_prompt(query: str, analysis: dict[str, Any], chains: dict[str, Any]) -> str:
-    return f"""Identify the most important limitations or counter-considerations for this evidence-grounded answer.
+    return f"""Identify only the most important, evidence-grounded limitations or counter-considerations for this inquiry.
 Question: {query}
 Question analysis: {json.dumps(analysis, ensure_ascii=False)}
 Reasoning summaries: {json.dumps(chains, ensure_ascii=False)}
 
-Return JSON {{"objections":[{{"objection":"...", "target":"question component or claim", "type":"assumption|scope|evidence|interpretation", "confidence":0.0}}]}}.
-Only identify objections supported by the supplied reasoning summaries. Do not
-invent a competing theory or source.
+Return JSON {{"objections":[{{"objection":"...", "target":"question component, assumption, or claim", "type":"assumption|ambiguity|scope|evidence|interpretation|causal_leap", "why_material":"...", "confidence":0.0}}]}}.
+Look for hidden assumptions, ambiguity, false dichotomies, unjustified causal
+steps, overgeneralization, or an important competing interpretation only when
+it materially improves the answer. Do not challenge the user for its own sake.
+Every objection must be supported by the supplied analysis or reasoning
+summaries; do not invent a competing theory or source.
 """
 
 
@@ -714,6 +968,7 @@ def normalize_challenges(raw: dict[str, Any] | None) -> list[dict[str, Any]]:
                 "objection": _as_text(item.get("objection")),
                 "target": _as_text(item.get("target")),
                 "type": _as_text(item.get("type"), "scope"),
+                "why_material": _as_text(item.get("why_material")),
                 "confidence": float(item.get("confidence", 0.0) or 0.0),
             })
     return result[:24]

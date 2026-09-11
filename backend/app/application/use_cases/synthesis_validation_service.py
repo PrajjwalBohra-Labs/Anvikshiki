@@ -244,6 +244,8 @@ class SynthesisValidationService:
                     and bool(semantic_audit.get("addresses_question"))
                     and not bool(semantic_audit.get("topic_drift"))
                     and not semantic_audit.get("irrelevant_or_unsupported_claims")
+                    and bool(semantic_audit.get("conclusion_follows", True))
+                    and not bool(semantic_audit.get("answer_is_source_summary"))
                     and bool(semantic_audit.get("sufficient_for_answer"))
                     and not answerability.get("metadata_leakage")
                 )
