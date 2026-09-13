@@ -390,14 +390,17 @@ def normalize_inquiry_refinement(
 
 
 def apply_inquiry_refinement(analysis: dict[str, Any], refinement: dict[str, Any]) -> dict[str, Any]:
-    """Merge only grounded model refinements into the working representation."""
+    """Record grounded evidence insights without rewriting the user's inquiry.
+
+    Evidence can sharpen an interpretation, but a retrieved passage must not
+    become a new question merely because the model found it interesting.  The
+    literal inquiry and its working task therefore remain invariant; grounded
+    relationships and existing requirement refinements remain available to
+    synthesis and a possible follow-up search.
+    """
     if not refinement.get("changed"):
         return analysis
     updated = dict(analysis)
-    for key in ("central_problem", "requested_task"):
-        value = refinement.get(f"revised_{key}")
-        if value:
-            updated[key] = value
     for key in ("relationships", "interpretations"):
         existing = list(updated.get(key) or [])
         additions = refinement.get("new_relationships" if key == "relationships" else "changed_interpretations") or []
@@ -408,25 +411,15 @@ def apply_inquiry_refinement(analysis: dict[str, Any], refinement: dict[str, Any
     for implication in refinement.get("research_implications", []):
         requirement = by_id.get(str(implication.get("requirement_id")))
         if requirement is None:
-            requirement = {
-                "requirement_id": implication.get("requirement_id"),
-                "question_component": implication.get("question_component"),
-                "why_needed": implication.get("why_needed"),
-                "evidence_needed": implication.get("evidence_needed"),
-                "source_preferences": [],
-                "search_queries": implication.get("search_queries", []),
-                "sufficiency_test": implication.get("sufficiency_test"),
-                "required": True,
-                "role": "refined_from_evidence",
-            }
-            requirements.append(requirement)
-            by_id[str(requirement.get("requirement_id"))] = requirement
-        else:
-            for key in ("why_needed", "evidence_needed", "sufficiency_test"):
-                if implication.get(key):
-                    requirement[key] = implication[key]
-            if implication.get("search_queries"):
-                requirement["search_queries"] = implication["search_queries"]
+            # A new requirement is retained as an auditable observation, not
+            # promoted into the active search plan.  Promotion would allow a
+            # single irrelevant passage to redirect the inquiry.
+            continue
+        for key in ("why_needed", "evidence_needed", "sufficiency_test"):
+            if implication.get(key):
+                requirement[key] = implication[key]
+        if implication.get("search_queries"):
+            requirement["search_queries"] = implication["search_queries"]
     updated["research_requirements"] = requirements[:24]
     updated["synthesis_focus"] = refinement.get("synthesis_focus", [])
     updated["inquiry_refinement"] = refinement
@@ -539,9 +532,10 @@ def normalize_adaptive_research_decision(
             ],
         })
     research_required = _as_bool(raw.get("research_required"))
-    if research_required and not missing:
-        # A model may decide that the existing plan is the correct next step
-        # without restating every requirement. Reuse only those plan queries.
+    if research_required and not missing and not candidates:
+        # With no evidence, the original question plan is still a valid first
+        # search. Once evidence exists, a request for more research must name
+        # a grounded gap instead of replaying the whole plan.
         missing = [
             {
                 "requirement_id": item.get("requirement_id"),
@@ -554,7 +548,7 @@ def normalize_adaptive_research_decision(
             if item.get("requirement_id")
         ]
     return {
-        "research_required": research_required and bool(missing or not candidates),
+        "research_required": research_required and bool(missing),
         "reason": _as_text(raw.get("reason")),
         "missing_evidence": missing[:12],
         "stop_reason": _as_text(raw.get("stop_reason")),
