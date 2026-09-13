@@ -300,7 +300,15 @@ class SynthesisValidationService:
         if answerability is not None and "semantic_alignment" in answerability:
             answerability["is_approved"] = all(value == "PASS" for value in answerability["gates"].values())
             answerability["status"] = "PASS" if answerability["is_approved"] else "FAIL"
-        approved = claim_status == "PASS" and (answerability is None or answerability["is_approved"])
+        # Claims are inspectable audit artifacts, not the objective of the
+        # inquiry.  When a response exists, publication is decided by the
+        # question/evidence/synthesis gates; an extracted claim that could not
+        # be aligned must not invalidate an otherwise supported synthesis.
+        approved = (
+            answerability["is_approved"]
+            if answerability is not None
+            else claim_status == "PASS"
+        )
         return {
             "status": "APPROVED" if approved else "BLOCKED_OR_DOWNGRADED",
             "validated_claims": validated,
