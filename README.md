@@ -1,3 +1,4 @@
+Anvikshiki is in a devlopment phase now...
 ## Anvikshiki
 
 Anvikshiki is a quiet place for serious questions.
