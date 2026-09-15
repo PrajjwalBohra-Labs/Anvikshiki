@@ -1,19 +1,14 @@
-"""LLM-led inquiry analysis and evidence judgment.
+#LLM-led inquiry analysis and evidence judgment.
 
-The model is responsible for discovering the intellectual structure of an
-inquiry.  This module only supplies the method, parses bounded JSON, and
-removes claims that cannot be tied to real passages.  It intentionally has no
-domain ontology, keyword map, or predetermined answer taxonomy.
-"""
+#The model is responsible for discovering the intellectual structure of an inquiry.
+#This module only supplies the method, parses bounded JSON, and removes claims that cannot be tied to real passages.
+#It intentionally has no domain ontology, keyword map, or predetermined answer taxonomy.
 
 from __future__ import annotations
-
 import json
 import re
 from typing import Any
-
 from backend.app.application.use_cases.research_reasoning import is_substantive_passage
-
 
 ADAPTIVE_SYSTEM_PROMPT = """You are Anvikshiki's adaptive intellectual research planner.
 

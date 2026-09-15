@@ -1,5 +1,3 @@
-"""Safe acquisition of web representations into the normal ingestion path."""
-
 import asyncio
 import base64
 import hashlib
@@ -34,7 +32,6 @@ from backend.app.infrastructure.database.models import (
 from backend.app.infrastructure.storage.local_storage import LocalStorageService
 
 logger = structlog.get_logger(__name__)
-
 
 class WebAcquisitionService:
     MAX_REDIRECTS = 5

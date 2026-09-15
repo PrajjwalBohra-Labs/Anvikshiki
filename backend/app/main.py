@@ -26,7 +26,6 @@ logger = structlog.get_logger(__name__)
 
 background_worker = BackgroundWorker()
 
-
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Require database recovery to succeed before serving the application."""
@@ -62,7 +61,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Accept", "Authorization", "Content-Type", "Last-Event-ID"],
 )
-
 
 @app.middleware("http")
 async def security_and_observability_middleware(request: Request, call_next):
@@ -114,7 +112,6 @@ async def health_check():
     if result["status"] == "degraded":
         logger.warning("health_check_degraded")
     return result
-
 
 @app.get("/ready", tags=["System"])
 async def readiness_check():
