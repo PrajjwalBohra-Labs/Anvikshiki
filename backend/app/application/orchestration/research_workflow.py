@@ -391,6 +391,8 @@ class ResearchWorkflowState(TypedDict):
     research_decision: Dict[str, Any]
     research_round: int
     research_history: list[str]
+    inquiry_context: Dict[str, Any]
+    conversation_history: list[dict[str, str]]
 
 class ResearchWorkflowEngine:
     """
@@ -430,7 +432,13 @@ class ResearchWorkflowEngine:
             depth = state.get("depth") or "standard"
             raw = await generate_structured(
                 self.llm,
-                question_analysis_prompt(state["query"], state.get("domain"), depth),
+                question_analysis_prompt(
+                    state["query"],
+                    state.get("domain"),
+                    depth,
+                    state.get("inquiry_context"),
+                    state.get("conversation_history"),
+                ),
                 max_tokens=1800 if depth == "deep" else 1300,
             )
             question = normalize_question_analysis(
@@ -1075,6 +1083,8 @@ class ResearchWorkflowEngine:
             prompt = (
                 "Write the answer a thoughtful expert would give to this particular inquiry. Let the question analysis determine the structure; do not force a universal template or research-paper format.\n"
                 f"Query: {state['query']}\n"
+                f"Continuing inquiry context: {json.dumps(state.get('inquiry_context', {}), ensure_ascii=False, default=str)}\n"
+                f"Recent conversation: {json.dumps(state.get('conversation_history', [])[-12:], ensure_ascii=False, default=str)}\n"
                 f"Inquiry representation: {json.dumps(question_understanding, ensure_ascii=False)}\n"
                 f"Evidence JSON:\n{json.dumps(evidence_payload, ensure_ascii=False, default=str)}\n"
                 "Use only verified passages as evidence. Cite them inline as [P1], [P2], etc.; "
@@ -1085,6 +1095,7 @@ class ResearchWorkflowEngine:
                 "Clearly distinguish what a source states, your interpretation, and any inference. "
                 "Distinguish primary from secondary sources and never treat a discovery-only URL as evidence. "
                 "Correlate sources only where the passages support agreement, qualification, complementarity, or disagreement. "
+                "Before concluding, examine the strongest material counterargument or assumption visible in the inquiry and evidence, and revise or qualify the answer when it matters. "
                 "Do not report publication dates, URLs, retrieval counts, search warnings, or pipeline metadata as the answer. "
                 "If the passages cannot answer a requirement, state that limitation and do not substitute a bibliography. "
                 "Calibrate language: distinguish established, well-supported, plausible, contested, uncertain, and unsupported conclusions. Challenge a premise only when the supplied analysis or evidence makes the challenge material. "
@@ -1245,7 +1256,15 @@ class ResearchWorkflowEngine:
                 return "retrieval"
             if not state.get("retrieved_passages"):
                 return "validator"
-            return "specialist_analysis"
+            # The primary planner decides whether an existing collaborator is
+            # materially useful. Retrieval alone is not a reason to invoke the
+            # full specialist/debate path.
+            requested_tools = {
+                str(item.get("capability"))
+                for item in (state.get("question_understanding", {}).get("tool_requests") or [])
+                if isinstance(item, dict) and item.get("capability")
+            }
+            return "specialist_analysis" if requested_tools else "validator"
 
         def route_after_validation(state: ResearchWorkflowState) -> str:
             return END
@@ -1352,6 +1371,8 @@ class ResearchWorkflowEngine:
                 "discoveries": [],
                 "acquisitions": [],
             }),
+            "inquiry_context": state.get("inquiry_context", {}),
+            "conversation_history": state.get("conversation_history", []),
         }
 
     async def execute_research(
@@ -1363,6 +1384,8 @@ class ResearchWorkflowEngine:
         run_id: Optional[str] = None,
         depth: str = "standard",
         include_web: bool = False,
+        inquiry_context: dict[str, Any] | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> Dict[str, Any]:
         initial_state: ResearchWorkflowState = {
             "run_id": run_id,
@@ -1396,6 +1419,8 @@ class ResearchWorkflowEngine:
             "research_decision": {},
             "research_round": 0,
             "research_history": [],
+            "inquiry_context": inquiry_context or {},
+            "conversation_history": conversation_history or [],
         }
         config = {"configurable": {"thread_id": thread_id}}
         return await self.graph.ainvoke(initial_state, config=config)
@@ -1409,6 +1434,8 @@ class ResearchWorkflowEngine:
         run_id: Optional[str] = None,
         depth: str = "standard",
         include_web: bool = False,
+        inquiry_context: dict[str, Any] | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         initial_state: ResearchWorkflowState = {
             "run_id": run_id,
@@ -1442,6 +1469,8 @@ class ResearchWorkflowEngine:
             "research_decision": {},
             "research_round": 0,
             "research_history": [],
+            "inquiry_context": inquiry_context or {},
+            "conversation_history": conversation_history or [],
         }
         config = {"configurable": {"thread_id": thread_id}}
 
