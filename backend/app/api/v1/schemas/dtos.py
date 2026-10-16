@@ -146,6 +146,7 @@ class ResearchContinuityResponseDTO(BaseModel):
     evidence_trail: list[dict[str, Any]]
     research_timeline: list[dict[str, Any]]
     suggested_next_step: str
+    inquiry_context: dict[str, Any] = {}
 
 class ResearchQuestionSummaryResponseDTO(BaseModel):
     question_id: str

@@ -83,7 +83,19 @@ async def generate_structured(llm: Any, prompt: str, max_tokens: int = 1600) -> 
     return _json_object(result.get("content") if isinstance(result, dict) else result)
 
 
-def question_analysis_prompt(query: str, domain: str | None, depth: str) -> str:
+def question_analysis_prompt(
+    query: str,
+    domain: str | None,
+    depth: str,
+    inquiry_context: dict[str, Any] | None = None,
+    conversation_history: list[dict[str, str]] | None = None,
+) -> str:
+    context_text = json.dumps(inquiry_context or {}, ensure_ascii=False, default=str)
+    history_text = json.dumps(
+        (conversation_history or [])[-12:],
+        ensure_ascii=False,
+        default=str,
+    )
     return f"""Analyze this inquiry before any research.
 
 Question:
@@ -92,6 +104,13 @@ Question:
 User/application context:
 - Declared domain: {domain or 'unspecified'}
 - Requested depth: {depth}
+- Existing inquiry context (possibly empty): {context_text}
+- Recent conversation (possibly empty): {history_text}
+
+Treat the current message as a continuation when the context makes that
+clear. Preserve the original inquiry's scope unless the user explicitly
+changes it. User assertions and prior model conclusions are context to
+evaluate, not established evidence.
 
 Return one JSON object with exactly these top-level fields (arrays may be
 empty):
